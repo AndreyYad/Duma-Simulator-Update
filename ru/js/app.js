@@ -205,7 +205,7 @@ function viewBuild(){
       '<div><span class="lbl">Как делятся места</span><fieldset class="sys">'+
         '<label><input type="radio" name="sys" id="sys-prop" value="prop"'+(C.sys==='prop'?' checked':'')+'><b>По списку</b><span>Пропорционально близости партий к ответам.</span></label>'+
         '<label><input type="radio" name="sys" id="sys-mixed" value="mixed"'+(C.sys==='mixed'?' checked':'')+'><b>Смешанная, как в России</b><span>Часть мест по списку, часть по округам: вопрос — округ.</span></label>'+
-        '<div id="dshrow" style="grid-column:1/-1"><label class="lbl" for="dshare" style="margin-top:6px">Доля одномандатных округов: <b id="dshv"></b></label><input type="range" id="dshare" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"></div>'+
+        '<div id="dshrow" style="grid-column:1/-1"><label class="lbl" for="dshare" style="margin-top:6px">Доля одномандатных округов: <b id="dshv"></b></label><input type="range" id="dshare" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"><p class="hint" id="dshhint" style="margin:4px 0 0">Применится, если по вводным вопросам выйдет смешанная система.</p></div>'+
         '<label class="chk" id="ringchk" style="grid-column:1/-1"><input type="checkbox" id="f-rings"'+(RINGS?' checked':'')+'> Показывать места от округов кольцами</label>'+
       '</fieldset></div><div class="note" id="parl-note"></div></div>'+
     '<figure class="parl-fig"><div class="hemi" id="parl-h"></div><div class="parl-leg" id="parl-leg"></div></figure>'+
@@ -278,7 +278,7 @@ function refreshAxes(){ $$('[data-ax]').forEach(el=>{ const q=C.qs[+el.dataset.a
 function updParl(){
   const auto=C.party==='auto'; R.party=auto?'multi':C.party; R.sys=auto?'prop':C.sys;
   const B=bonus(), L=listTotal(), D=distTotal(), nq=enabled().length, one=R.party==='one';
-  $$('input[name="sys"]').forEach(r=>{ r.disabled=auto; }); $('#ringchk').hidden=R.sys!=='mixed'; $('#dshrow').hidden=R.sys!=='mixed'; $('#dshv').textContent=C.dshare+'%'; $('#duo').hidden=C.party!=='two';
+  $$('input[name="sys"]').forEach(r=>{ r.disabled=auto; }); $('#ringchk').hidden=R.sys!=='mixed'; $('#dshrow').hidden=R.sys!=='mixed'&&!auto; $('#dshhint').hidden=!auto; $('#dshv').textContent=C.dshare+'%'; $('#duo').hidden=C.party!=='two';
   const [da,db]=C.duo, duoTxt=da>=0&&db>=0&&da!==db?'Места делят «'+C.fams[da].n+'» и «'+C.fams[db].n+'». ':da>=0?'Места делят «'+C.fams[da].n+'» и её главный противник: партия, чьи черты сильнее всего с ней расходятся. ':db>=0?'Места делят «'+C.fams[db].n+'» и та из остальных партий, что ближе всего к ответам. ':'К местам допущены две конкурирующие партии: самая близкая к ответам и та, чьи черты сильнее всего с ней расходятся. ';
   drawParl($('#parl-h'),one?[{seats:C.seats,c:'var(--ink)'}]:[{seats:B,c:'var(--ink)'},{seats:L,c:'var(--accent)'},{seats:D,c:'var(--accent2)',k:'d'}],null,C.seats,plural(C.seats,'место','места','мест'));
   $('#parl-leg').innerHTML=one?'<span><i class="dot" style="background:var(--ink)"></i>Победителю <b>'+C.seats+'</b></span>':
@@ -500,7 +500,7 @@ function viewResult(){
   S.hl=null; S.pick=[]; window.scrollTo(0,0);
   const mixed=R.sys==='mixed', answered=S.ans.filter(v=>v!=null).length;
   app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px">'+(C.year?'<span class="pill">Выборы '+C.year+' года</span>':'')+'<span class="pill">'+SYSF[R.party]+'</span><span class="pill">'+(mixed?'Смешанная: список и округа':'По партийным спискам')+'</span><span class="pill">'+mest(C.seats)+'</span></div><h2 tabindex="-1" style="outline:none">'+(C.year?'Ваша Дума '+C.year+' года':'Ваш парламент')+'</h2><p class="lead" id="lead" style="margin:0"></p></div>'+
-    '<div class="box main"><div class="hemi" id="rh"></div><div><div class="chips" id="tiers" style="margin:0 0 8px"></div><div class="chips" id="ringrow" style="margin:0 0 8px"></div><div class="leg" id="leg"></div><div class="desc" id="desc"></div></div></div>'+
+    '<div class="box main"><div class="hemi" id="rh"></div><div><div class="chips" id="tiers" style="margin:0 0 8px"></div><div class="chips" id="ringrow" style="margin:0 0 8px"></div>'+(mixed?'<div id="dsres" style="margin:0 0 10px"><label class="lbl" for="dshare2">Доля одномандатных округов: <b id="dshv2">'+C.dshare+'%</b></label><input type="range" id="dshare2" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"></div>':'')+'<div class="leg" id="leg"></div><div class="desc" id="desc"></div></div></div>'+
     '<div class="box"><h3>Итоги выборов</h3><p class="hint">Карточка в оформлении Википедии. Её удобно сохранить снимком экрана.</p><div id="wb"></div></div>'+
     '<div id="presbox"></div><div id="mapbox"></div>'+
     '<div class="box" id="cobox"><h3>Возможные большинства и правительство</h3><p class="hint">Союзы, которые набирают '+maj()+' и больше.'+(C.span?' Объединяться могут только соседи по оси: не дальше трёх шагов друг от друга.':'')+(C.no.length?' Партии, которые отказались работать вместе, в один союз не попадают.':'')+' Выберите союз или соберите свой, чтобы раздать министерские портфели.</p><div class="coal" id="coal"></div><p class="hint" id="cmline" style="margin:12px 0 0"></p><div id="copick"></div></div>'+
@@ -526,6 +526,7 @@ function viewResult(){
     const r=e.target.closest('.tr'); if(!r||r.classList.contains('na')) return; const k='t'+r.dataset.t; S.hl=S.hl===k?null:k; updResult(); });
   ths.addEventListener('keydown',e=>{ const r=e.target.closest('.tr'); if(r&&e.target===r&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); r.click(); } });
   $('#again').addEventListener('click',()=>{ if(C.party==='auto'){ S.sa=[]; S.si=0; window.scrollTo(0,0); viewSys(); } else viewPrio(); });
+  { const ds=$('#dshare2'); if(ds) ds.addEventListener('input',()=>{ C.dshare=Math.max(0,Math.min(100,+ds.value||0)); $('#dshv2').textContent=C.dshare+'%'; save(); updResult(); }); }
   $('#edit').addEventListener('click',viewBuild); $('#shot').addEventListener('click',exportPng);
   updResult(); $('.res h2').focus({preventScroll:true});
 }
