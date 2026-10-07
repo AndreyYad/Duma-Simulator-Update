@@ -550,7 +550,7 @@ function updResult(){
   const co=coalitions(st), bar=m=>'<div class="bar">'+m.map(f=>'<span style="width:'+(st[f]/C.seats*100)+'%;background:'+esc(C.fams[f].c)+'"></span>').join('')+'<em style="left:'+(M/C.seats*100)+'%"></em><em class="cm" style="left:'+(CM()/C.seats*100)+'%"></em></div><button type="button" class="chip" data-co="'+m.join(',')+'" style="margin-top:9px">Собрать правительство</button>';
   $('#coal').innerHTML=solo?'<div class="co"><div class="t"><span>'+esc(C.fams[L].n)+' в одиночку</span><em>'+st[L]+'</em></div>'+bar([L])+'</div>':
     co.length?co.map(c=>{ const nm=coName(c.m), ps=c.m.map(f=>esc(C.fams[f].n)).join(' + '); return '<div class="co"><div class="t"><span>'+(nm?esc(nm)+'<small>'+ps+'</small>':ps)+'</span><em>'+c.t+'</em></div>'+bar(c.m)+'</div>'; }).join(''):'<p class="hint">При таком раскладе ни один допустимый союз не набирает '+M+'.</p>';
-  wikibox(st,li,di,bo); worldBoxes(st,scope,co);
+  wikibox(st,li,di,bo); try{ worldBoxes(st,scope,co); }catch(e){ if(window.console) console.error(e); }
   S.st=st; S.pick=S.pick.filter(f=>st[f]>0); const pt=sum(S.pick.map(f=>st[f])), vp=vetoPair(S.pick), pn=coName(S.pick);
   $('#copick').innerHTML='<span class="lbl" style="margin:14px 0 6px">Своя коалиция</span><div class="chips">'+C.fams.map((F,f)=>st[f]?'<button type="button" class="chip" data-pk="'+f+'" aria-pressed="'+S.pick.includes(f)+'">'+mark(F)+esc(F.n)+' · '+st[f]+'</button>':'').join('')+'</div>'+
     '<div class="go" style="margin-top:10px"><button type="button" class="chip" data-co="'+S.pick.join(',')+'"'+(S.pick.length&&!vp?'':' disabled')+'>Собрать правительство</button><span>'+(vp?'«'+esc(C.fams[vp[0]].n)+'» и «'+esc(C.fams[vp[1]].n)+'» отказались работать в одной коалиции':S.pick.length?(pn?'«'+esc(pn)+'»: ':'')+pt+' из '+C.seats+(pt>=M?': большинство есть':': правительство меньшинства, до большинства не хватает '+(M-pt)):'Отметьте партии, которые войдут в правительство')+'</span></div>';
@@ -621,7 +621,7 @@ function viewCabinet(m){
       PORT.forEach(x=>{ if(x[0]!==id&&asg[x[0]]===f&&min[x[0]]>=0) held[min[x[0]]]=x[1]; });
       return '<div class="cab-row" style="--c:'+esc(C.fams[f].c)+'"><span class="rk">'+auto.ord[id]+'</span><span class="nm">'+(min[id]>=0&&face(P[min[id]])?'<img class="ava" src="'+esc(face(P[min[id]]))+'" alt="">':'')+'<b>'+p[1]+'</b>'+(min[id]>=0&&P[min[id]]?'<small class="who">'+esc(P[min[id]].n)+'</small>':'<small>Пост вакантен</small>')+(f!==was?'<small>Передано вручную; по правилу — '+esc(C.fams[was].n)+'</small>':'')+'</span>'+
         '<select class="in" id="port-'+id+'" data-port="'+id+'" aria-label="Какой партии достаётся портфель: '+p[1]+'"'+(m.length<2?' disabled':'')+'>'+m.map(x=>'<option value="'+x+'"'+(x===f?' selected':'')+'>'+esc(C.fams[x].n)+'</option>').join('')+'</select>'+
-        '<select class="in" id="min-'+id+'" data-min="'+id+'" aria-label="Кто занимает пост: '+p[1]+'"'+(P.length?'':' disabled')+'><option value="-1">'+(P.length?'— вакансия —':'нет персонажей')+'</option>'+P.map((x,j)=>'<option value="'+j+'"'+(j===min[id]?' selected':'')+(held[j]?' disabled':'')+'>'+esc(x.n)+(held[j]?' · уже '+held[j].toLowerCase():'')+'</option>').join('')+'</select></div>'; }).join(''); $('#future').innerHTML=futureBox(m,asg,min,st); };
+        '<select class="in" id="min-'+id+'" data-min="'+id+'" aria-label="Кто занимает пост: '+p[1]+'"'+(P.length?'':' disabled')+'><option value="-1">'+(P.length?'— вакансия —':'нет персонажей')+'</option>'+P.map((x,j)=>'<option value="'+j+'"'+(j===min[id]?' selected':'')+(held[j]?' disabled':'')+'>'+esc(x.n)+(held[j]?' · уже '+held[j].toLowerCase():'')+'</option>').join('')+'</select></div>'; }).join(''); try{ $('#future').innerHTML=futureBox(m,asg,min,st); }catch(e){ if(window.console) console.error(e); } };
   fill();
   $('#crows').addEventListener('change',e=>{ const t=e.target, id=t.dataset.port||t.dataset.min; if(!id) return;
     if(t.dataset.port){ asg[id]=+t.value; min[id]=-1; min[id]=pick(id); } else min[id]=+t.value;
@@ -660,6 +660,8 @@ function wikibox(st,li,di,bo){
 
 // ══════ 8. Мир вокруг Думы: конституционное большинство, регионы, президент, законопроекты, события ══════
 const CM=()=>Math.ceil(C.seats*2/3); // конституционное большинство: две трети мест
+// Данные из world.js могут не загрузиться (например, в кеше осталась старая страница): тогда эти блоки просто не показываются
+const WORLD=typeof BILLS!=='undefined'&&typeof PRES!=='undefined'&&typeof REG!=='undefined'&&typeof REG_T!=='undefined'&&typeof EVENTS!=='undefined';
 const sv=(tr,ids)=>ids.reduce((s,id)=>Math.max(s,SV[tr[id]||0]),0);
 const pc=v=>(v*100).toFixed(1).replace('.',',')+'%';
 // Доли партий по стране: насколько каждая близка к ответам (как при делении мест по списку)
@@ -676,7 +678,7 @@ function regionResult(id,share){
   const T=sum(w); return {types,p:w.map(v=>T?v/T:0)};
 }
 function mapBox(share){
-  const M=window.RUMAP; if(!M||!C.year) return '';
+  const M=window.RUMAP; if(!WORLD||!M||!C.year) return '';
   const ids=Object.keys(REG).filter(id=>M.r[id]&&((id!=='CR'&&id!=='SEV')||C.year>=2016)), res={}, wins=C.fams.map(()=>0);
   ids.forEach(id=>{ const r=regionResult(id,share); r.w=leader(r.p); res[id]=r; wins[r.w]++; });
   S.regRes=res; S.natShare=share; if(!res[S.reg]) S.reg='MOW';
@@ -699,7 +701,7 @@ function showReg(){ const mb=$('#mapbox'); if(!mb) return; $$('.rg',mb).forEach(
 
 // ── Президентские выборы: те же правила близости, но среди кандидатов; при необходимости второй тур
 function presResult(){
-  const P=PRES[C.year]; if(!P||!S.qs.length) return null;
+  const P=WORLD&&PRES[C.year]; if(!P||!S.qs.length) return null;
   const grey=['#6b7280','#9a6b3f','#7b5ea7','#3f8f8a']; let gi=0;
   const cands=P.c.map(c=>{ const f=c[1]?C.fams.findIndex(F=>F.n===c[1]):-1; return {n:c[0],f,tr:c[2]||(f>=0?C.fams[f].tr:{}),c:f>=0?C.fams[f].c:grey[gi++%4],pn:f>=0?C.fams[f].n:'Самовыдвижение'}; });
   const w=cands.map(()=>0); let tw=0;
@@ -734,7 +736,7 @@ function presBox(){
 // ── Законопроекты: фракция голосует «за», если её черты ближе к закону, чем к возражениям
 function billVote(b,st){ const yes=[], no=[], abs=[]; C.fams.forEach((F,f)=>{ if(!st[f]) return; const p=sv(F.tr,b[2])-sv(F.tr,b[3]); (p>=.2?yes:p<=-.2?no:abs).push(f); }); const cnt=a=>sum(a.map(f=>st[f])); return {yes,no,abs,y:cnt(yes),n:cnt(no),a:cnt(abs)}; }
 function billsBox(st){
-  const B=BILLS[C.year]; if(!B) return ''; const N=C.seats, ut=userTr(), um=ids=>ids.reduce((s,id)=>Math.max(s,ut[id]||0),0); let passed=0;
+  const B=WORLD&&BILLS[C.year]; if(!B) return ''; const N=C.seats, ut=userTr(), um=ids=>ids.reduce((s,id)=>Math.max(s,ut[id]||0),0); let passed=0;
   const items=B.map(b=>{ const v=billVote(b,st), need=b[4]==='const'?CM():maj(), ok=v.y>=need, up=um(b[2])-um(b[3]); if(ok) passed++;
     const who=(a,t)=>a.length?'<span class="bv"><b>'+t+':</b> '+a.map(f=>'<i class="dot" style="background:'+esc(C.fams[f].c)+'"></i>'+esc(C.fams[f].n)).join(', ')+'</span>':'';
     return '<div class="bill"><div class="h"><b>'+esc(b[0])+'</b><span class="pill '+(ok?'ok':'bad')+'">'+(ok?'Принят':'Отклонён')+'</span></div><p class="hint">'+esc(b[1])+(b[4]==='const'?' Нужно конституционное большинство: '+need+'.':'')+'</p>'+
@@ -750,7 +752,7 @@ function futureBox(m,asg,min,st){
   const tot=sum(m.map(f=>st[f])), prof={}, y=C.year||2021, pmF=C.fams[asg.pm], pmP=min.pm>=0?pmF.ppl[min.pm]:null, pm=pmP?pmP.n:'«'+pmF.n+'»';
   m.forEach(f=>{ Object.keys(C.fams[f].tr).forEach(id=>{ prof[id]=(prof[id]||0)+SV[C.fams[f].tr[id]]*st[f]/tot; }); });
   const mx=ids=>ids.reduce((s,id)=>Math.max(s,prof[id]||0),0), fillT=t=>esc(t).replace('{pm}',esc(pm)).replace('{lead}',esc(pmF.n));
-  const ev=EVENTS.map(e=>({s:mx(e[0])-mx(e[1]),v:e[2].find(x=>y>=x[0]&&y<=x[1])})).filter(e=>e.v&&e.s>=.3).sort((a,b)=>b.s-a.s).slice(0,5).map(e=>[e.v[2],fillT(e.v[3])]);
+  const ev=(WORLD?EVENTS:[]).map(e=>({s:mx(e[0])-mx(e[1]),v:e[2].find(x=>y>=x[0]&&y<=x[1])})).filter(e=>e.v&&e.s>=.3).sort((a,b)=>b.s-a.s).slice(0,5).map(e=>[e.v[2],fillT(e.v[3])]);
   if(tot>=CM()) ev.unshift(['Поправки к Конституции','У правительства '+tot+' мест из '+C.seats+', больше двух третей. В Думу внесены конституционные поправки, и остановить их оппозиция не может.']);
   else if(tot<maj()) ev.unshift(['Угроза вотума недоверия','У правительства только '+tot+' мест из '+C.seats+'. Оппозиция собирает подписи за вотум недоверия, а каждый закон приходится проводить поштучно.']);
   if(m.length>1){ let bd=0, pa=null; m.forEach(a=>m.forEach(b=>{ if(a>=b) return; const ca=famCoords(C.fams[a]), cb=famCoords(C.fams[b]), d=Math.hypot(ca[0]-cb[0],ca[1]-cb[1]); if(d>bd){ bd=d; pa=[a,b]; } }));
