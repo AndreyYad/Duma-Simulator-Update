@@ -5,134 +5,134 @@
 // ══════ Регионы ══════
 // Типы регионов: [название, что важно региону и как он голосовал, черты с весом (минус — отталкивает), годы действия]
 const REG_T={
-  cap:['Столичный мегаполис','Свобода прессы, честные выборы, открытая экономика. Москва и Петербург давали «Яблоку» и правым лучшие результаты в стране.',{lib:1,plural:1,mkt:.7,west:.7,prog:.5,privacy:.5},1993,2021],
-  big:['Промышленный центр','Зарплаты, загрузка заводов, тарифы. Голосует близко к среднему по стране.',{labor:.8,gos:.5,welfare:.5,biz:.4,tech:.3},1993,2021],
-  cen:['Центральная Россия','Работа, дороги, отток людей в Москву.',{welfare:.5,labor:.5,trad:.3,stab:.3},1993,2021],
-  red:['Красный пояс','Советские гарантии, село, недоверие реформам. В 1995–1999 годах здесь уверенно побеждала КПРФ.',{soviet:1,welfare:.8,gos:.8,agr:.6,nat:.5,antiwest:.4},1993,2003],
-  agr:['Аграрный регион','Поддержка села, цены на зерно и топливо.',{agr:1,prot:.7,trad:.5,welfare:.4},1993,2021],
-  nat:['Национальная республика','Статус республики, родной язык, договорённости с центром. С 2000-х партия власти получает здесь намного больше среднего.',{stab:1,pres:.8,multi:.7,fed:.5,lang_min:.6,trad:.5,rel:.4,lang_one:-.8,nation:-.6},1993,2021],
-  cau:['Северный Кавказ','Безопасность, дотации, традиционный уклад. С 2000-х — самая высокая в стране явка и поддержка власти.',{stab:1,pres:1,trad:.8,rel:.8,unity:.5,lang_one:-.6,nation:-.6},1993,2021],
-  res:['Сырьевой Север','Нефть и газ, северные надбавки, спор о том, сколько налогов остаётся в регионе.',{growth:.8,stab:.6,fed:.5,welfare:.4,tax_lo:.4,nat:.3},1993,2021],
-  far:['Дальний Восток','Удалённость от Москвы, цены, отток людей. Здесь сильно протестное голосование: в 1993 году победила ЛДПР, в 2018–2019 годах её губернаторы.',{pop:1,prot:.6,nation:.5,fed:.5,plural:.4,welfare:.4,stab:-.4},1993,2021],
-  sib:['Сибирь','Тарифы, экология, самостоятельность от центра.',{fed:.6,pop:.5,labor:.5,eco:.4,plural:.3},1993,2021],
-  north:['Русский Север и Северо-Запад','Лес, порты, отток людей. Заметное протестное голосование.',{plural:.5,eco:.5,welfare:.5,pop:.4,west:.2},1993,2021],
-  mil:['Оборонный регион','Оборонный заказ, армия, статус державы.',{mil:1,gos:.5,sov:.5,nation:.4},1993,2021],
-  border:['Южное пограничье','Миграция, казачество, запрос на порядок.',{imm_anti:.8,law:.7,nation:.6,trad:.5,agr:.4},1993,2021],
-  loyal:['Опора партии власти','Стабильность и федеральные деньги. С 2003 года «Единая Россия» получает здесь заметно больше среднего.',{stab:1,pres:.8,cent:.4,growth:.3},2003,2021],
-  lib90:['Регион реформаторов 1990-х','Свои губернаторы-реформаторы, приватизация, инвесторы: Нижний Новгород Немцова, Самара Титова, Урал Росселя.',{mkt:.8,priv:.6,biz:.6,west:.4,plural:.4},1993,1999],
-  protest:['Протестный регион 2010-х','Недовольство Москвой и назначенцами. В 2018–2021 годах здесь выигрывали кандидаты КПРФ и ЛДПР.',{pop:.7,plural:.6,fed:.5,welfare:.5,stab:-.6},2011,2021],
-  ex:['Эксклав','Граница с Евросоюзом, торговля, флот.',{west:.6,mkt:.5,biz:.4,mil:.3},1993,2021]
+  cap:['Capital metropolis','Press freedom, fair elections, an open economy. Moscow and St Petersburg gave “Yabloko” and the right their best results in the country.',{lib:1,plural:1,mkt:.7,west:.7,prog:.5,privacy:.5},1993,2021],
+  big:['Industrial centre','Wages, factory orders, tariffs. Votes close to the national average.',{labor:.8,gos:.5,welfare:.5,biz:.4,tech:.3},1993,2021],
+  cen:['Central Russia','Jobs, roads, people leaving for Moscow.',{welfare:.5,labor:.5,trad:.3,stab:.3},1993,2021],
+  red:['Red Belt','Soviet-era guarantees, the countryside, distrust of reforms. In 1995–1999 the CPRF won here comfortably.',{soviet:1,welfare:.8,gos:.8,agr:.6,nat:.5,antiwest:.4},1993,2003],
+  agr:['Agrarian region','Support for agriculture, grain and fuel prices.',{agr:1,prot:.7,trad:.5,welfare:.4},1993,2021],
+  nat:['National republic','The status of the republic, the native language, deals with the centre. Since the 2000s the party of power has scored far above average here.',{stab:1,pres:.8,multi:.7,fed:.5,lang_min:.6,trad:.5,rel:.4,lang_one:-.8,nation:-.6},1993,2021],
+  cau:['North Caucasus','Security, subsidies, a traditional way of life. Since the 2000s it has had the country’s highest turnout and support for the authorities.',{stab:1,pres:1,trad:.8,rel:.8,unity:.5,lang_one:-.6,nation:-.6},1993,2021],
+  res:['Resource-rich North','Oil and gas, northern pay supplements, the dispute over how much tax stays in the region.',{growth:.8,stab:.6,fed:.5,welfare:.4,tax_lo:.4,nat:.3},1993,2021],
+  far:['Far East','Distance from Moscow, prices, people leaving. The protest vote is strong here: the LDPR won in 1993, and its governors won in 2018–2019.',{pop:1,prot:.6,nation:.5,fed:.5,plural:.4,welfare:.4,stab:-.4},1993,2021],
+  sib:['Siberia','Tariffs, the environment, independence from the centre.',{fed:.6,pop:.5,labor:.5,eco:.4,plural:.3},1993,2021],
+  north:['Russian North and North-West','Timber, ports, people leaving. A noticeable protest vote.',{plural:.5,eco:.5,welfare:.5,pop:.4,west:.2},1993,2021],
+  mil:['Defence-industry region','Defence orders, the army, great-power status.',{mil:1,gos:.5,sov:.5,nation:.4},1993,2021],
+  border:['Southern borderland','Migration, the Cossacks, a demand for order.',{imm_anti:.8,law:.7,nation:.6,trad:.5,agr:.4},1993,2021],
+  loyal:['Stronghold of the party of power','Stability and federal money. Since 2003 “United Russia” has scored noticeably above average here.',{stab:1,pres:.8,cent:.4,growth:.3},2003,2021],
+  lib90:['Region of 1990s reformers','Their own reformist governors, privatisation, investors: Nemtsov’s Nizhny Novgorod, Titov’s Samara, Rossel’s Urals.',{mkt:.8,priv:.6,biz:.6,west:.4,plural:.4},1993,1999],
+  protest:['Protest region of the 2010s','Discontent with Moscow and its appointees. In 2018–2021 CPRF and LDPR candidates won here.',{pop:.7,plural:.6,fed:.5,welfare:.5,stab:-.6},2011,2021],
+  ex:['Exclave','A border with the European Union, trade, the navy.',{west:.6,mkt:.5,biz:.4,mil:.3},1993,2021]
 };
 // Регионы: код: [название, типы]. Крым и Севастополь участвуют только в сценариях 2016 и 2021 годов.
 const REG={
-  MOW:['Москва',['cap']],SPE:['Санкт-Петербург',['cap']],MOS:['Московская область',['big']],LEN:['Ленинградская область',['north']],
-  BEL:['Белгородская область',['red','agr','loyal']],BRY:['Брянская область',['red','agr']],VLA:['Владимирская область',['big','protest']],VOR:['Воронежская область',['red','agr']],
-  IVA:['Ивановская область',['big']],KLU:['Калужская область',['big']],KOS:['Костромская область',['cen']],KRS:['Курская область',['red','agr']],LIP:['Липецкая область',['red','agr']],
-  ORL:['Орловская область',['red','agr']],RYA:['Рязанская область',['red','cen']],SMO:['Смоленская область',['red','cen']],TAM:['Тамбовская область',['red','agr','loyal']],
-  TVE:['Тверская область',['cen']],TUL:['Тульская область',['red','mil']],YAR:['Ярославская область',['cen','protest']],
-  KR:['Карелия',['north','protest']],KO:['Коми',['north','res','protest']],ARK:['Архангельская область',['north','protest']],NEN:['Ненецкий автономный округ',['res']],
-  VLG:['Вологодская область',['north']],KGD:['Калининградская область',['ex']],MUR:['Мурманская область',['north','mil']],NGR:['Новгородская область',['north']],PSK:['Псковская область',['north']],
-  AD:['Адыгея',['nat','agr','red']],KL:['Калмыкия',['nat','agr']],KDA:['Краснодарский край',['agr','border','red','loyal']],AST:['Астраханская область',['border']],
-  VGG:['Волгоградская область',['red','agr']],ROS:['Ростовская область',['agr','border']],
-  DA:['Дагестан',['cau','red']],IN:['Ингушетия',['cau']],KB:['Кабардино-Балкария',['cau']],KC:['Карачаево-Черкесия',['cau','red']],SE:['Северная Осетия',['cau','red']],CE:['Чечня',['cau']],
-  STA:['Ставропольский край',['agr','border','red']],
-  BA:['Башкортостан',['nat','res','loyal']],ME:['Марий Эл',['nat','red','protest']],MO:['Мордовия',['nat','red','loyal']],TA:['Татарстан',['nat','res','loyal']],UD:['Удмуртия',['nat','mil']],
-  CU:['Чувашия',['nat','red']],PER:['Пермский край',['big','lib90']],KIR:['Кировская область',['cen','protest']],NIZ:['Нижегородская область',['big','lib90']],ORE:['Оренбургская область',['agr','red']],
-  PNZ:['Пензенская область',['red','agr']],SAM:['Самарская область',['big','lib90']],SAR:['Саратовская область',['agr','red','loyal']],ULY:['Ульяновская область',['red','protest']],
-  KGN:['Курганская область',['agr','red']],SVE:['Свердловская область',['big','lib90','mil']],TYU:['Тюменская область',['res','loyal']],KHM:['Ханты-Мансийский автономный округ',['res']],
-  YAN:['Ямало-Ненецкий автономный округ',['res','loyal']],CHE:['Челябинская область',['big','mil']],
-  AL:['Республика Алтай',['nat','sib','protest']],ALT:['Алтайский край',['agr','red','sib']],BU:['Бурятия',['nat','sib']],ZAB:['Забайкальский край',['sib','red','far']],
-  IRK:['Иркутская область',['sib','big','protest']],KEM:['Кемеровская область',['big','sib','loyal']],KYA:['Красноярский край',['sib','big','res']],NVS:['Новосибирская область',['sib','big','red','protest']],
-  OMS:['Омская область',['sib','big','red','protest']],TOM:['Томская область',['sib','lib90']],TY:['Тыва',['nat','loyal']],KK:['Хакасия',['sib','protest']],
-  SA:['Якутия',['nat','res','far','protest']],KAM:['Камчатский край',['far']],PRI:['Приморский край',['far','protest']],KHA:['Хабаровский край',['far','protest']],AMU:['Амурская область',['far','red']],
-  MAG:['Магаданская область',['far']],SAK:['Сахалинская область',['far','res']],YEV:['Еврейская автономная область',['far']],CHU:['Чукотка',['far','res','loyal']],
-  CR:['Крым',['border','loyal','mil']],SEV:['Севастополь',['mil','loyal']]
+  MOW:['Moscow',['cap']],SPE:['St Petersburg',['cap']],MOS:['Moscow Oblast',['big']],LEN:['Leningrad Oblast',['north']],
+  BEL:['Belgorod Oblast',['red','agr','loyal']],BRY:['Bryansk Oblast',['red','agr']],VLA:['Vladimir Oblast',['big','protest']],VOR:['Voronezh Oblast',['red','agr']],
+  IVA:['Ivanovo Oblast',['big']],KLU:['Kaluga Oblast',['big']],KOS:['Kostroma Oblast',['cen']],KRS:['Kursk Oblast',['red','agr']],LIP:['Lipetsk Oblast',['red','agr']],
+  ORL:['Oryol Oblast',['red','agr']],RYA:['Ryazan Oblast',['red','cen']],SMO:['Smolensk Oblast',['red','cen']],TAM:['Tambov Oblast',['red','agr','loyal']],
+  TVE:['Tver Oblast',['cen']],TUL:['Tula Oblast',['red','mil']],YAR:['Yaroslavl Oblast',['cen','protest']],
+  KR:['Karelia',['north','protest']],KO:['Komi',['north','res','protest']],ARK:['Arkhangelsk Oblast',['north','protest']],NEN:['Nenets Autonomous Okrug',['res']],
+  VLG:['Vologda Oblast',['north']],KGD:['Kaliningrad Oblast',['ex']],MUR:['Murmansk Oblast',['north','mil']],NGR:['Novgorod Oblast',['north']],PSK:['Pskov Oblast',['north']],
+  AD:['Adygea',['nat','agr','red']],KL:['Kalmykia',['nat','agr']],KDA:['Krasnodar Krai',['agr','border','red','loyal']],AST:['Astrakhan Oblast',['border']],
+  VGG:['Volgograd Oblast',['red','agr']],ROS:['Rostov Oblast',['agr','border']],
+  DA:['Dagestan',['cau','red']],IN:['Ingushetia',['cau']],KB:['Kabardino-Balkaria',['cau']],KC:['Karachay-Cherkessia',['cau','red']],SE:['North Ossetia',['cau','red']],CE:['Chechnya',['cau']],
+  STA:['Stavropol Krai',['agr','border','red']],
+  BA:['Bashkortostan',['nat','res','loyal']],ME:['Mari El',['nat','red','protest']],MO:['Mordovia',['nat','red','loyal']],TA:['Tatarstan',['nat','res','loyal']],UD:['Udmurtia',['nat','mil']],
+  CU:['Chuvashia',['nat','red']],PER:['Perm Krai',['big','lib90']],KIR:['Kirov Oblast',['cen','protest']],NIZ:['Nizhny Novgorod Oblast',['big','lib90']],ORE:['Orenburg Oblast',['agr','red']],
+  PNZ:['Penza Oblast',['red','agr']],SAM:['Samara Oblast',['big','lib90']],SAR:['Saratov Oblast',['agr','red','loyal']],ULY:['Ulyanovsk Oblast',['red','protest']],
+  KGN:['Kurgan Oblast',['agr','red']],SVE:['Sverdlovsk Oblast',['big','lib90','mil']],TYU:['Tyumen Oblast',['res','loyal']],KHM:['Khanty-Mansi Autonomous Okrug',['res']],
+  YAN:['Yamalo-Nenets Autonomous Okrug',['res','loyal']],CHE:['Chelyabinsk Oblast',['big','mil']],
+  AL:['Altai Republic',['nat','sib','protest']],ALT:['Altai Krai',['agr','red','sib']],BU:['Buryatia',['nat','sib']],ZAB:['Zabaykalsky Krai',['sib','red','far']],
+  IRK:['Irkutsk Oblast',['sib','big','protest']],KEM:['Kemerovo Oblast',['big','sib','loyal']],KYA:['Krasnoyarsk Krai',['sib','big','res']],NVS:['Novosibirsk Oblast',['sib','big','red','protest']],
+  OMS:['Omsk Oblast',['sib','big','red','protest']],TOM:['Tomsk Oblast',['sib','lib90']],TY:['Tuva',['nat','loyal']],KK:['Khakassia',['sib','protest']],
+  SA:['Yakutia',['nat','res','far','protest']],KAM:['Kamchatka Krai',['far']],PRI:['Primorsky Krai',['far','protest']],KHA:['Khabarovsk Krai',['far','protest']],AMU:['Amur Oblast',['far','red']],
+  MAG:['Magadan Oblast',['far']],SAK:['Sakhalin Oblast',['far','res']],YEV:['Jewish Autonomous Oblast',['far']],CHU:['Chukotka',['far','res','loyal']],
+  CR:['Crimea',['border','loyal','mil']],SEV:['Sevastopol',['mil','loyal']]
 };
 
 // ══════ Законопроекты по созывам ══════
-// Год сценария: [название, суть, черты «за», черты «против», тип ('law' — простое большинство, 'const' — две трети), как было на самом деле]
+// Год сценария: [название, суть, черты “за”, черты “против”, тип ('law' — простое большинство, 'const' — две трети), как было на самом деле]
 const BILLS={
   1993:[
-    ['Амнистия участникам событий 1991 и 1993 годов','Постановление об амнистии членов ГКЧП и защитников Верховного Совета.',['soviet','parl','nation','stab'],['west','priv'],'law','Принято в феврале 1994 года.'],
-    ['Гражданский кодекс, часть первая','Закрепляет частную собственность и свободу договора.',['mkt','priv','biz'],['soviet','nat'],'law','Принят в октябре 1994 года.'],
-    ['Вотум недоверия правительству Черномырдина','Голосование после захвата больницы в Будённовске.',['parl','soviet','nation','pop'],['pres','stab'],'law','В июне 1995 года набрал большинство, при повторном голосовании в июле — нет.'],
-    ['Соглашения о разделе продукции','Допускает иностранных инвесторов к разработке недр на особых условиях.',['mkt','west','biz'],['sov','nat','prot'],'law','Принят в декабре 1995 года.'],
-    ['Индексация вкладов Сбербанка','Государство признаёт обесцененные вклады своим внутренним долгом.',['welfare','soviet','pop'],['self','mkt'],'law','Закон о восстановлении сбережений принят в 1995 году.']
+    ['Amnesty for participants in the events of 1991 and 1993','A resolution granting amnesty to members of the 1991 coup committee and the defenders of the Supreme Soviet.',['soviet','parl','nation','stab'],['west','priv'],'law','Adopted in February 1994.'],
+    ['Civil Code, Part One','Enshrines private property and freedom of contract.',['mkt','priv','biz'],['soviet','nat'],'law','Adopted in October 1994.'],
+    ['Vote of no confidence in the Chernomyrdin government','A vote held after the hospital hostage-taking in Budyonnovsk.',['parl','soviet','nation','pop'],['pres','stab'],'law','In June 1995 it won a majority; in the repeat vote in July it did not.'],
+    ['Production sharing agreements','Admits foreign investors to natural resource development on special terms.',['mkt','west','biz'],['sov','nat','prot'],'law','Adopted in December 1995.'],
+    ['Indexation of Sberbank deposits','The state recognises devalued deposits as its domestic debt.',['welfare','soviet','pop'],['self','mkt'],'law','The law on restoring savings was adopted in 1995.']
   ],
   1995:[
-    ['Денонсация Беловежских соглашений','Дума объявляет недействительным решение о роспуске СССР.',['soviet','eurasia'],['west','pres','mkt'],'law','Постановление принято в марте 1996 года.'],
-    ['Импичмент президенту Ельцину','Пять пунктов обвинения, включая Беловежье и войну в Чечне.',['parl','soviet'],['pres','stab'],'const','В мае 1999 года ни одно обвинение не набрало 300 голосов.'],
-    ['Утверждение Сергея Кириенко премьером','Президент трижды вносит одну кандидатуру, угрожая роспуском Думы.',['pres','mkt','stab'],['parl','soviet'],'law','Утверждён с третьей попытки в апреле 1998 года.'],
-    ['Земельный кодекс со свободной продажей земли','Разрешает куплю-продажу сельскохозяйственной земли.',['mkt','priv'],['agr','gos','soviet'],'law','Вторая Дума приняла кодекс без купли-продажи; президент наложил вето.'],
-    ['Ратификация договора СНВ-2','Сокращение стратегических ядерных вооружений вместе с США.',['west','pac'],['mil','antiwest'],'law','Вторая Дума договор не ратифицировала.'],
-    ['Закон о свободе совести','Особая роль православия и ограничения для новых религиозных организаций.',['rel','trad','nation'],['sec','lib'],'law','Принят в сентябре 1997 года.']
+    ['Denunciation of the Belovezha Accords','The Duma declares the decision to dissolve the USSR invalid.',['soviet','eurasia'],['west','pres','mkt'],'law','The resolution was adopted in March 1996.'],
+    ['Impeachment of President Yeltsin','Five charges, including the Belovezha Accords and the war in Chechnya.',['parl','soviet'],['pres','stab'],'const','In May 1999 none of the charges won 300 votes.'],
+    ['Confirmation of Sergei Kiriyenko as prime minister','The president nominates the same candidate three times, threatening to dissolve the Duma.',['pres','mkt','stab'],['parl','soviet'],'law','Confirmed on the third attempt in April 1998.'],
+    ['Land Code with free sale of land','Allows the sale and purchase of farmland.',['mkt','priv'],['agr','gos','soviet'],'law','The second Duma adopted a code without land sales; the president vetoed it.'],
+    ['Ratification of the START II treaty','Reduction of strategic nuclear arms together with the USA.',['west','pac'],['mil','antiwest'],'law','The second Duma did not ratify the treaty.'],
+    ['Law on freedom of conscience','A special role for Orthodoxy and restrictions on new religious organisations.',['rel','trad','nation'],['sec','lib'],'law','Adopted in September 1997.']
   ],
   1999:[
-    ['Ратификация договора СНВ-2','Сокращение стратегических ядерных вооружений вместе с США.',['west','pac','stab'],['antiwest','soviet'],'law','Ратифицирован в апреле 2000 года.'],
-    ['Плоская шкала подоходного налога','Единая ставка 13% вместо прогрессивной шкалы.',['tax_lo','mkt','biz'],['tax_hi','equal'],'law','Принята в 2000 году.'],
-    ['Гимн на музыку Александрова','Возвращение мелодии советского гимна с новым текстом.',['soviet','nation','stab','trad'],['lib','west'],'law','Принят в декабре 2000 года.'],
-    ['Земельный кодекс','Разрешает оборот земли, кроме сельскохозяйственной.',['mkt','priv','stab'],['agr','soviet'],'law','Принят в 2001 году.'],
-    ['Новый Трудовой кодекс','Упрощает увольнение и срочные договоры, сокращает права профсоюзов.',['biz','mkt','stab'],['labor','soviet'],'law','Принят в декабре 2001 года.'],
-    ['Реформа Совета Федерации','Губернаторы и спикеры уходят из сената, их заменяют назначенные представители.',['cent','pres','stab'],['fed'],'law','Принята в 2000 году.']
+    ['Ratification of the START II treaty','Reduction of strategic nuclear arms together with the USA.',['west','pac','stab'],['antiwest','soviet'],'law','Ratified in April 2000.'],
+    ['Flat income tax','A single 13% rate instead of a progressive scale.',['tax_lo','mkt','biz'],['tax_hi','equal'],'law','Adopted in 2000.'],
+    ['Anthem to Alexandrov’s music','The return of the Soviet anthem’s melody with new lyrics.',['soviet','nation','stab','trad'],['lib','west'],'law','Adopted in December 2000.'],
+    ['Land Code','Allows the sale of land other than farmland.',['mkt','priv','stab'],['agr','soviet'],'law','Adopted in 2001.'],
+    ['New Labour Code','Makes dismissal and fixed-term contracts easier and reduces trade union rights.',['biz','mkt','stab'],['labor','soviet'],'law','Adopted in December 2001.'],
+    ['Reform of the Federation Council','Governors and regional speakers leave the senate and are replaced by appointed representatives.',['cent','pres','stab'],['fed'],'law','Adopted in 2000.']
   ],
   2003:[
-    ['Монетизация льгот','Замена бесплатного проезда и лекарств денежными выплатами.',['mkt','choice','stab'],['welfare','soviet','labor'],'law','Принята в августе 2004 года; в январе 2005-го по стране прошли протесты пенсионеров.'],
-    ['Отмена прямых выборов губернаторов','Глав регионов утверждают по представлению президента.',['cent','stab','pres'],['plural','fed','direct'],'law','Принята в декабре 2004 года.'],
-    ['Выборы в Думу только по спискам','Одномандатные округа отменяются, барьер повышается до 7%.',['stab','cent'],['plural','parl'],'law','Принят в 2005 году.'],
-    ['Отмена графы «против всех»','Из бюллетеней убирают возможность проголосовать против всех кандидатов.',['stab'],['direct','plural','pop'],'law','Принята в 2006 году.'],
-    ['Контроль над некоммерческими организациями','Расширяет основания для проверок и отказа в регистрации НКО.',['sov','auth','stab'],['lib','plural','west'],'law','Принят в декабре 2005 года.'],
-    ['Материнский капитал','Выплата семьям за второго ребёнка.',['welfare','trad','gos'],['self','mkt'],'law','Принят в декабре 2006 года.']
+    ['Monetisation of benefits','Replacing free transport and medicines with cash payments.',['mkt','choice','stab'],['welfare','soviet','labor'],'law','Adopted in August 2004; in January 2005 pensioners protested across the country.'],
+    ['Abolition of direct gubernatorial elections','Regional heads are confirmed on the president’s nomination.',['cent','stab','pres'],['plural','fed','direct'],'law','Adopted in December 2004.'],
+    ['Duma elections by party lists only','Single-member districts are abolished and the threshold rises to 7%.',['stab','cent'],['plural','parl'],'law','Adopted in 2005.'],
+    ['Abolition of the “against all” option','The option to vote against all candidates is removed from ballots.',['stab'],['direct','plural','pop'],'law','Adopted in 2006.'],
+    ['Control over non-profit organisations','Broadens the grounds for inspecting NGOs and refusing them registration.',['sov','auth','stab'],['lib','plural','west'],'law','Adopted in December 2005.'],
+    ['Maternity capital','A payment to families for a second child.',['welfare','trad','gos'],['self','mkt'],'law','Adopted in December 2006.']
   ],
   2007:[
-    ['Президентский срок — шесть лет','Поправки к Конституции: президент избирается на шесть лет, Дума на пять.',['stab','pres'],['plural','parl'],'const','Приняты в ноябре 2008 года; против голосовала КПРФ.'],
-    ['Признание Абхазии и Южной Осетии','Обращение к президенту после войны в августе 2008 года.',['nation','sov','antiwest','mil','eurasia'],['west','cosmo'],'law','Принято единогласно в августе 2008 года.'],
-    ['Помощь банкам и госкомпаниям в кризис','Антикризисный пакет: кредиты банкам и выкуп акций за счёт резервов.',['gos','stab','nat'],['self','mkt'],'law','Принят в октябре 2008 года.'],
-    ['Закон «О полиции»','Милиция переименовывается в полицию, меняются её полномочия.',['law','stab','tech'],['soviet','plural'],'law','Принят в январе 2011 года; КПРФ голосовала против.'],
-    ['Ратификация договора СНВ-III','Новый договор с США о сокращении ядерных вооружений.',['west','pac','stab'],['antiwest','mil'],'law','Ратифицирован в январе 2011 года.']
+    ['Six-year presidential term','Constitutional amendments: the president is elected for six years, the Duma for five.',['stab','pres'],['plural','parl'],'const','Adopted in November 2008; the CPRF voted against.'],
+    ['Recognition of Abkhazia and South Ossetia','An appeal to the president after the war of August 2008.',['nation','sov','antiwest','mil','eurasia'],['west','cosmo'],'law','Adopted unanimously in August 2008.'],
+    ['Crisis aid for banks and state companies','An anti-crisis package: loans to banks and share buy-outs funded from the reserves.',['gos','stab','nat'],['self','mkt'],'law','Adopted in October 2008.'],
+    ['Law “On the Police”','The militia is renamed the police and its powers change.',['law','stab','tech'],['soviet','plural'],'law','Adopted in January 2011; the CPRF voted against.'],
+    ['Ratification of the New START treaty','A new treaty with the USA on reducing nuclear arms.',['west','pac','stab'],['antiwest','mil'],'law','Ratified in January 2011.']
   ],
   2011:[
-    ['Штрафы за нарушения на митингах','Штрафы для участников и организаторов акций вырастают в десятки раз.',['auth','stab','law'],['lib','plural'],'law','Принят в июне 2012 года после многочасовой обструкции оппозиции.'],
-    ['Закон об «иностранных агентах»','НКО с зарубежным финансированием обязаны регистрироваться в особом реестре.',['sov','auth','antiwest'],['lib','plural','west'],'law','Принят в июле 2012 года.'],
-    ['«Закон Димы Яковлева»','Запрет на усыновление российских детей гражданами США.',['antiwest','sov','nation'],['west','lib','cosmo'],'law','Принят в декабре 2012 года.'],
-    ['Договор о принятии Крыма','Федеральный конституционный закон о новых субъектах.',['nation','sov','antiwest','unity'],['west','cosmo'],'const','Принят в марте 2014 года: 443 за, 1 против.'],
-    ['Возврат одномандатных округов','Половина Думы снова избирается по округам.',['direct','fed','stab'],['parl'],'law','Принят в феврале 2014 года.'],
-    ['«Пакет Яровой»','Хранение переговоров и переписки операторами, новые антитеррористические статьи.',['auth','law','sov'],['privacy','lib','biz'],'law','Принят в июне 2016 года.']
+    ['Fines for violations at rallies','Fines for participants and organisers of rallies rise dozens of times over.',['auth','stab','law'],['lib','plural'],'law','Adopted in June 2012 after many hours of obstruction by the opposition.'],
+    ['The “foreign agents” law','NGOs with foreign funding must register in a special registry.',['sov','auth','antiwest'],['lib','plural','west'],'law','Adopted in July 2012.'],
+    ['The “Dima Yakovlev law”','A ban on US citizens adopting Russian children.',['antiwest','sov','nation'],['west','lib','cosmo'],'law','Adopted in December 2012.'],
+    ['Treaty on the accession of Crimea','A federal constitutional law on the new constituent territories.',['nation','sov','antiwest','unity'],['west','cosmo'],'const','Adopted in March 2014: 443 for, 1 against.'],
+    ['Return of single-member districts','Half of the Duma is again elected in districts.',['direct','fed','stab'],['parl'],'law','Adopted in February 2014.'],
+    ['The “Yarovaya package”','Operators must store calls and messages; new anti-terrorism offences.',['auth','law','sov'],['privacy','lib','biz'],'law','Adopted in June 2016.']
   ],
   2016:[
-    ['Повышение пенсионного возраста','До 65 лет для мужчин и 60 для женщин.',['self','stab'],['welfare','labor','soviet','pop'],'law','Принято в сентябре 2018 года; КПРФ, ЛДПР и «Справедливая Россия» голосовали против.'],
-    ['Повышение НДС до 20%','Ставка налога на добавленную стоимость растёт с 18 до 20 процентов.',['stab'],['tax_lo','biz','pop'],'law','Принято в июле 2018 года.'],
-    ['Закон о «суверенном интернете»','Государство получает право централизованно управлять трафиком.',['auth','stab'],['lib','privacy','plural','tech'],'law','Принят в апреле 2019 года.'],
-    ['Поправки к Конституции 2020 года','Обнуление президентских сроков, приоритет Конституции над международным правом.',['stab','pres','trad','sov'],['plural','parl'],'const','Приняты в марте 2020 года: 383 за, против нет, 43 воздержались.'],
-    ['Наказания за «неуважение к власти»','Штрафы и блокировки за оскорбление государства в интернете и за фейки.',['auth','stab','law'],['lib','plural','privacy'],'law','Приняты в марте 2019 года.'],
-    ['Ставка НДФЛ 15% для высоких доходов','Повышенная ставка на доходы свыше 5 миллионов рублей в год.',['tax_hi','equal','welfare'],['tax_lo','biz'],'law','Принята в ноябре 2020 года.']
+    ['Raising the retirement age','To 65 for men and 60 for women.',['self','stab'],['welfare','labor','soviet','pop'],'law','Adopted in September 2018; the CPRF, the LDPR and “A Just Russia” voted against.'],
+    ['Raising VAT to 20%','The value-added tax rate rises from 18 to 20 per cent.',['stab'],['tax_lo','biz','pop'],'law','Adopted in July 2018.'],
+    ['The “sovereign internet” law','The state gains the right to manage internet traffic centrally.',['auth','stab'],['lib','privacy','plural','tech'],'law','Adopted in April 2019.'],
+    ['The 2020 constitutional amendments','Resetting presidential terms; priority of the Constitution over international law.',['stab','pres','trad','sov'],['plural','parl'],'const','Adopted in March 2020: 383 for, none against, 43 abstained.'],
+    ['Penalties for “disrespect for the authorities”','Fines and blocking for insulting the state online and for fake news.',['auth','stab','law'],['lib','plural','privacy'],'law','Adopted in March 2019.'],
+    ['15% income tax rate on high incomes','A higher rate on incomes above 5 million roubles a year.',['tax_hi','equal','welfare'],['tax_lo','biz'],'law','Adopted in November 2020.']
   ],
   2021:[
-    ['Единая система публичной власти','Унификация органов власти регионов, снятие ограничений на сроки губернаторов.',['cent','stab','pres'],['fed','plural','lang_min'],'law','Принят в декабре 2021 года; КПРФ голосовала против.'],
-    ['QR-коды в общественных местах','Доступ в кафе, магазины и транспорт по сертификату о вакцинации.',['auth','tech','stab'],['lib','pop','privacy'],'law','Принят в первом чтении в декабре 2021 года, в январе 2022-го снят с рассмотрения.'],
-    ['Обращение о признании ДНР и ЛНР','Дума просит президента признать независимость двух республик.',['nation','sov','antiwest','eurasia'],['west','cosmo','pac'],'law','Принято в феврале 2022 года.'],
-    ['Запрет «пропаганды нетрадиционных отношений»','Запрет распространяется на рекламу, кино, книги и интернет для всех возрастов.',['trad','rel','auth'],['lib','privacy','prog'],'law','Принят единогласно в ноябре 2022 года.'],
-    ['Электронное голосование по всей стране','Единые правила дистанционного голосования на выборах всех уровней.',['tech','stab'],['plural'],'law','Принят в марте 2022 года.'],
-    ['Индексация пенсий работающим пенсионерам','Возврат индексации, замороженной в 2016 году.',['welfare','labor'],['self','stab'],'law','Законопроекты оппозиции отклонялись; индексацию вернули законом 2024 года.']
+    ['Unified system of public authority','Standardises regional government bodies and lifts term limits for governors.',['cent','stab','pres'],['fed','plural','lang_min'],'law','Adopted in December 2021; the CPRF voted against.'],
+    ['QR codes in public places','Access to cafes, shops and transport with a vaccination certificate.',['auth','tech','stab'],['lib','pop','privacy'],'law','Passed its first reading in December 2021; withdrawn in January 2022.'],
+    ['Appeal to recognise the DPR and LPR','The Duma asks the president to recognise the independence of the two republics.',['nation','sov','antiwest','eurasia'],['west','cosmo','pac'],'law','Adopted in February 2022.'],
+    ['Ban on “propaganda of non-traditional relationships”','The ban covers advertising, films, books and the internet for all ages.',['trad','rel','auth'],['lib','privacy','prog'],'law','Adopted unanimously in November 2022.'],
+    ['Nationwide electronic voting','Uniform rules for remote voting in elections at all levels.',['tech','stab'],['plural'],'law','Adopted in March 2022.'],
+    ['Pension indexation for working pensioners','The return of indexation frozen in 2016.',['welfare','labor'],['self','stab'],'law','Opposition bills were rejected; indexation was brought back by a 2024 law.']
   ]
 };
 
 // ══════ Президентские выборы после думских ══════
 // Год сценария: {y — год выборов, c — кандидаты [имя, партия из сценария или null, свои черты или null], real — как было}
 const PRES={
-  1993:{y:1996,c:[['Борис Ельцин',null,{pres:3,mkt:2,priv:2,west:2,stab:2,unity:2,plural:1,lib:1,biz:1}],['Геннадий Зюганов','КПРФ',null],['Александр Лебедь',null,{law:3,unity:3,mil:2,nation:2,auth:2,pop:2,sov:2,mkt:1}],['Григорий Явлинский','Яблоко',null],['Владимир Жириновский','ЛДПР',null]],
-    real:'Первый тур: Ельцин 35,3%, Зюганов 32,0%, Лебедь 14,5%, Явлинский 7,3%, Жириновский 5,7%. Второй тур: Ельцин 53,8%, Зюганов 40,3%.'},
-  1995:{y:1996,c:[['Борис Ельцин',null,{pres:3,mkt:2,priv:2,west:2,stab:2,unity:2,plural:1,lib:1,biz:1}],['Геннадий Зюганов','КПРФ',null],['Александр Лебедь',null,{law:3,unity:3,mil:2,nation:2,auth:2,pop:2,sov:2,mkt:1}],['Григорий Явлинский','Яблоко',null],['Владимир Жириновский','ЛДПР',null]],
-    real:'Первый тур: Ельцин 35,3%, Зюганов 32,0%, Лебедь 14,5%, Явлинский 7,3%, Жириновский 5,7%. Второй тур: Ельцин 53,8%, Зюганов 40,3%.'},
-  1999:{y:2000,c:[['Владимир Путин','Единство',null],['Геннадий Зюганов','КПРФ',null],['Григорий Явлинский','Яблоко',null],['Аман Тулеев',null,{gos:3,welfare:3,labor:2,nat:2,unity:2,stab:1,soviet:1}],['Владимир Жириновский','Блок Жириновского',null],['Константин Титов','Союз правых сил',null]],
-    real:'Путин 52,9%, Зюганов 29,2%, Явлинский 5,8%, Тулеев 2,95%, Жириновский 2,7%, Титов 1,5%. Победа в первом туре.'},
-  2003:{y:2004,c:[['Владимир Путин','Единая Россия',null],['Николай Харитонов','КПРФ',null],['Сергей Глазьев','Родина',null],['Ирина Хакамада','Союз правых сил',null],['Олег Малышкин','ЛДПР',null],['Сергей Миронов',null,{welfare:2,stab:2,gos:1,labor:1,pres:1}]],
-    real:'Путин 71,3%, Харитонов 13,7%, Глазьев 4,1%, Хакамада 3,8%, Малышкин 2,0%, Миронов 0,75%.'},
-  2007:{y:2008,c:[['Дмитрий Медведев','Единая Россия',null],['Геннадий Зюганов','КПРФ',null],['Владимир Жириновский','ЛДПР',null],['Андрей Богданов',null,{west:2,euro:2,mkt:1,plural:1,lib:1}]],
-    real:'Медведев 70,3%, Зюганов 17,7%, Жириновский 9,3%, Богданов 1,3%.'},
-  2011:{y:2012,c:[['Владимир Путин','Единая Россия',null],['Геннадий Зюганов','КПРФ',null],['Михаил Прохоров','Правое дело',null],['Владимир Жириновский','ЛДПР',null],['Сергей Миронов','Справедливая Россия',null]],
-    real:'Путин 63,6%, Зюганов 17,2%, Прохоров 8,0%, Жириновский 6,2%, Миронов 3,85%.'},
-  2016:{y:2018,c:[['Владимир Путин','Единая Россия',null],['Павел Грудинин','КПРФ',null],['Владимир Жириновский','ЛДПР',null],['Ксения Собчак',null,{lib:3,plural:3,west:3,prog:3,mkt:2,cosmo:2,privacy:2}],['Григорий Явлинский','Яблоко',null],['Борис Титов','Партия Роста',null],['Сергей Бабурин',null,{nation:3,sov:3,antiwest:3,unity:3,soviet:2,gos:2}]],
-    real:'Путин 76,7%, Грудинин 11,8%, Жириновский 5,65%, Собчак 1,68%, Явлинский 1,05%, Титов 0,76%, Бабурин 0,65%.'},
-  2021:{y:2024,c:[['Владимир Путин','Единая Россия',null],['Николай Харитонов','КПРФ',null],['Владислав Даванков','Новые люди',null],['Леонид Слуцкий','ЛДПР',null]],
-    real:'Путин 87,3%, Харитонов 4,3%, Даванков 3,85%, Слуцкий 3,2%.'}
+  1993:{y:1996,c:[['Boris Yeltsin',null,{pres:3,mkt:2,priv:2,west:2,stab:2,unity:2,plural:1,lib:1,biz:1}],['Gennady Zyuganov','CPRF',null],['Alexander Lebed',null,{law:3,unity:3,mil:2,nation:2,auth:2,pop:2,sov:2,mkt:1}],['Grigory Yavlinsky','Yabloko',null],['Vladimir Zhirinovsky','LDPR',null]],
+    real:'First round: Yeltsin 35.3%, Zyuganov 32.0%, Lebed 14.5%, Yavlinsky 7.3%, Zhirinovsky 5.7%. Second round: Yeltsin 53.8%, Zyuganov 40.3%.'},
+  1995:{y:1996,c:[['Boris Yeltsin',null,{pres:3,mkt:2,priv:2,west:2,stab:2,unity:2,plural:1,lib:1,biz:1}],['Gennady Zyuganov','CPRF',null],['Alexander Lebed',null,{law:3,unity:3,mil:2,nation:2,auth:2,pop:2,sov:2,mkt:1}],['Grigory Yavlinsky','Yabloko',null],['Vladimir Zhirinovsky','LDPR',null]],
+    real:'First round: Yeltsin 35.3%, Zyuganov 32.0%, Lebed 14.5%, Yavlinsky 7.3%, Zhirinovsky 5.7%. Second round: Yeltsin 53.8%, Zyuganov 40.3%.'},
+  1999:{y:2000,c:[['Vladimir Putin','Unity',null],['Gennady Zyuganov','CPRF',null],['Grigory Yavlinsky','Yabloko',null],['Aman Tuleyev',null,{gos:3,welfare:3,labor:2,nat:2,unity:2,stab:1,soviet:1}],['Vladimir Zhirinovsky','Zhirinovsky Bloc',null],['Konstantin Titov','Union of Right Forces',null]],
+    real:'Putin 52.9%, Zyuganov 29.2%, Yavlinsky 5.8%, Tuleyev 2.95%, Zhirinovsky 2.7%, Titov 1.5%. Won in the first round.'},
+  2003:{y:2004,c:[['Vladimir Putin','United Russia',null],['Nikolai Kharitonov','CPRF',null],['Sergei Glazyev','Rodina',null],['Irina Khakamada','Union of Right Forces',null],['Oleg Malyshkin','LDPR',null],['Sergei Mironov',null,{welfare:2,stab:2,gos:1,labor:1,pres:1}]],
+    real:'Putin 71.3%, Kharitonov 13.7%, Glazyev 4.1%, Khakamada 3.8%, Malyshkin 2.0%, Mironov 0.75%.'},
+  2007:{y:2008,c:[['Dmitry Medvedev','United Russia',null],['Gennady Zyuganov','CPRF',null],['Vladimir Zhirinovsky','LDPR',null],['Andrei Bogdanov',null,{west:2,euro:2,mkt:1,plural:1,lib:1}]],
+    real:'Medvedev 70.3%, Zyuganov 17.7%, Zhirinovsky 9.3%, Bogdanov 1.3%.'},
+  2011:{y:2012,c:[['Vladimir Putin','United Russia',null],['Gennady Zyuganov','CPRF',null],['Mikhail Prokhorov','Right Cause',null],['Vladimir Zhirinovsky','LDPR',null],['Sergei Mironov','A Just Russia',null]],
+    real:'Putin 63.6%, Zyuganov 17.2%, Prokhorov 8.0%, Zhirinovsky 6.2%, Mironov 3.85%.'},
+  2016:{y:2018,c:[['Vladimir Putin','United Russia',null],['Pavel Grudinin','CPRF',null],['Vladimir Zhirinovsky','LDPR',null],['Ksenia Sobchak',null,{lib:3,plural:3,west:3,prog:3,mkt:2,cosmo:2,privacy:2}],['Grigory Yavlinsky','Yabloko',null],['Boris Titov','Party of Growth',null],['Sergei Baburin',null,{nation:3,sov:3,antiwest:3,unity:3,soviet:2,gos:2}]],
+    real:'Putin 76.7%, Grudinin 11.8%, Zhirinovsky 5.65%, Sobchak 1.68%, Yavlinsky 1.05%, Titov 0.76%, Baburin 0.65%.'},
+  2021:{y:2024,c:[['Vladimir Putin','United Russia',null],['Nikolai Kharitonov','CPRF',null],['Vladislav Davankov','New People',null],['Leonid Slutsky','LDPR',null]],
+    real:'Putin 87.3%, Kharitonov 4.3%, Davankov 3.85%, Slutsky 3.2%.'}
 };
