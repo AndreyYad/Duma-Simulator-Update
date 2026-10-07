@@ -170,9 +170,11 @@ function drawParl(el,groups,dim,big,sm,onClick,still){
   svg.select('.big').text(big); svg.select('.sm').text(sm);
 }
 // Фотографии персонажей: своя загруженная или из набора photos.js (свободные снимки с Викисклада)
-const PH=window.PHOTO||{}, PHS=window.PHOTO_SRC||{};
+const PH=window.PHOTO||{}, PHS=window.PHOTO_SRC||{}, LG=window.LOGO||{}, LGS=window.LOGO_SRC||{};
+// Логотип партии: свой загруженный или из набора logos.js, подставляется по названию
+const lg=F=>F.logo||LG[F.n]||'';
 const face=p=>p?(p.img||PH[p.n]||''):'';
-const mark=F=>F.logo?'<img class="logo" src="'+esc(F.logo)+'" alt="" style="border-color:'+esc(F.c)+'">':'<i class="dot" style="background:'+esc(F.c)+'"></i>';
+const mark=F=>lg(F)?'<img class="logo" src="'+esc(lg(F))+'" alt="" style="border-color:'+esc(F.c)+'">':'<i class="dot" style="background:'+esc(F.c)+'"></i>';
 
 // ══════ 1. Конструктор ══════
 const OPEN={}; let PREV=null, PMSG='';
@@ -215,7 +217,7 @@ function viewBuild(){
   '<section class="step"><header><span class="num">5</span><h2>Темы и вопросы</h2><p class="hint">У каждого варианта ответа свои черты: партии с этими чертами тянутся к нему. Точки под вопросом показывают, где в итоге стоят партии.</p></header>'+
     '<div class="rows">'+C.topics.map((T,t)=>'<details class="card" data-o="t'+t+'"'+(OPEN['t'+t]?' open':'')+'><summary><i class="dot" data-tc="'+t+'" style="background:'+esc(T.c)+'"></i><span data-tn="'+t+'">'+esc(T.n)+'</span><small data-tq="'+t+'"></small></summary><div class="c-body" data-tb="'+t+'">'+(OPEN['t'+t]?topicBody(t):'')+'</div></details>').join('')+
     '<button type="button" class="add" data-act="addTopic">+ Добавить тему</button></div></section>'+
-  '<details class="io box" data-o="io"'+(OPEN.io?' open':'')+'><summary>Перенести тест на другое устройство</summary><p class="hint">Скопируйте текст ниже и вставьте его в конструктор на другом устройстве.</p>'+
+  '<details class="io box" data-o="io"'+(OPEN.io?' open':'')+'><summary>Перенести тест на другое устройство</summary><p class="hint">Скопируйте текст ниже и вставьте его в тест на другом устройстве.</p>'+
     '<textarea class="in" id="io" spellcheck="false" aria-label="Тест в виде текста"></textarea><div class="r"><button type="button" class="chip" data-act="exp">Показать текущий тест</button><button type="button" class="chip" data-act="copy">Скопировать</button><button type="button" class="chip" data-act="imp">Загрузить из текста</button><span class="hint" id="io-msg"></span></div></details>'+
   '<div class="launch"><button type="button" class="cta" data-act="run" id="run">Запустить тест</button><span id="run-info"></span></div>'+
   '</div>';
@@ -234,7 +236,7 @@ function updCo(){
 function famBody(i){
   const F=C.fams[i];
   return '<div class="f-f"><input type="color" id="f-fams-'+i+'-c" data-k="fams.'+i+'.c" value="'+esc(F.c)+'" aria-label="Цвет">'+inp('fams.'+i+'.n',F.n,'aria-label="Название партии"')+'<span class="fd">'+inp('fams.'+i+'.d',F.d,'aria-label="Описание" placeholder="Короткое описание"')+'</span><button type="button" class="x" data-act="delFam" data-i="'+i+'" aria-label="Удалить партию"'+(C.fams.length<=2?' disabled':'')+'>×</button></div>'+
-    '<div class="f-logo">'+(F.logo?'<img class="logo" src="'+esc(F.logo)+'" alt="Логотип" style="border-color:'+esc(F.c)+'">':'<span class="ph">лого</span>')+'<label for="logo-'+i+'">Логотип</label><input type="file" id="logo-'+i+'" data-logo="'+i+'" accept="image/*">'+(F.logo?'<button type="button" class="link" data-act="delLogo" data-i="'+i+'">Убрать логотип</button>':'')+'</div>'+
+    '<div class="f-logo">'+(lg(F)?'<img class="logo" src="'+esc(lg(F))+'" alt="Логотип" style="border-color:'+esc(F.c)+'">':'<span class="ph">лого</span>')+'<label for="logo-'+i+'">Логотип</label><input type="file" id="logo-'+i+'" data-logo="'+i+'" accept="image/*">'+(F.logo?'<button type="button" class="link" data-act="delLogo" data-i="'+i+'">Убрать логотип</button>':'')+'</div>'+
     '<div class="tg"><span>Особое условие</span><div><select class="in" id="f-fams-'+i+'-cap" data-k="fams.'+i+'.cap" data-int="1" aria-label="Особое условие для партии"><option value="-1">Нет: места считаются как у всех</option>'+C.fams.map((G,j)=>j===i?'':'<option value="'+j+'"'+(F.cap===j?' selected':'')+'>Только один одномандатный округ, остальные места — партии «'+esc(G.n)+'»</option>').join('')+'</select></div></div>'+
     '<div class="tg"><span>Персонажи</span><div class="ppl">'+F.ppl.map((p,j)=>'<div class="pp">'+(face(p)?'<img class="ava sm" src="'+esc(face(p))+'" alt="">':'<span class="ava sm ph"></span>')+inp('fams.'+i+'.ppl.'+j+'.n',p.n,'aria-label="Имя персонажа" maxlength="60" placeholder="Имя"')+'<select class="in" id="f-fams-'+i+'-ppl-'+j+'-s" data-k="fams.'+i+'.ppl.'+j+'.s" aria-label="Профильный портфель"><option value="">'+(j?'Без профиля':'Лидер, без профиля')+'</option>'+PORT.filter(x=>x[0]!=='pm').map(x=>'<option value="'+x[0]+'"'+(p.s===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><label class="chip up" title="Загрузить своё фото">Фото<input type="file" accept="image/*" id="pimg-'+i+'-'+j+'" data-pimg="'+i+','+j+'" hidden></label><button type="button" class="x" data-act="delP" data-i="'+i+'" data-j="'+j+'" aria-label="Удалить персонажа">×</button></div>').join('')+
       (F.ppl.length<12?'<button type="button" class="add" data-act="addP" data-i="'+i+'">+ Добавить персонажа</button>':'')+'<small class="hint">Первый в списке — лидер: он станет премьером, если партия возглавит правительство. Профиль подсказывает, какое министерство человеку ближе. Фото подставляется по имени, своё можно загрузить кнопкой «Фото».</small></div></div>'+
@@ -465,7 +467,7 @@ function viewBoard(){
   app.innerHTML='<section class="board">'+progHtml(-1)+'<div class="box">'+
     '<span class="eyebrow">Блок '+(S.bi+1)+' из '+S.order.length+'</span><h2>«'+esc(T.n)+'» раздаёт <em>'+n+'</em> '+plural(n,'место','места','мест')+'</h2>'+
     '<div class="bcols"><div class="hemi" id="bh"></div><div><div class="sb" id="sb" style="height:'+(nF*44-4)+'px">'+
-      C.fams.map((F,i)=>'<div class="sr" data-f="'+i+'" style="--c:'+esc(F.c)+'"><span class="rk"></span><span class="nm"><b>'+(F.logo?mark(F):'')+esc(F.n)+'</b><span class="bar"><span></span><em></em></span></span><span class="pts"></span><span class="tot"></span></div>').join('')+
+      C.fams.map((F,i)=>'<div class="sr" data-f="'+i+'" style="--c:'+esc(F.c)+'"><span class="rk"></span><span class="nm"><b>'+(lg(F)?mark(F):'')+esc(F.n)+'</b><span class="bar"><span></span><em></em></span></span><span class="pts"></span><span class="tot"></span></div>').join('')+
     '</div><p class="msg" id="msg" aria-live="polite"></p></div></div>'+
     '<div class="bfoot"><span>Абсолютное большинство: '+M+'</span><span>'+
       (R.party==='one'?'Все места у партии, которая сейчас ближе всего к вашим ответам':R.party==='two'?'Места делят партия, которая сейчас ближе всего к вам, и её главный противник':R.party==='dom'?'В счёт входит гарантированное большинство лидера: '+bonus():!B.k?'В этом блоке нет ответов: места поделены поровну':R.sys==='mixed'?(n-dn)+' по списку и '+dn+' по округам':'По вашим ответам в этой теме')+'</span></div></div>'+
@@ -602,7 +604,7 @@ function viewCabinet(m){
   const anyP=m.some(f=>C.fams[f].ppl.length);
   window.scrollTo(0,0);
   app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px">'+(cn?'<span class="pill">'+esc(cn)+'</span>':'')+'<span class="pill">'+(tot>=M?'Правительство большинства':'Правительство меньшинства')+'</span><span class="pill">'+tot+' из '+C.seats+' мест</span></div>'+
-    '<h2 tabindex="-1" style="outline:none">Правительство</h2><p class="lead" style="margin:0;max-width:70ch">'+(m.length>1?'Коалиция: ':'Однопартийный кабинет: ')+m.map(f=>'<b>'+esc(C.fams[f].n)+'</b>').join(', ')+'. Портфели розданы по очереди: чем больше у партии мест, тем раньше и чаще она выбирает, и берёт министерство, которое ближе её чертам. '+(anyP?'Министров партии выдвигают из своих персонажей. ':'У этих партий пока нет персонажей: добавьте их в конструкторе, в карточках партий. ')+'Портфель можно передать другой партии, а министра заменить.</p></div>'+
+    '<h2 tabindex="-1" style="outline:none">Правительство</h2><p class="lead" style="margin:0;max-width:70ch">'+(m.length>1?'Коалиция: ':'Однопартийный кабинет: ')+m.map(f=>'<b>'+esc(C.fams[f].n)+'</b>').join(', ')+'. Портфели розданы по очереди: чем больше у партии мест, тем раньше и чаще она выбирает, и берёт министерство, которое ближе её чертам. '+(anyP?'Министров партии выдвигают из своих персонажей. ':'У этих партий пока нет персонажей: добавьте их в настройках теста, в карточках партий. ')+'Портфель можно передать другой партии, а министра заменить.</p></div>'+
     '<div class="box main"><div class="hemi" id="ch"></div><div class="leg" id="cleg"></div></div>'+
     '<div class="box"><h3>Кабинет министров</h3><p class="hint">Номер слева показывает, каким по счёту портфель был выбран.</p><div id="crows"></div></div>'+
     '<div class="acts"><button type="button" class="cta" id="cback">← К результатам</button><button type="button" class="cta ghost" id="creset">Раздать заново по правилу</button></div>'+
@@ -635,7 +637,7 @@ function wikibox(st,li,di,bo){
   const ini=s=>s.split(/[\s—-]+/).filter(Boolean).map(w=>w[0]).join('').slice(0,3).toUpperCase(), pct=v=>(v/N*100).toFixed(1).replace('.',',')+'%';
   let rows='';
   for(let k=0;k<top.length;k+=3){ const g=top.slice(k,k+3), pad='<td></td>'.repeat(3-g.length), row=(th,fn)=>'<tr><th scope="row">'+th+'</th>'+g.map(f=>'<td>'+fn(f,C.fams[f])+'</td>').join('')+pad+'</tr>';
-    rows+=row('',(f,F)=>{ const ph=face(F.ppl[0]); return '<div class="wb-ph'+(ph?' pic':'')+'" style="background:'+esc(F.c)+'">'+(ph?'<img src="'+esc(ph)+'" alt="">':F.logo?'<img src="'+esc(F.logo)+'" alt="">':'<span>'+esc(ini(F.n))+'</span>')+'</div>'; })+
+    rows+=row('',(f,F)=>{ const ph=face(F.ppl[0]); return '<div class="wb-ph'+(ph?' pic':'')+'" style="background:'+esc(F.c)+'">'+(ph?'<img src="'+esc(ph)+'" alt="">':lg(F)?'<img src="'+esc(lg(F))+'" alt="">':'<span>'+esc(ini(F.n))+'</span>')+'</div>'; })+
       row('Лидер',(f,F)=>F.ppl.length?esc(F.ppl[0].n):'—')+
       row('Партия',(f,F)=>'<span class="wb-pn"><i style="background:'+esc(F.c)+'"></i>'+esc(F.n)+'</span>')+
       row('Мест получено',f=>'<b>'+st[f]+'</b>')+
@@ -653,9 +655,9 @@ function wikibox(st,li,di,bo){
   drawParl($('#wbh'),C.fams.map((F,f)=>({seats:st[f],c:F.c})),null,'','',null,true);
 }
 
-const cr=$('#credits'); if(cr){ const ks=Object.keys(PHS).sort(); if(!ks.length) cr.hidden=true;
+const cr=$('#credits'); if(cr){ const ALL=Object.assign({},PHS); Object.keys(LGS).forEach(n=>{ ALL['Логотип партии «'+n+'»']=LGS[n]; }); const ks=Object.keys(ALL).sort(); if(!ks.length) cr.hidden=true;
   cr.addEventListener('toggle',()=>{ const box=$('div',cr); if(!cr.open||box.innerHTML) return;
-    box.innerHTML=ks.map(n=>{ const s=PHS[n]; return '<p>'+esc(n)+': <a href="https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(s[0].replace(/ /g,'_'))+'" target="_blank" rel="noopener">'+esc(s[0])+'</a>'+(s[1]?', автор: '+esc(s[1]):'')+(s[2]?', лицензия: '+esc(s[2]):'')+'</p>'; }).join(''); }); }
+    box.innerHTML=ks.map(n=>{ const s=ALL[n]; return '<p>'+esc(n)+': <a href="https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(s[0].replace(/ /g,'_'))+'" target="_blank" rel="noopener">'+esc(s[0])+'</a>'+(s[1]?', автор: '+esc(s[1]):'')+(s[2]?', лицензия: '+esc(s[2]):'')+'</p>'; }).join(''); }); }
 toBuild.addEventListener('click',viewBuild);
 viewBuild();
 })();
