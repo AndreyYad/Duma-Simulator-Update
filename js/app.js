@@ -609,7 +609,6 @@ function viewCabinet(m){
     '<h2 tabindex="-1" style="outline:none">Правительство</h2><p class="lead" style="margin:0;max-width:70ch">'+(m.length>1?'Коалиция: ':'Однопартийный кабинет: ')+m.map(f=>'<b>'+esc(C.fams[f].n)+'</b>').join(', ')+'. Портфели розданы по очереди: чем больше у партии мест, тем раньше и чаще она выбирает, и берёт министерство, которое ближе её чертам. '+(anyP?'Министров партии выдвигают из своих персонажей. ':'У этих партий пока нет персонажей: добавьте их в настройках теста, в карточках партий. ')+'Портфель можно передать другой партии, а министра заменить.</p></div>'+
     '<div class="box main"><div class="hemi" id="ch"></div><div class="leg" id="cleg"></div></div>'+
     '<div class="box"><h3>Кабинет министров</h3><p class="hint">Номер слева показывает, каким по счёту портфель был выбран.</p><div id="crows"></div></div>'+
-    '<div id="future"></div>'+
     '<div class="acts"><button type="button" class="cta" id="cback">← К результатам</button><button type="button" class="cta ghost" id="creset">Раздать заново по правилу</button></div>'+
     '<details class="det box"><summary>Как раздаются портфели</summary><p><b>Очередь.</b> Метод д’Ондта: число мест партии делится на число уже взятых ею портфелей плюс один, и выбирает партия с наибольшим частным. Так доля портфелей получается близкой к доле мест в коалиции.</p>'+
       '<p><b>Выбор.</b> Первым ходом крупнейшая партия забирает пост премьер-министра. Дальше партия берёт портфель, связанный с её самой сильной чертой; при равном интересе выбирается более весомый пост.</p>'+
@@ -621,7 +620,7 @@ function viewCabinet(m){
       PORT.forEach(x=>{ if(x[0]!==id&&asg[x[0]]===f&&min[x[0]]>=0) held[min[x[0]]]=x[1]; });
       return '<div class="cab-row" style="--c:'+esc(C.fams[f].c)+'"><span class="rk">'+auto.ord[id]+'</span><span class="nm">'+(min[id]>=0&&face(P[min[id]])?'<img class="ava" src="'+esc(face(P[min[id]]))+'" alt="">':'')+'<b>'+p[1]+'</b>'+(min[id]>=0&&P[min[id]]?'<small class="who">'+esc(P[min[id]].n)+'</small>':'<small>Пост вакантен</small>')+(f!==was?'<small>Передано вручную; по правилу — '+esc(C.fams[was].n)+'</small>':'')+'</span>'+
         '<select class="in" id="port-'+id+'" data-port="'+id+'" aria-label="Какой партии достаётся портфель: '+p[1]+'"'+(m.length<2?' disabled':'')+'>'+m.map(x=>'<option value="'+x+'"'+(x===f?' selected':'')+'>'+esc(C.fams[x].n)+'</option>').join('')+'</select>'+
-        '<select class="in" id="min-'+id+'" data-min="'+id+'" aria-label="Кто занимает пост: '+p[1]+'"'+(P.length?'':' disabled')+'><option value="-1">'+(P.length?'— вакансия —':'нет персонажей')+'</option>'+P.map((x,j)=>'<option value="'+j+'"'+(j===min[id]?' selected':'')+(held[j]?' disabled':'')+'>'+esc(x.n)+(held[j]?' · уже '+held[j].toLowerCase():'')+'</option>').join('')+'</select></div>'; }).join(''); try{ $('#future').innerHTML=futureBox(m,asg,min,st); }catch(e){ if(window.console) console.error(e); } };
+        '<select class="in" id="min-'+id+'" data-min="'+id+'" aria-label="Кто занимает пост: '+p[1]+'"'+(P.length?'':' disabled')+'><option value="-1">'+(P.length?'— вакансия —':'нет персонажей')+'</option>'+P.map((x,j)=>'<option value="'+j+'"'+(j===min[id]?' selected':'')+(held[j]?' disabled':'')+'>'+esc(x.n)+(held[j]?' · уже '+held[j].toLowerCase():'')+'</option>').join('')+'</select></div>'; }).join(''); };
   fill();
   $('#crows').addEventListener('change',e=>{ const t=e.target, id=t.dataset.port||t.dataset.min; if(!id) return;
     if(t.dataset.port){ asg[id]=+t.value; min[id]=-1; min[id]=pick(id); } else min[id]=+t.value;
@@ -658,10 +657,10 @@ function wikibox(st,li,di,bo){
   drawParl($('#wbh'),C.fams.map((F,f)=>({seats:st[f],c:F.c})),null,'','',null,true);
 }
 
-// ══════ 8. Мир вокруг Думы: конституционное большинство, регионы, президент, законопроекты, события ══════
+// ══════ 8. Мир вокруг Думы: конституционное большинство, регионы, президент, законопроекты ══════
 const CM=()=>Math.ceil(C.seats*2/3); // конституционное большинство: две трети мест
 // Данные из world.js могут не загрузиться (например, в кеше осталась старая страница): тогда эти блоки просто не показываются
-const WORLD=typeof BILLS!=='undefined'&&typeof PRES!=='undefined'&&typeof REG!=='undefined'&&typeof REG_T!=='undefined'&&typeof EVENTS!=='undefined';
+const WORLD=typeof BILLS!=='undefined'&&typeof PRES!=='undefined'&&typeof REG!=='undefined'&&typeof REG_T!=='undefined';
 const sv=(tr,ids)=>ids.reduce((s,id)=>Math.max(s,SV[tr[id]||0]),0);
 const pc=v=>(v*100).toFixed(1).replace('.',',')+'%';
 // Доли партий по стране: насколько каждая близка к ответам (как при делении мест по списку)
@@ -745,21 +744,6 @@ function billsBox(st){
       '<div class="bvs">'+who(v.yes,'За')+who(v.abs,'Воздержались')+who(v.no,'Против')+'</div>'+
       '<p class="hint"><b>Вы:</b> '+(up>=.15?'проголосовали бы за':up<=-.15?'проголосовали бы против':'скорее воздержались бы')+'. <b>На самом деле:</b> '+esc(b[5])+'</p></div>'; }).join('');
   return '<div class="box"><h3>Законопроекты этого созыва</h3><p class="hint">Реальные инициативы, которые рассматривала Дума, избранная в '+C.year+' году. Фракции голосуют по своим чертам: обычному закону нужно '+maj()+' голосов, конституционному — '+CM()+'. В вашей Думе принято '+passed+' из '+B.length+'.</p>'+items+'</div>';
-}
-
-// ── События ближайшего будущего: что сделает собранное правительство
-function futureBox(m,asg,min,st){
-  const tot=sum(m.map(f=>st[f])), prof={}, y=C.year||2021, pmF=C.fams[asg.pm], pmP=min.pm>=0?pmF.ppl[min.pm]:null, pm=pmP?pmP.n:'«'+pmF.n+'»';
-  m.forEach(f=>{ Object.keys(C.fams[f].tr).forEach(id=>{ prof[id]=(prof[id]||0)+SV[C.fams[f].tr[id]]*st[f]/tot; }); });
-  const mx=ids=>ids.reduce((s,id)=>Math.max(s,prof[id]||0),0), fillT=t=>esc(t).replace('{pm}',esc(pm)).replace('{lead}',esc(pmF.n));
-  const ev=(WORLD?EVENTS:[]).map(e=>({s:mx(e[0])-mx(e[1]),v:e[2].find(x=>y>=x[0]&&y<=x[1])})).filter(e=>e.v&&e.s>=.3).sort((a,b)=>b.s-a.s).slice(0,5).map(e=>[e.v[2],fillT(e.v[3])]);
-  if(tot>=CM()) ev.unshift(['Поправки к Конституции','У правительства '+tot+' мест из '+C.seats+', больше двух третей. В Думу внесены конституционные поправки, и остановить их оппозиция не может.']);
-  else if(tot<maj()) ev.unshift(['Угроза вотума недоверия','У правительства только '+tot+' мест из '+C.seats+'. Оппозиция собирает подписи за вотум недоверия, а каждый закон приходится проводить поштучно.']);
-  if(m.length>1){ let bd=0, pa=null; m.forEach(a=>m.forEach(b=>{ if(a>=b) return; const ca=famCoords(C.fams[a]), cb=famCoords(C.fams[b]), d=Math.hypot(ca[0]-cb[0],ca[1]-cb[1]); if(d>bd){ bd=d; pa=[a,b]; } }));
-    if(bd>.9) ev.push(['Трения в коалиции','«'+esc(C.fams[pa[0]].n)+'» и «'+esc(C.fams[pa[1]].n)+'» расходятся по ключевым вопросам. Первый кризис ожидается при принятии бюджета.']); }
-  const pr=S.pres; if(pr){ const W=pr.cands[pr.win]; ev.push(W.f>=0&&m.includes(W.f)?['Президент и правительство заодно','Президент '+esc(W.n)+' опирается на то же большинство, что и кабинет. Законы правительства подписываются без задержек.']:['Сосуществование','Президент '+esc(W.n)+' и правительство принадлежат к разным лагерям. Вето, указы и угроза роспуска Думы становятся главным оружием сторон.']); }
-  if(!ev.length) ev.push(['Спокойный год','У правительства нет ярко выраженного курса: оно управляет текущими делами и избегает резких шагов.']);
-  return '<div class="box"><h3>События ближайшего будущего</h3><p class="hint">Что происходит в '+(y+1)+' году при таком правительстве. Набор событий зависит от черт партий коалиции, их веса и от итогов президентских выборов.</p><ol class="evs">'+ev.map(e=>'<li><b>'+e[0]+'</b><span>'+e[1]+'</span></li>').join('')+'</ol></div>';
 }
 
 // Заполняет блоки результата, которые есть только в думских сценариях
