@@ -441,10 +441,10 @@ const BUILTIN=Object.keys(DUMA).map(y=>{ const D=DUMA[y];
   return {n:'Дума-'+y,d:D.note+' · '+(D.sys==='mixed'?'список и округа':'только списки')+' · '+D.F.length+' партий',
     set:{seats:450,sys:D.sys,party:'multi',year:+y,span:false},
     raw:{T:DT,F:D.F,Q:DQ.filter(q=>q[0]<=+y&&+y<=q[1]).map(q=>q.slice(2)),no:D.no,co:D.co,P:DUMA_P[y]||{},cap:D.cap}}; }).concat([
-  {n:'Стандартный',d:'Шесть вопросов выбирают систему, дальше 48 вопросов и семь европейских партий',set:{seats:350,sys:'prop',party:'auto'}},
-  {n:'Как в оригинале',d:'350 мест по списку, много партий',set:{seats:350,sys:'prop',party:'multi'}},
-  {n:'Вопрос = место',d:'96 мест: 48 по списку и 48 округов-вопросов',set:{seats:96,sys:'mixed',party:'multi'}},
-  {n:'Две партии',d:'435 мест делят две конкурирующие партии',set:{seats:435,sys:'prop',party:'two'}},
-  {n:'Доминантная партия',d:'350 мест, лидеру гарантировано большинство',set:{seats:350,sys:'prop',party:'dom'}},
-  {n:'Одна партия',d:'Все 300 мест уходят самой близкой партии',set:{seats:300,sys:'prop',party:'one'}}
+  {n:'Стандартный',d:'Сделан на основе испанского теста «Tu hemiciclo» (objetivo176.es): шесть вопросов выбирают систему, дальше 48 вопросов и семь европейских партий',set:{seats:350,sys:'prop',party:'auto'}},
+  {h:1,n:'Как в оригинале',d:'350 мест по списку, много партий',set:{seats:350,sys:'prop',party:'multi'}},
+  {h:1,n:'Вопрос = место',d:'96 мест: 48 по списку и 48 округов-вопросов',set:{seats:96,sys:'mixed',party:'multi'}},
+  {h:1,n:'Две партии',d:'435 мест делят две конкурирующие партии',set:{seats:435,sys:'prop',party:'two'}},
+  {h:1,n:'Доминантная партия',d:'350 мест, лидеру гарантировано большинство',set:{seats:350,sys:'prop',party:'dom'}},
+  {h:1,n:'Одна партия',d:'Все 300 мест уходят самой близкой партии',set:{seats:300,sys:'prop',party:'one'}}
 ]);
