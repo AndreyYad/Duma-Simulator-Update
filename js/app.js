@@ -43,6 +43,9 @@ try{ USER=(JSON.parse(localStorage.getItem(PKEY))||[]).filter(p=>p&&p.n&&norm(p.
 const presetCfg=p=>defaults(Object.assign({name:p.n},p.set),p.raw);
 if(!C) C=presetCfg(BUILTIN.find(p=>p.n==='Duma-2021'));
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(C)); }catch(e){} }
+// Показывать ли места от округов кольцами: настройка вида, хранится в браузере
+let RINGS=true; try{ RINGS=localStorage.getItem('duma-sim-rings')!=='0'; }catch(e){}
+function setRings(v){ RINGS=!!v; try{ localStorage.setItem('duma-sim-rings',v?'1':'0'); }catch(e){} }
 function saveUser(){ try{ localStorage.setItem(PKEY,JSON.stringify(USER)); return true; }catch(e){ return false; } }
 
 // ══════ Модель ══════
@@ -81,7 +84,7 @@ function compassBox(withUser){
     for(let k=0;k<8&&placed.some(b=>Math.abs(b.y-y)<11&&x0<b.x1&&x0+w>b.x0);k++) y+=11;
     placed.push({x0,x1:x0+w,y}); labels+='<text x="'+(left?p.x-10:p.x+10).toFixed(1)+'" y="'+y.toFixed(1)+'" text-anchor="'+(left?'end':'start')+'" class="'+(p.you?'lb you':'lb')+'">'+esc(t)+'</text>'; });
   pts.forEach(p=>{ g+=p.you?'<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="8" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>':'<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="6.5" fill="'+esc(p.c)+'" stroke="var(--surface)" stroke-width="1.5"><title>'+esc(p.n)+'</title></circle>'; });
-  return '<div class="box"><h3>Political compass'+(withUser?'':' parties')+'</h3><p class="hint">'+(withUser?'Where you ended up and where the parties stand. Your point is calculated from the same traits that are attached to the answer options.':'Where the parties stand before you start answering. At the end of the quiz your own point will appear on this map.')+' Positions are derived from ideological traits: the horizontal axis is the economy, the vertical axis is the attitude to authority and freedoms.</p>'+
+  return '<div class="box"><h3>Political compass'+(withUser?'':' parties')+'</h3><p class="hint">'+(withUser?'Where you ended up and where the parties stand. Your point is calculated from the same traits that are attached to the answer options.':'Where the parties stand before you start answering. At the end of the test your own point will appear on this map.')+' Positions are derived from ideological traits: the horizontal axis is the economy, the vertical axis is the attitude to authority and freedoms.</p>'+
     '<div class="cmp"><svg viewBox="0 0 '+W+' '+W+'" role="img" aria-label="Political compass of the parties">'+g+labels+'</svg></div></div>';
 }
 function lr(w,total){ // метод наибольших остатков
@@ -165,7 +168,7 @@ function drawParl(el,groups,dim,big,sm,onClick,still){
   if(data.length) svg.datum(data).call(el._p);
   const seats=svg.selectAll('.seat'), rs={}; seats.each(d=>{ rs[d.polar.r.toFixed(2)]=1; });
   const rw=180/Math.max(1,Object.keys(rs).length), g=d=>d.party||{};
-  seats.style('fill',d=>g(d).k==='d'?'var(--surface)':g(d).c||'var(--pend)').style('stroke',d=>g(d).k==='d'?g(d).c:'none').style('stroke-width',rw*.14)
+  seats.style('fill',d=>RINGS&&g(d).k==='d'?'var(--surface)':g(d).c||'var(--pend)').style('stroke',d=>RINGS&&g(d).k==='d'?g(d).c:'none').style('stroke-width',rw*.14)
     .style('cursor',onClick?'pointer':null).classed('dim',d=>!!dim&&dim(g(d)));
   svg.select('.big').text(big); svg.select('.sm').text(sm);
 }
@@ -186,21 +189,22 @@ function viewBuild(){
   toBuild.hidden=true; window.scrollTo(0,0);
   app.innerHTML='<div class="stack" id="build">'+
   '<div class="intro"><h1>Build your own State Duma</h1><p>Pick an election, from 1993 to 2021: each has its own parties, its own questions of the day and its own impossible alliances. Or set everything up yourself. The respondent moves a slider between two options, and the answers turn into the make-up of the Duma and a cabinet.</p></div>'+
-  '<section class="step box"><header><h2>Presets</h2><p class="hint">Ready-made sets and your saved quizzes. Saved presets are stored in this browser.</p></header>'+
+  '<section class="step box"><header><h2>Presets</h2><p class="hint">Ready-made sets and your saved tests. Saved presets are stored in this browser.</p></header>'+
     '<span class="lbl" style="margin:0">State Duma elections</span><div class="presets">'+BUILTIN.map((p,i)=>p.set.year?'<button type="button" class="preset" data-act="pre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>'+esc(p.d)+'</span></button>':'').join('')+'</div>'+
-    '<span class="lbl" style="margin:0">Standard quiz and my presets</span><div class="presets">'+BUILTIN.map((p,i)=>p.set.year||p.h?'':'<button type="button" class="preset" data-act="pre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>'+esc(p.d)+'</span></button>').join('')+
+    '<span class="lbl" style="margin:0">Standard test and my presets</span><div class="presets">'+BUILTIN.map((p,i)=>p.set.year||p.h?'':'<button type="button" class="preset" data-act="pre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>'+esc(p.d)+'</span></button>').join('')+
       USER.map((p,i)=>'<div class="pwrap"><button type="button" class="preset" data-act="upre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>My preset · '+mest(p.c.seats)+' · '+p.c.fams.length+' '+plural(p.c.fams.length,'party','parties','parties')+'</span></button><button type="button" class="x" data-act="delPre" data-i="'+i+'" aria-label="Delete preset">×</button></div>').join('')+'</div>'+
-    '<div class="psave"><input class="in" id="pname" value="'+esc(C.name)+'" maxlength="60" aria-label="Preset name" placeholder="Preset name"><button type="button" class="chip" data-act="savePre">Save the current quiz as a preset</button>'+(PREV?'<button type="button" class="link" data-act="undo">Restore the quiz that was open before loading</button>':'')+'<span class="hint" id="pmsg">'+esc(PMSG)+'</span></div></section>'+
+    '<div class="psave"><input class="in" id="pname" value="'+esc(C.name)+'" maxlength="60" aria-label="Preset name" placeholder="Preset name"><button type="button" class="chip" data-act="savePre">Save the current test as a preset</button>'+(PREV?'<button type="button" class="link" data-act="undo">Restore the test that was open before loading</button>':'')+'<span class="hint" id="pmsg">'+esc(PMSG)+'</span></div></section>'+
   '<section class="step box"><header><span class="num">1</span><h2>Parliament</h2></header><div class="parl">'+
     '<div class="parl-form">'+
       '<div><label class="lbl" for="seats">Number of seats</label><div class="seats"><input type="number" id="seats" min="10" max="1000" value="'+C.seats+'"><input type="range" id="seatsR" min="10" max="1000" value="'+C.seats+'" aria-label="Number of seats"></div><div class="chips" id="presets" style="margin-top:8px"></div></div>'+
       '<div><span class="lbl">Political system</span><fieldset class="sys">'+
-        [['auto','Chosen by the quiz','Six opening questions decide which system suits the respondent.'],['multi','Multi-party','All parties share the seats.'],['two','Two-party','Two rival parties share the seats: the one closest to the answers and its main opponent.'],['dom','Dominant-party','The closest party gets a majority; the rest is divided by the answers.'],['one','One-party','All seats go to the party closest to the answers.']]
+        [['auto','Chosen by the test','Six opening questions decide which system suits the respondent.'],['multi','Multi-party','All parties share the seats.'],['two','Two-party','Two rival parties share the seats: the one closest to the answers and its main opponent.'],['dom','Dominant-party','The closest party gets a majority; the rest is divided by the answers.'],['one','One-party','All seats go to the party closest to the answers.']]
           .map(([v,n,d])=>'<label><input type="radio" name="party" id="party-'+v+'" value="'+v+'"'+(C.party===v?' checked':'')+'><b>'+n+'</b><span>'+d+'</span></label>').join('')+'</fieldset></div>'+
       '<div id="duo" hidden><span class="lbl">Which two parties compete</span><div class="psave">'+[0,1].map(k=>'<select class="in" id="duo-'+k+'" data-duo="'+k+'" aria-label="'+(k?'Second':'First')+' party"><option value="-1">'+(k?'Auto: main opponent of the first':'Auto: closest to the answers')+'</option>'+C.fams.map((F,i)=>'<option value="'+i+'"'+(C.duo[k]===i?' selected':'')+'>'+esc(F.n)+'</option>').join('')+'</select>').join('')+'</div></div>'+
       '<div><span class="lbl">How seats are divided</span><fieldset class="sys">'+
         '<label><input type="radio" name="sys" id="sys-prop" value="prop"'+(C.sys==='prop'?' checked':'')+'><b>By party list</b><span>In proportion to how close the parties are to the answers.</span></label>'+
         '<label><input type="radio" name="sys" id="sys-mixed" value="mixed"'+(C.sys==='mixed'?' checked':'')+'><b>Mixed, as in Russia</b><span>Half by party list, half by districts: each question is a district.</span></label>'+
+        '<label class="chk" id="ringchk" style="grid-column:1/-1"><input type="checkbox" id="f-rings"'+(RINGS?' checked':'')+'> Show district seats as rings</label>'+
       '</fieldset></div><div class="note" id="parl-note"></div></div>'+
     '<figure class="parl-fig"><div class="hemi" id="parl-h"></div><div class="parl-leg" id="parl-leg"></div></figure>'+
   '</div></section>'+
@@ -217,9 +221,9 @@ function viewBuild(){
   '<section class="step"><header><span class="num">5</span><h2>Topics and questions</h2><p class="hint">Each answer option has its own traits: parties with those traits are drawn to it. The dots under a question show where the parties end up.</p></header>'+
     '<div class="rows">'+C.topics.map((T,t)=>'<details class="card" data-o="t'+t+'"'+(OPEN['t'+t]?' open':'')+'><summary><i class="dot" data-tc="'+t+'" style="background:'+esc(T.c)+'"></i><span data-tn="'+t+'">'+esc(T.n)+'</span><small data-tq="'+t+'"></small></summary><div class="c-body" data-tb="'+t+'">'+(OPEN['t'+t]?topicBody(t):'')+'</div></details>').join('')+
     '<button type="button" class="add" data-act="addTopic">+ Add topic</button></div></section>'+
-  '<details class="io box" data-o="io"'+(OPEN.io?' open':'')+'><summary>Move the quiz to another device</summary><p class="hint">Copy the text below and paste it into the quiz on another device.</p>'+
-    '<textarea class="in" id="io" spellcheck="false" aria-label="The quiz as text"></textarea><div class="r"><button type="button" class="chip" data-act="exp">Show the current quiz</button><button type="button" class="chip" data-act="copy">Copy</button><button type="button" class="chip" data-act="imp">Load from text</button><span class="hint" id="io-msg"></span></div></details>'+
-  '<div class="launch"><button type="button" class="cta" data-act="run" id="run">Start the quiz</button><span id="run-info"></span></div>'+
+  '<details class="io box" data-o="io"'+(OPEN.io?' open':'')+'><summary>Move the test to another device</summary><p class="hint">Copy the text below and paste it into the test on another device.</p>'+
+    '<textarea class="in" id="io" spellcheck="false" aria-label="The test as text"></textarea><div class="r"><button type="button" class="chip" data-act="exp">Show the current test</button><button type="button" class="chip" data-act="copy">Copy</button><button type="button" class="chip" data-act="imp">Load from text</button><span class="hint" id="io-msg"></span></div></details>'+
+  '<div class="launch"><button type="button" class="cta" data-act="run" id="run">Start the test</button><span id="run-info"></span></div>'+
   '</div>';
   const root=$('#build');
   root.addEventListener('input',onInput); root.addEventListener('click',onAct); root.addEventListener('change',onChange);
@@ -263,7 +267,7 @@ function sideHtml(i,s){
 }
 function qHtml(i){
   const q=C.qs[i], T=C.topics[q.t], k='qs.'+i, id='f-qs-'+i;
-  return '<div class="q'+(q.on?'':' off')+'" data-q="'+i+'"><div class="q-head"><input type="checkbox" id="'+id+'-on" data-k="'+k+'.on"'+(q.on?' checked':'')+' aria-label="Question is included in the quiz" title="Included in the quiz"><input class="in q-t" id="'+id+'-q" data-k="'+k+'.q" value="'+esc(q.q)+'" aria-label="Question title" placeholder="Question title"><button type="button" class="x" data-act="delQ" data-i="'+i+'" aria-label="Delete question">×</button></div>'+
+  return '<div class="q'+(q.on?'':' off')+'" data-q="'+i+'"><div class="q-head"><input type="checkbox" id="'+id+'-on" data-k="'+k+'.on"'+(q.on?' checked':'')+' aria-label="Question is included in the test" title="Included in the test"><input class="in q-t" id="'+id+'-q" data-k="'+k+'.q" value="'+esc(q.q)+'" aria-label="Question title" placeholder="Question title"><button type="button" class="x" data-act="delQ" data-i="'+i+'" aria-label="Delete question">×</button></div>'+
     '<div class="q-ab">'+sideHtml(i,'a')+sideHtml(i,'b')+'</div>'+
     '<div class="q-ax"><span class="ax" data-ax="'+i+'">'+axSvg(q)+'</span><label>B points to the pole <select class="in" id="'+id+'-d" data-k="'+k+'.d" data-int="1"><option value="1"'+(q.d===1?' selected':'')+'>'+esc(T.hi||'right')+'</option><option value="-1"'+(q.d===-1?' selected':'')+'>'+esc(T.lo||'left')+'</option></select></label></div></div>';
 }
@@ -272,11 +276,11 @@ function refreshAxes(){ $$('[data-ax]').forEach(el=>{ const q=C.qs[+el.dataset.a
 function updParl(){
   const auto=C.party==='auto'; R.party=auto?'multi':C.party; R.sys=auto?'prop':C.sys;
   const B=bonus(), L=listTotal(), D=distTotal(), nq=enabled().length, one=R.party==='one';
-  $$('input[name="sys"]').forEach(r=>{ r.disabled=auto; }); $('#duo').hidden=C.party!=='two';
+  $$('input[name="sys"]').forEach(r=>{ r.disabled=auto; }); $('#ringchk').hidden=R.sys!=='mixed'; $('#duo').hidden=C.party!=='two';
   const [da,db]=C.duo, duoTxt=da>=0&&db>=0&&da!==db?'Seats are split between “'+C.fams[da].n+'” and “'+C.fams[db].n+'”. ':da>=0?'Seats are split between “'+C.fams[da].n+'” and its main rival: the party whose traits differ from it the most. ':db>=0?'Seats are split between “'+C.fams[db].n+'” and whichever of the other parties is closest to the answers. ':'Two rival parties are admitted to the seats: the one closest to the answers and the one whose traits differ from it the most. ';
   drawParl($('#parl-h'),one?[{seats:C.seats,c:'var(--ink)'}]:[{seats:B,c:'var(--ink)'},{seats:L,c:'var(--accent)'},{seats:D,c:'var(--accent2)',k:'d'}],null,C.seats,plural(C.seats,'seat','seats','seats'));
   $('#parl-leg').innerHTML=one?'<span><i class="dot" style="background:var(--ink)"></i>To the winner <b>'+C.seats+'</b></span>':
-    (B?'<span><i class="dot" style="background:var(--ink)"></i>To the leader upfront <b>'+B+'</b></span>':'')+'<span><i class="dot" style="background:var(--accent)"></i>By party list <b>'+L+'</b></span>'+(D?'<span><i class="ring"></i>By districts <b>'+D+'</b></span>':'')+'<span>Majority <b>'+maj()+'</b></span>';
+    (B?'<span><i class="dot" style="background:var(--ink)"></i>To the leader upfront <b>'+B+'</b></span>':'')+'<span><i class="dot" style="background:var(--accent)"></i>By party list <b>'+L+'</b></span>'+(D?'<span>'+(RINGS?'<i class="ring"></i>':'<i class="dot" style="background:var(--accent2)"></i>')+'By districts <b>'+D+'</b></span>':'')+'<span>Majority <b>'+maj()+'</b></span>';
   let note=auto?'Six opening questions will choose the system and the way seats are divided. The diagram shows the multi-party, party-list variant.':
     one?'All '+mest(C.seats)+' go to the party closest to the answers.':
     (R.party==='dom'?'The closest party immediately gets '+mest(B)+', that is, a majority. The remaining '+pool()+' are divided by the answers among all parties, including it. ':R.party==='two'?duoTxt:'')+
@@ -290,12 +294,13 @@ function updMeta(){
   C.topics.forEach((_,t)=>{ const el=$('[data-tq="'+t+'"]'); if(!el) return; const all=C.qs.filter(q=>q.t===t), on=all.filter(q=>q.on).length; el.textContent=on===all.length?cnt(on):on+' of '+all.length+' enabled'; });
   C.fams.forEach((F,i)=>{ const el=$('[data-ft="'+i+'"]'), n=Object.keys(F.tr).length; if(el) el.textContent=n+' '+plural(n,'trait','traits','traits')+' · '+F.ppl.length+' '+plural(F.ppl.length,'character','characters','characters'); });
   $('#run').disabled=!nq;
-  $('#run-info').textContent=nq?(C.party==='auto'?'6 questions about the system · ':'')+nt+' '+plural(nt,'topic','topics','topics')+' · '+cnt(nq)+' · '+mest(C.seats)+' · '+(C.party==='auto'?'the quiz picks the system':SYSF[C.party].toLowerCase()+', '+(C.sys==='mixed'?'mixed':'party list')):'Enable at least one question';
+  $('#run-info').textContent=nq?(C.party==='auto'?'6 questions about the system · ':'')+nt+' '+plural(nt,'topic','topics','topics')+' · '+cnt(nq)+' · '+mest(C.seats)+' · '+(C.party==='auto'?'the test picks the system':SYSF[C.party].toLowerCase()+', '+(C.sys==='mixed'?'mixed':'party list')):'Enable at least one question';
 }
 function setSeats(n){ C.seats=Math.max(10,Math.min(1000,Math.round(n))); save(); updParl(); updMeta(); }
 function onInput(e){
   const el=e.target;
   if(el.id==='seats'||el.id==='seatsR'){ const n=+el.value; if(!(n>=10&&n<=1000)) return; setSeats(n); (el.id==='seats'?$('#seatsR'):$('#seats')).value=C.seats; return; }
+  if(el.id==='f-rings'){ setRings(el.checked); updParl(); return; }
   if(el.name==='sys'||el.name==='party'){ C[el.name]=el.value; save(); updParl(); updMeta(); return; }
   const k=el.dataset.k; if(!k) return;
   const v=el.type==='checkbox'?el.checked:el.dataset.int?+el.value:el.value;
@@ -327,7 +332,7 @@ function onAct(e){
     if(BUILTIN.some(p=>p.n===n)){ $('#pmsg').textContent='This name is taken by a built-in preset; choose another one.'; return; }
     C.name=n; const k=USER.findIndex(p=>p.n===n), rec={n,c:JSON.parse(JSON.stringify(C))}; if(k>=0) USER[k]=rec; else USER.push(rec);
     if(saveUser()) PMSG=(k>=0?'Preset updated: “':'Preset saved: “')+n+'”.'; else { if(k<0) USER.pop(); PMSG='Could not save: the browser storage is full. Remove logos or delete old presets.'; } rerender(); }
-  else if(a==='undo'){ let c=null; try{ c=norm(JSON.parse(PREV)); }catch(_){} if(c){ PREV=null; C=c; PMSG='The previous quiz has been restored.'; rerender(); } }
+  else if(a==='undo'){ let c=null; try{ c=norm(JSON.parse(PREV)); }catch(_){} if(c){ PREV=null; C=c; PMSG='The previous test has been restored.'; rerender(); } }
   else if(a==='seats'){ setSeats(i); $('#seats').value=$('#seatsR').value=C.seats; }
   else if(a==='addTrait'){ const n=$('#newTrait').value.trim(); if(!n) return; C.traits.push({id:'c'+Date.now().toString(36),n,g:'Custom'}); rerender(); }
   else if(a==='delTrait'){ C.traits=C.traits.filter(x=>x.id!==id); C.fams.forEach(F=>delete F.tr[id]); C.qs.forEach(q=>{ q.a=q.a.filter(x=>x!==id); q.b=q.b.filter(x=>x!==id); }); rerender(); }
@@ -348,12 +353,12 @@ function onAct(e){
   else if(a==='addQ'){ let at=C.qs.length; for(let k=C.qs.length-1;k>=0;k--) if(C.qs[k].t===i){ at=k+1; break; }
     C.qs.splice(at,0,{t:i,d:1,q:'New question',A:'',B:'',on:true,a:[],b:[]}); rerender(); }
   else if(a==='delQ'){ C.qs.splice(i,1); clearQ(); rerender(); }
-  else if(a==='exp'){ $('#io').value=JSON.stringify(C); $('#io-msg').textContent='The current quiz is shown in the field.'; }
+  else if(a==='exp'){ $('#io').value=JSON.stringify(C); $('#io-msg').textContent='The current test is shown in the field.'; }
   else if(a==='copy'){ const ta=$('#io'); if(!ta.value) ta.value=JSON.stringify(C); const sel=()=>{ ta.select(); $('#io-msg').textContent='The text is selected: copy it manually.'; };
     try{ navigator.clipboard.writeText(ta.value).then(()=>{ $('#io-msg').textContent='Copied.'; },sel); }catch(_){ sel(); } }
   else if(a==='imp'){ let c=null; try{ c=norm(JSON.parse($('#io').value)); }catch(_){}
     if(!c){ $('#io-msg').textContent='Could not read the text. Paste it in full, from the first curly brace to the last.'; return; }
-    OPEN.io=true; const io=OPEN.io; loadCfg(c,'Quiz loaded from text.'); OPEN.io=io; }
+    OPEN.io=true; const io=OPEN.io; loadCfg(c,'Test loaded from text.'); OPEN.io=io; }
   else if(a==='run'){ S.lv=C.topics.map((_,t)=>C.qs.some(q=>q.on&&q.t===t)?2:0); toBuild.hidden=false;
     if(C.party==='auto'){ S.sa=[]; S.si=0; window.scrollTo(0,0); viewSys(); } else { R.party=C.party; R.sys=C.sys; viewPrio(); } }
 }
@@ -492,7 +497,7 @@ function viewResult(){
   S.hl=null; S.pick=[]; window.scrollTo(0,0);
   const mixed=R.sys==='mixed', answered=S.ans.filter(v=>v!=null).length;
   app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px">'+(C.year?'<span class="pill">Election of '+C.year+' </span>':'')+'<span class="pill">'+SYSF[R.party]+'</span><span class="pill">'+(mixed?'Mixed: party list and districts':'By party lists')+'</span><span class="pill">'+mest(C.seats)+'</span></div><h2 tabindex="-1" style="outline:none">'+(C.year?'Your Duma of '+C.year+' ':'Your parliament')+'</h2><p class="lead" id="lead" style="margin:0"></p></div>'+
-    '<div class="box main"><div class="hemi" id="rh"></div><div><div class="chips" id="tiers" style="margin:0 0 8px"></div><div class="leg" id="leg"></div><div class="desc" id="desc"></div></div></div>'+
+    '<div class="box main"><div class="hemi" id="rh"></div><div><div class="chips" id="tiers" style="margin:0 0 8px"></div><div class="chips" id="ringrow" style="margin:0 0 8px"></div><div class="leg" id="leg"></div><div class="desc" id="desc"></div></div></div>'+
     '<div class="box"><h3>Election results</h3><p class="hint">A card in the style of Wikipedia. It is easy to save as a screenshot.</p><div id="wb"></div></div>'+
     '<div id="presbox"></div><div id="mapbox"></div>'+
     '<div class="box" id="cobox"><h3>Possible majorities and the government</h3><p class="hint">Alliances that reach '+maj()+' or more.'+(C.span?' Only neighbours on the axis may unite: no more than three steps apart.':'')+(C.no.length?' Parties that refuse to work together never end up in the same alliance.':'')+' Pick an alliance or put together your own to hand out ministerial portfolios.</p><div class="coal" id="coal"></div><p class="hint" id="cmline" style="margin:12px 0 0"></p><div id="copick"></div></div>'+
@@ -500,10 +505,10 @@ function viewResult(){
     '<div class="box"><h3>Seats by topic</h3><p class="hint">Click a topic to highlight its seats in the chamber. Change its importance and the parliament is recalculated.</p><div class="ths" id="ths"></div></div>'+
     compassBox(true)+
     '<div class="box"><h3>Where you stand</h3><p class="hint">Your average position (white circle) and the parties’ positions on each topic. Open a topic to see every question'+(mixed?' and who won its district':'')+'.</p><div class="fleg">'+C.fams.map(F=>'<span><i class="dot" style="background:'+esc(F.c)+'"></i>'+esc(F.n)+'</span>').join('')+'<span><i class="dot you"></i>You</span></div><div class="strips" id="strips"></div></div>'+
-    '<div class="acts"><button type="button" class="cta" id="again">Take it again</button><button type="button" class="cta ghost" id="edit">Edit the quiz</button></div>'+
+    '<div class="acts"><button type="button" class="cta" id="again">Take it again</button><button type="button" class="cta ghost" id="edit">Edit the test</button></div>'+
     '<details class="det box"><summary>How it is calculated</summary>'+
       '<p><b>Parties.</b> Each party has a set of ideological traits with a strength: weak, moderate or strong. Each answer option has traits attached too. A party stands closer to an option on the question scale the stronger its most pronounced trait among those attached to it.</p>'+
-      '<p><b>Political system.</b> '+(C.party==='two'&&(C.duo[0]>=0||C.duo[1]>=0)?'Seats are split between the two parties chosen in the quiz settings.':SYSD[R.party])+(R.party==='dom'?' The guaranteed majority is '+bonus()+' of '+C.seats+'.':'')+'</p>'+
+      '<p><b>Political system.</b> '+(C.party==='two'&&(C.duo[0]>=0||C.duo[1]>=0)?'Seats are split between the two parties chosen in the test settings.':SYSD[R.party])+(R.party==='dom'?' The guaranteed majority is '+bonus()+' of '+C.seats+'.':'')+'</p>'+
       C.fams.map(F=>F.cap>=0&&C.fams[F.cap]?'<p><b>Special rule.</b> “'+esc(F.n)+'” always gets exactly one single-member district, whatever the answers. All other seats it would have won go to “'+esc(C.fams[F.cap].n)+'”.</p>':'').join('')+
       '<p><b>Topics.</b> Topic importance divides the seats between topics (not important — 0, a little — 1, medium — 2, important — 3.5, very — 5 shares) by the largest remainder method.</p>'+
       '<p><b>Party-list seats.</b> Each question works like a small vote: your slider is compared with every party’s position; the closest gets most of the question, nearby ones get a little, distant ones almost nothing (a Gaussian bell). A topic’s seats are divided by the sum of these shares.</p>'+
@@ -534,7 +539,9 @@ function updResult(){
   drawParl($('#rh'),gr,dim,hf!==null?st[hf]:ht!==null?ch(ht):hk?KS[hk]:C.seats,hf!==null?C.fams[hf].n:ht!==null?C.topics[ht].n:hk?KN[hk]:plural(C.seats,'seat','seats','seats'),
     d=>{ if(d.party&&d.party.f!==undefined){ const k='f'+d.party.f; S.hl=S.hl===k?null:k; updResult(); } });
   $('#lead').innerHTML='Largest faction — <b>'+mark(C.fams[L])+esc(C.fams[L].n)+'</b>: '+mest(st[L])+' of '+C.seats+'. '+(R.party==='one'?'In a one-party system it takes the whole chamber.':solo?'That is an absolute majority; no allies are needed.':'No party reaches the majority of '+M+' on its own, so a deal will be needed.');
-  const tr=$('#tiers'), tiers=[['l','<i class="dot" style="background:var(--ink2)"></i>By party list '],['d','<i class="ring" style="border-color:var(--ink2)"></i>By districts '],['b','<i class="dot" style="background:var(--ink2)"></i>To the leader upfront ']].filter(x=>KS[x[0]]>0);
+  const rr=$('#ringrow'); rr.hidden=!sum(di); rr.innerHTML='<button type="button" class="chip" id="ringsw" aria-pressed="'+RINGS+'"><i class="ring" style="border-color:currentColor"></i>Districts as rings</button>';
+  $('#ringsw').addEventListener('click',()=>{ setRings(!RINGS); updResult(); const b=$('#ringsw'); if(b) b.focus({preventScroll:true}); });
+  const tr=$('#tiers'), tiers=[['l','<i class="dot" style="background:var(--ink2)"></i>By party list '],['d',(RINGS?'<i class="ring" style="border-color:var(--ink2)"></i>':'<i class="dot" style="background:var(--ink2)"></i>')+'By districts '],['b','<i class="dot" style="background:var(--ink2)"></i>To the leader upfront ']].filter(x=>KS[x[0]]>0);
   tr.hidden=tiers.length<2;
   tr.innerHTML=tiers.map(x=>'<button type="button" class="chip" data-k="'+x[0]+'" aria-pressed="'+(hk===x[0])+'">'+x[1]+KS[x[0]]+'</button>').join('');
   $$('button',tr).forEach(b=>b.addEventListener('click',()=>{ const k='k'+b.dataset.k; S.hl=S.hl===k?null:k; updResult(); }));
@@ -545,7 +552,7 @@ function updResult(){
   const d=$('#desc');
   if(hf!==null){ const F=C.fams[hf], trs=Object.keys(F.tr).sort((a,b)=>F.tr[b]-F.tr[a]).slice(0,6).map(tname); d.innerHTML='<b>'+esc(F.n)+'</b> · '+mest(st[hf])+(tiers.length>1?' ('+parts(hf).join(', ')+')':'')+'. '+esc(F.d)+(trs.length?' <b>Traits:</b> '+esc(trs.join(', ').toLowerCase())+'.':''); }
   else if(ht!==null) d.innerHTML='<b>'+esc(C.topics[ht].n)+'</b> · '+mest(ch(ht))+': '+C.fams.map((F,f)=>f).filter(f=>bl[ht].tot[f]).sort((a,b)=>bl[ht].tot[b]-bl[ht].tot[a]).map(f=>esc(C.fams[f].n)+' '+bl[ht].tot[f]).join(', ')+'.';
-  else if(hk) d.textContent=hk==='l'?'Party-list seats are shown as filled circles: they are divided in proportion to how close the parties are to your answers.':hk==='d'?'District seats are shown as rings: each question goes entirely to the closest party.':'The leading party gets these seats straight away, as a guaranteed majority.';
+  else if(hk) d.textContent=hk==='l'?'Party-list seats are shown as filled circles: they are divided in proportion to how close the parties are to your answers.':hk==='d'?(RINGS?'District seats are shown as rings: each question goes entirely to the closest party.':'District seats: each question goes entirely to the closest party.'):'The leading party gets these seats straight away, as a guaranteed majority.';
   else d.textContent='Click a party or a seat in the chamber to read about the party and highlight its seats.';
   const co=coalitions(st), bar=m=>'<div class="bar">'+m.map(f=>'<span style="width:'+(st[f]/C.seats*100)+'%;background:'+esc(C.fams[f].c)+'"></span>').join('')+'<em style="left:'+(M/C.seats*100)+'%"></em><em class="cm" style="left:'+(CM()/C.seats*100)+'%"></em></div><button type="button" class="chip" data-co="'+m.join(',')+'" style="margin-top:9px">Form a government</button>';
   $('#coal').innerHTML=solo?'<div class="co"><div class="t"><span>'+esc(C.fams[L].n)+' alone</span><em>'+st[L]+'</em></div>'+bar([L])+'</div>':
@@ -606,7 +613,7 @@ function viewCabinet(m){
   const anyP=m.some(f=>C.fams[f].ppl.length);
   window.scrollTo(0,0);
   app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px">'+(cn?'<span class="pill">'+esc(cn)+'</span>':'')+'<span class="pill">'+(tot>=M?'Majority government':'Minority government')+'</span><span class="pill">'+tot+' of '+C.seats+' seats</span></div>'+
-    '<h2 tabindex="-1" style="outline:none">Government</h2><p class="lead" style="margin:0;max-width:70ch">'+(m.length>1?'Coalition: ':'Single-party cabinet: ')+m.map(f=>'<b>'+esc(C.fams[f].n)+'</b>').join(', ')+'. Portfolios are handed out in turns: the more seats a party has, the earlier and more often it picks, and it takes the ministry closest to its traits. '+(anyP?'Parties nominate ministers from their own characters. ':'These parties have no characters yet: add them in the quiz settings, in the party cards. ')+'A portfolio can be passed to another party and a minister can be replaced.</p></div>'+
+    '<h2 tabindex="-1" style="outline:none">Government</h2><p class="lead" style="margin:0;max-width:70ch">'+(m.length>1?'Coalition: ':'Single-party cabinet: ')+m.map(f=>'<b>'+esc(C.fams[f].n)+'</b>').join(', ')+'. Portfolios are handed out in turns: the more seats a party has, the earlier and more often it picks, and it takes the ministry closest to its traits. '+(anyP?'Parties nominate ministers from their own characters. ':'These parties have no characters yet: add them in the test settings, in the party cards. ')+'A portfolio can be passed to another party and a minister can be replaced.</p></div>'+
     '<div class="box main"><div class="hemi" id="ch"></div><div class="leg" id="cleg"></div></div>'+
     '<div class="box"><h3>Cabinet of ministers</h3><p class="hint">The number on the left shows in which turn the portfolio was picked.</p><div id="crows"></div></div>'+
     '<div class="acts"><button type="button" class="cta" id="cback">← Back to results</button><button type="button" class="cta ghost" id="creset">Hand out again by the rule</button></div>'+
@@ -648,10 +655,10 @@ function wikibox(st,li,di,bo){
       (bo.some(x=>x)?row('Guaranteed',f=>bo[f]||'—'):'')+
       (anyReal?row('In the '+C.year+' election, party-list vote',(f,F)=>real(F)||'—'):'')+
       '<tr><td colspan="4" class="wb-hr"></td></tr>'; }
-  el.innerHTML='<table class="wb"><tbody><tr><th colspan="4" class="wb-title">'+(C.year?'State Duma election ('+C.year+')':'Parliamentary election')+'<div>based on quiz answers</div></th></tr>'+
+  el.innerHTML='<table class="wb"><tbody><tr><th colspan="4" class="wb-title">'+(C.year?'State Duma election ('+C.year+')':'Parliamentary election')+'<div>based on test answers</div></th></tr>'+
     (yi>=0?'<tr><td colspan="4"><div class="wb-nav"><span>'+(yi>0?'← '+years[yi-1]:'')+'</span><b>'+C.year+'</b><span>'+(yi<years.length-1?years[yi+1]+' →':'')+'</span></div></td></tr>':'')+
     '<tr><td colspan="4" class="wb-sub">All '+N+' '+plural(N,'seat','seats','seats')+' '+(C.year?'in the State Duma':'in the parliament')+'<br>A majority requires '+M+' '+plural(M,'seat','seats','seats')+'<br>Constitutional majority — '+CM()+'</td></tr>'+rows+
-    '<tr><td colspan="4"><div class="hemi" id="wbh"></div><div class="wb-cap">Distribution of seats according to the quiz</div></td></tr>'+
+    '<tr><td colspan="4"><div class="hemi" id="wbh"></div><div class="wb-cap">Distribution of seats according to the test</div></td></tr>'+
     (rest.length?'<tr><th scope="row">Others</th><td colspan="3" class="wb-left">'+rest.map(f=>esc(C.fams[f].n)+' — '+st[f]).join(', ')+'</td></tr>':'')+
     '<tr><th scope="row">System</th><td colspan="3" class="wb-left">'+SYSF[R.party]+'; '+(mixed?'mixed: party list and districts':'party lists')+'</td></tr></tbody></table>';
   drawParl($('#wbh'),C.fams.map((F,f)=>({seats:st[f],c:F.c})),null,'','',null,true);
@@ -727,7 +734,7 @@ function presBox(){
       '<tr><td colspan="4" class="wb-hr"></td></tr>'; }
   const W=r.cands[r.win];
   return '<div class="box"><h3>Presidential election of '+r.y+' </h3><p class="hint">The presidential election that follows this Duma. The candidates are real, while the votes are counted from your answers, just as for the parties. If nobody wins more than half, a second round is held, and the votes of eliminated candidates go to the closer finalist.</p>'+
-    '<table class="wb"><tbody><tr><th colspan="4" class="wb-title">Russian presidential election ('+r.y+')<div>based on quiz answers</div></th></tr>'+rows+
+    '<table class="wb"><tbody><tr><th colspan="4" class="wb-title">Russian presidential election ('+r.y+')<div>based on test answers</div></th></tr>'+rows+
     '<tr><th scope="row">Outcome</th><td colspan="3" class="wb-left"><b>'+esc(W.n)+'</b> wins '+(r.second?'in the second round':'in the first round')+'</td></tr>'+
     '<tr><th scope="row">In reality</th><td colspan="3" class="wb-left">'+esc(r.real)+'</td></tr></tbody></table></div>';
 }

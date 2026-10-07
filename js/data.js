@@ -96,7 +96,7 @@ const DEF_Q=[
 ];
 // Шесть вступительных вопросов о системе. a/b — очки вариантов для [одна, доминантная, две, много]
 const SYSK=['one','dom','two','multi'];
-const SYSN={auto:'Chosen by the quiz',one:'One-party',dom:'Dominant-party',two:'Two-party',multi:'Multi-party'};
+const SYSN={auto:'Chosen by the test',one:'One-party',dom:'Dominant-party',two:'Two-party',multi:'Multi-party'};
 const SYSF={one:'One-party system',dom:'Dominant-party system',two:'Two-party system',multi:'Multi-party system'};
 const SYSD={one:'All seats go to a single party: the one closest to your answers.',dom:'The party closest to you immediately gets a majority; the remaining seats are divided by the answers.',two:'Two rival parties share the seats: the one closest to your answers and its main ideological opponent.',multi:'All parties share the seats according to your answers.'};
 const SYSQ=[
@@ -441,7 +441,7 @@ const BUILTIN=Object.keys(DUMA).map(y=>{ const D=DUMA[y];
   return {n:'Duma-'+y,d:D.note+' · '+(D.sys==='mixed'?'party list and districts':'party lists only')+' · '+D.F.length+' parties',
     set:{seats:450,sys:D.sys,party:'multi',year:+y,span:false},
     raw:{T:DT,F:D.F,Q:DQ.filter(q=>q[0]<=+y&&+y<=q[1]).map(q=>q.slice(2)),no:D.no,co:D.co,P:DUMA_P[y]||{},cap:D.cap}}; }).concat([
-  {n:'Standard',d:'Based on the Spanish quiz “Tu hemiciclo” (objetivo176.es): six questions choose the system, followed by 48 questions and seven European parties',set:{seats:350,sys:'prop',party:'auto'}},
+  {n:'Standard',d:'Based on the Spanish test “Tu hemiciclo” (objetivo176.es): six questions choose the system, followed by 48 questions and seven European parties',set:{seats:350,sys:'prop',party:'auto'}},
   {h:1,n:'As in the original',d:'350 seats by party list, many parties',set:{seats:350,sys:'prop',party:'multi'}},
   {h:1,n:'Question = seat',d:'96 seats: 48 by party list and 48 question-districts',set:{seats:96,sys:'mixed',party:'multi'}},
   {h:1,n:'Two parties',d:'435 seats shared by two rival parties',set:{seats:435,sys:'prop',party:'two'}},
