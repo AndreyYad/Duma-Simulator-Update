@@ -1,0 +1,7 @@
+# Render Blueprint: статический сайт на бесплатном тарифе, без сборки
+services:
+  - type: web
+    name: svoy-parlament
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: .
