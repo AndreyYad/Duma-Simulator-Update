@@ -1449,5 +1449,13 @@
  "Путин 87,3%, Харитонов 4,3%, Даванков 3,85%, Слуцкий 3,2%.": "Putin 87.3%, Kharitonov 4.3%, Davankov 3.85%, Slutsky 3.2%.",
  "Показывать места от округов кольцами": "Show district seats as rings",
  "Округа кольцами": "Districts as rings",
- "Места по округам: каждый вопрос целиком достаётся ближайшей партии.": "District seats: each question goes entirely to the closest party."
+ "Места по округам: каждый вопрос целиком достаётся ближайшей партии.": "District seats: each question goes entirely to the closest party.",
+ "Часть мест по списку, часть по округам: вопрос — округ.": "Some seats by party list, some by districts: each question is a district.",
+ "Места делятся по смешанной схеме: часть по списку, часть по округам, потому что вам важнее конкретный депутат.": "Seats are divided under a mixed scheme: some by party list, some by districts, because a specific deputy matters more to you.",
+ "Доля одномандатных округов:": "Share of single-member districts:",
+ "Сохранить картинкой": "Save as image",
+ "Большинство —": "Majority —",
+ "· конституционное большинство —": "· constitutional majority —",
+ "Президент (": "President (",
+ "по ответам на тест · bolshoiprikol2.github.io/Duma-Simulator": "based on test answers · bolshoiprikol2.github.io/Duma-Simulator"
 }

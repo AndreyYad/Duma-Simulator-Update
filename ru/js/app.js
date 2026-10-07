@@ -9,7 +9,7 @@ const plural=(n,a,b,c)=>{ const m=Math.abs(n)%100, k=m%10; return m>10&&m<20?c:k
 const mest=n=>n+' '+plural(n,'место','места','мест');
 
 function defaults(set,raw){ raw=raw||{T:DEF_T,F:DEF_F,Q:DEF_Q}; const ix=n=>raw.F.findIndex(f=>f[0]===n);
-  return Object.assign({name:'Стандартный',seats:350,sys:'prop',party:'auto',duo:[-1,-1],year:0,span:true,
+  return Object.assign({name:'Стандартный',seats:350,sys:'prop',party:'auto',duo:[-1,-1],year:0,span:true,dshare:50,
   no:(raw.no||[]).map(p=>p.map(ix)),coal:(raw.co||[]).map(x=>({n:x[0],m:x[1].map(ix)})),
   traits:TR.map(([id,n,g])=>({id,n,g})),
   topics:raw.T.map(([n,s,c,lo,hi])=>({n,s,c,lo,hi})),
@@ -32,6 +32,7 @@ function norm(c){
   c.no=(Array.isArray(c.no)?c.no:[]).filter(p=>Array.isArray(p)&&okf(p[0])&&okf(p[1])&&p[0]!==p[1]).map(p=>[p[0],p[1]]);
   c.coal=(Array.isArray(c.coal)?c.coal:[]).filter(x=>x&&Array.isArray(x.m)).map(x=>({n:String(x.n||'Коалиция').slice(0,60),m:x.m.filter(okf)}));
   c.span=c.span!==false; c.year=Math.round(+c.year)||0;
+  c.dshare=Number.isFinite(+c.dshare)&&c.dshare!==null&&c.dshare!==undefined?Math.max(0,Math.min(100,Math.round(+c.dshare))):50;
   c.fams.forEach((f,i)=>{ if(!okf(f.cap)||f.cap===i) f.cap=-1; });
   c.duo=[0,1].map(k=>{ const v=Math.round(+(c.duo||[])[k]); return v>=0&&v<c.fams.length?v:-1; });
   return c;
@@ -53,7 +54,7 @@ const LV=[{n:'Не важно',w:0},{n:'Мало',w:1},{n:'Средне',w:2},{n
 const SV=[0,.35,.7,1], SL=['','слабо','умеренно','сильно'], SIGMA=0.2;
 const R={party:'multi',sys:'prop'}; // система, действующая в текущем прохождении
 const maj=()=>Math.floor(C.seats/2)+1, bonus=()=>R.party==='dom'?maj():0, pool=()=>C.seats-bonus();
-const distTotal=()=>R.sys==='mixed'?Math.floor(pool()/2):0, listTotal=()=>pool()-distTotal();
+const distTotal=()=>R.sys==='mixed'?Math.round(pool()*C.dshare/100):0, listTotal=()=>pool()-distTotal();
 const enabled=()=>C.qs.filter(q=>q.on);
 const S={lv:[],qs:[],pp:[],ans:[],flip:[],i:0,bi:0,order:[],hl:null,open:{},sa:[],si:0};
 // Позиция партии на шкале вопроса: насколько сильна её самая выраженная черта за B минус то же за A
@@ -203,7 +204,8 @@ function viewBuild(){
       '<div id="duo" hidden><span class="lbl">Какие две партии соревнуются</span><div class="psave">'+[0,1].map(k=>'<select class="in" id="duo-'+k+'" data-duo="'+k+'" aria-label="'+(k?'Вторая':'Первая')+' партия"><option value="-1">'+(k?'Авто: главный противник первой':'Авто: ближайшая к ответам')+'</option>'+C.fams.map((F,i)=>'<option value="'+i+'"'+(C.duo[k]===i?' selected':'')+'>'+esc(F.n)+'</option>').join('')+'</select>').join('')+'</div></div>'+
       '<div><span class="lbl">Как делятся места</span><fieldset class="sys">'+
         '<label><input type="radio" name="sys" id="sys-prop" value="prop"'+(C.sys==='prop'?' checked':'')+'><b>По списку</b><span>Пропорционально близости партий к ответам.</span></label>'+
-        '<label><input type="radio" name="sys" id="sys-mixed" value="mixed"'+(C.sys==='mixed'?' checked':'')+'><b>Смешанная, как в России</b><span>Половина по списку, половина по округам: вопрос — округ.</span></label>'+
+        '<label><input type="radio" name="sys" id="sys-mixed" value="mixed"'+(C.sys==='mixed'?' checked':'')+'><b>Смешанная, как в России</b><span>Часть мест по списку, часть по округам: вопрос — округ.</span></label>'+
+        '<div id="dshrow" style="grid-column:1/-1"><label class="lbl" for="dshare" style="margin-top:6px">Доля одномандатных округов: <b id="dshv"></b></label><input type="range" id="dshare" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"></div>'+
         '<label class="chk" id="ringchk" style="grid-column:1/-1"><input type="checkbox" id="f-rings"'+(RINGS?' checked':'')+'> Показывать места от округов кольцами</label>'+
       '</fieldset></div><div class="note" id="parl-note"></div></div>'+
     '<figure class="parl-fig"><div class="hemi" id="parl-h"></div><div class="parl-leg" id="parl-leg"></div></figure>'+
@@ -276,7 +278,7 @@ function refreshAxes(){ $$('[data-ax]').forEach(el=>{ const q=C.qs[+el.dataset.a
 function updParl(){
   const auto=C.party==='auto'; R.party=auto?'multi':C.party; R.sys=auto?'prop':C.sys;
   const B=bonus(), L=listTotal(), D=distTotal(), nq=enabled().length, one=R.party==='one';
-  $$('input[name="sys"]').forEach(r=>{ r.disabled=auto; }); $('#ringchk').hidden=R.sys!=='mixed'; $('#duo').hidden=C.party!=='two';
+  $$('input[name="sys"]').forEach(r=>{ r.disabled=auto; }); $('#ringchk').hidden=R.sys!=='mixed'; $('#dshrow').hidden=R.sys!=='mixed'; $('#dshv').textContent=C.dshare+'%'; $('#duo').hidden=C.party!=='two';
   const [da,db]=C.duo, duoTxt=da>=0&&db>=0&&da!==db?'Места делят «'+C.fams[da].n+'» и «'+C.fams[db].n+'». ':da>=0?'Места делят «'+C.fams[da].n+'» и её главный противник: партия, чьи черты сильнее всего с ней расходятся. ':db>=0?'Места делят «'+C.fams[db].n+'» и та из остальных партий, что ближе всего к ответам. ':'К местам допущены две конкурирующие партии: самая близкая к ответам и та, чьи черты сильнее всего с ней расходятся. ';
   drawParl($('#parl-h'),one?[{seats:C.seats,c:'var(--ink)'}]:[{seats:B,c:'var(--ink)'},{seats:L,c:'var(--accent)'},{seats:D,c:'var(--accent2)',k:'d'}],null,C.seats,plural(C.seats,'место','места','мест'));
   $('#parl-leg').innerHTML=one?'<span><i class="dot" style="background:var(--ink)"></i>Победителю <b>'+C.seats+'</b></span>':
@@ -300,6 +302,7 @@ function setSeats(n){ C.seats=Math.max(10,Math.min(1000,Math.round(n))); save();
 function onInput(e){
   const el=e.target;
   if(el.id==='seats'||el.id==='seatsR'){ const n=+el.value; if(!(n>=10&&n<=1000)) return; setSeats(n); (el.id==='seats'?$('#seatsR'):$('#seats')).value=C.seats; return; }
+  if(el.id==='dshare'){ C.dshare=Math.max(0,Math.min(100,+el.value||0)); save(); updParl(); updMeta(); return; }
   if(el.id==='f-rings'){ setRings(el.checked); updParl(); return; }
   if(el.name==='sys'||el.name==='party'){ C[el.name]=el.value; save(); updParl(); updMeta(); return; }
   const k=el.dataset.k; if(!k) return;
@@ -418,7 +421,7 @@ function viewVerdict(){
   let best=3; sc.forEach((x,k)=>{ if(x>sc[best]+1e-9) best=k; });
   R.party=SYSK[best]; R.sys=S.sa[5]>0.08?'mixed':'prop';
   const mx=Math.max(1,...sc); window.scrollTo(0,0);
-  app.innerHTML='<section class="narrow"><div class="meta"><b>Система выбрана</b></div><h2>'+SYSF[R.party]+'</h2><p class="lead">'+SYSD[R.party]+' '+(R.party==='one'?'':R.sys==='mixed'?'Места делятся по смешанной схеме: половина по списку, половина по округам, потому что вам важнее конкретный депутат.':'Места делятся по партийным спискам.')+'</p>'+
+  app.innerHTML='<section class="narrow"><div class="meta"><b>Система выбрана</b></div><h2>'+SYSF[R.party]+'</h2><p class="lead">'+SYSD[R.party]+' '+(R.party==='one'?'':R.sys==='mixed'?'Места делятся по смешанной схеме: часть по списку, часть по округам, потому что вам важнее конкретный депутат.':'Места делятся по партийным спискам.')+'</p>'+
     '<div class="box"><div class="vd">'+SYSK.map((k,j)=>'<div class="'+(j===best?'win':'')+'"><span>'+SYSN[k]+'</span><i><b style="width:'+(sc[j]/mx*100)+'%"></b></i><em>'+sc[j].toFixed(1).replace('.',',')+'</em></div>').join('')+'</div><p class="hint">Очки набираются по тому, как далеко вы сдвинули ползунок в каждом из шести вопросов. При равенстве выигрывает более плюралистичная система.</p></div>'+
     '<div class="go"><button type="button" class="cta" id="go">Дальше: важность тем</button><button type="button" class="link" id="redo">Ответить заново</button></div></section>';
   $('#go').addEventListener('click',viewPrio); $('#redo').addEventListener('click',()=>{ S.sa=[]; S.si=0; viewSys(); });
@@ -505,7 +508,7 @@ function viewResult(){
     '<div class="box"><h3>Места по темам</h3><p class="hint">Нажмите на тему, чтобы подсветить её места в зале. Поменяйте важность, и парламент пересчитается.</p><div class="ths" id="ths"></div></div>'+
     compassBox(true)+
     '<div class="box"><h3>Где вы находитесь</h3><p class="hint">Ваша средняя позиция (белый кружок) и позиции партий по каждой теме. Раскройте тему, чтобы увидеть каждый вопрос'+(mixed?' и кому достался его округ':'')+'.</p><div class="fleg">'+C.fams.map(F=>'<span><i class="dot" style="background:'+esc(F.c)+'"></i>'+esc(F.n)+'</span>').join('')+'<span><i class="dot you"></i>Вы</span></div><div class="strips" id="strips"></div></div>'+
-    '<div class="acts"><button type="button" class="cta" id="again">Пройти заново</button><button type="button" class="cta ghost" id="edit">Изменить тест</button></div>'+
+    '<div class="acts"><button type="button" class="cta" id="again">Пройти заново</button><button type="button" class="cta ghost" id="edit">Изменить тест</button><button type="button" class="cta ghost" id="shot">Сохранить картинкой</button></div>'+
     '<details class="det box"><summary>Как это считается</summary>'+
       '<p><b>Партии.</b> У каждой партии есть набор идейных черт с силой: слабо, умеренно или сильно. К каждому варианту ответа тоже привязаны черты. Партия стоит на шкале вопроса тем ближе к варианту, чем сильнее её самая выраженная черта из привязанных к нему.</p>'+
       '<p><b>Политическая система.</b> '+(C.party==='two'&&(C.duo[0]>=0||C.duo[1]>=0)?'Места делят две партии, выбранные в настройках теста.':SYSD[R.party])+(R.party==='dom'?' Гарантированное большинство — это '+bonus()+' из '+C.seats+'.':'')+'</p>'+
@@ -523,7 +526,7 @@ function viewResult(){
     const r=e.target.closest('.tr'); if(!r||r.classList.contains('na')) return; const k='t'+r.dataset.t; S.hl=S.hl===k?null:k; updResult(); });
   ths.addEventListener('keydown',e=>{ const r=e.target.closest('.tr'); if(r&&e.target===r&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); r.click(); } });
   $('#again').addEventListener('click',()=>{ if(C.party==='auto'){ S.sa=[]; S.si=0; window.scrollTo(0,0); viewSys(); } else viewPrio(); });
-  $('#edit').addEventListener('click',viewBuild);
+  $('#edit').addEventListener('click',viewBuild); $('#shot').addEventListener('click',exportPng);
   updResult(); $('.res h2').focus({preventScroll:true});
 }
 function updResult(){
@@ -764,6 +767,46 @@ function worldBoxes(st,scope,co){
   if(bb) bb.innerHTML=billsBox(st);
 }
 
+// ══════ Картинка с результатом: рисуется на холсте и скачивается как PNG ══════
+function exportPng(){
+  const st=S.st; if(!st) return;
+  const css=getComputedStyle(document.documentElement), tok=n=>css.getPropertyValue(n).trim()||'#888888';
+  const W=1080, M=maj(), mixed=R.sys==='mixed', order=st.map((v,f)=>f).filter(f=>st[f]>0).sort((a,b)=>st[b]-st[a]||a-b), L=order[0];
+  const legY=800, rowH=54, lines=3+(S.pres?1:0), H=legY+Math.ceil(order.length/2)*rowH+40+lines*40+90;
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const g=cv.getContext&&cv.getContext('2d'); if(!g) return;
+  const D="Unbounded, 'Golos Text', sans-serif", B="'Golos Text', system-ui, sans-serif", font=(w,px,fam)=>{ g.font=w+' '+px+'px '+fam; };
+  const fit=(t,max)=>{ let s=String(t); if(g.measureText(s).width<=max) return s; while(s.length>3&&g.measureText(s+'…').width>max) s=s.slice(0,-1); return s+'…'; };
+  g.fillStyle=tok('--bg'); g.fillRect(0,0,W,H);
+  g.fillStyle=tok('--surface'); g.beginPath(); if(g.roundRect) g.roundRect(36,36,W-72,H-72,30); else g.rect(36,36,W-72,H-72); g.fill();
+  // шапка
+  g.fillStyle=tok('--accent'); g.beginPath(); g.arc(104,112,22,Math.PI,0); g.fill();
+  g.textBaseline='alphabetic'; g.textAlign='left'; g.fillStyle=tok('--ink2'); font(800,24,D); g.fillText('Duma Simulator',140,112);
+  g.fillStyle=tok('--ink'); font(800,56,D); g.fillText(fit(C.year?'Ваша Дума '+C.year+' года':'Ваш парламент',W-164),82,196);
+  g.fillStyle=tok('--ink2'); font(500,25,B); g.fillText(fit(SYSF[R.party]+' · '+(mixed?'смешанная: список и округа':'партийные списки')+' · '+mest(C.seats),W-164),82,238);
+  // зал: те же места, что на экране
+  const seats=$$('#rh .seat'), k=(W-220)/600, ox=110, oy=270, rs={}; seats.forEach(el=>{ const d=d3.select(el).datum(); if(d&&d.polar) rs[d.polar.r.toFixed(2)]=1; });
+  const rw=180/Math.max(1,Object.keys(rs).length), r=rw*.4*k;
+  seats.forEach(el=>{ const d=d3.select(el).datum(); if(!d||!d.cartesian) return; const cs=getComputedStyle(el), x=ox+(300+d.cartesian.x)*k, y=oy+(300+d.cartesian.y)*k, ring=cs.stroke&&cs.stroke!=='none';
+    g.beginPath(); g.arc(x,y,ring?r*.92:r,0,Math.PI*2); if(ring){ g.fillStyle=tok('--surface'); g.fill(); g.lineWidth=rw*.14*k; g.strokeStyle=cs.stroke; g.stroke(); } else { g.fillStyle=cs.fill||tok('--pend'); g.fill(); } });
+  g.textAlign='center'; g.fillStyle=tok('--ink'); font(800,68,D); g.fillText(String(C.seats),W/2,oy+300*k-44);
+  g.fillStyle=tok('--ink2'); font(500,26,B); g.fillText(plural(C.seats,'место','места','мест'),W/2,oy+300*k-8);
+  // партии в две колонки
+  const colW=(W-164-40)/2; g.textAlign='left';
+  order.forEach((f,i)=>{ const F=C.fams[f], x=82+(i%2)*(colW+40), y=legY+Math.floor(i/2)*rowH;
+    g.fillStyle=F.c; g.beginPath(); g.arc(x+13,y-9,13,0,Math.PI*2); g.fill();
+    font(800,28,D); const num=String(st[f]), nw=g.measureText(num).width; font(500,21,B); const pct=(st[f]/C.seats*100).toFixed(1).replace('.',',')+'%', pw=g.measureText(pct).width;
+    g.fillStyle=tok('--ink'); font(600,26,B); g.fillText(fit(F.n,colW-44-nw-pw-30),x+38,y);
+    g.textAlign='right'; g.fillStyle=tok('--ink2'); font(500,21,B); g.fillText(pct,x+colW,y); g.fillStyle=tok('--ink'); font(800,28,D); g.fillText(num,x+colW-pw-14,y); g.textAlign='left'; });
+  // итоговые строки
+  let y=legY+Math.ceil(order.length/2)*rowH+34; g.fillStyle=tok('--line2'); g.fillRect(82,y-44,W-164,2);
+  const line=t=>{ g.fillStyle=tok('--ink'); font(500,25,B); g.fillText(fit(t,W-164),82,y); y+=40; };
+  line('Крупнейшая фракция — '+C.fams[L].n+': '+mest(st[L])+' из '+C.seats);
+  line('Большинство — '+M+' · конституционное большинство — '+CM());
+  if(S.pres) line('Президент ('+S.pres.y+'): '+S.pres.cands[S.pres.win].n);
+  g.fillStyle=tok('--ink3'); font(500,21,B); g.fillText('по ответам на тест · bolshoiprikol2.github.io/Duma-Simulator',82,y+8);
+  const name='duma-simulator'+(C.year?'-'+C.year:'')+'.png';
+  cv.toBlob(b=>{ if(!b) return; const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },800); },'image/png');
+}
 const cr=$('#credits'); if(cr){ const ALL=Object.assign({},PHS); Object.keys(LGS).forEach(n=>{ ALL['Логотип партии «'+n+'»']=LGS[n]; }); const ks=Object.keys(ALL).sort(); if(!ks.length) cr.hidden=true;
   cr.addEventListener('toggle',()=>{ const box=$('div',cr); if(!cr.open||box.innerHTML) return;
     box.innerHTML=ks.map(n=>{ const s=ALL[n]; return '<p>'+esc(n)+': <a href="https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(s[0].replace(/ /g,'_'))+'" target="_blank" rel="noopener">'+esc(s[0])+'</a>'+(s[1]?', автор: '+esc(s[1]):'')+(s[2]?', лицензия: '+esc(s[2]):'')+'</p>'; }).join(''); }); }
