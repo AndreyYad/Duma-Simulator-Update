@@ -797,10 +797,11 @@ function flagSvg(f){ const tot=sum(f.s.map(x=>Array.isArray(x)?x[1]:1)); let y=0
 function futDefs(){ if(document.getElementById('futdefs')) return; const M=window.RUMAP, K=window.FUTMAP||{}; if(!M) return;
   const h=document.createElement('div'); h.id='futdefs'; h.setAttribute('aria-hidden','true'); h.style.cssText='position:absolute;width:0;height:0;overflow:hidden';
   h.innerHTML='<svg><defs>'+Object.keys(M.r).map(id=>'<path id="fr-'+id+'" d="'+M.r[id]+'"/>').join('')+Object.keys(K).map(k=>'<path id="fc-'+k+'" d="'+K[k].d+'"/>').join('')+'</defs></svg>'; document.body.appendChild(h); }
+// В контуре Украины Крыма нет: он рисуется отдельно, когда Украина в составе или у концовки стоит cr
 function futMapSvg(m,col){ const M=window.RUMAP, K=window.FUTMAP||{}; if(!M) return ''; futDefs();
   let b=[0,0,M.w,M.h]; const inc=(m.inc||[]).filter(k=>K[k]); inc.forEach(k=>{ const q=K[k].b; b=[Math.min(b[0],q[0]),Math.min(b[1],q[1]),Math.max(b[2],q[2]),Math.max(b[3],q[3])]; });
   const sp={}; (m.split||[]).forEach(g=>g[0].forEach(id=>{ sp[id]=g[1]; }));
-  const ids=Object.keys(M.r).filter(id=>(id!=='CR'&&id!=='SEV')||m.cr), on=id=>m.only?m.only.includes(id):!(m.exc||[]).includes(id);
+  const cr=m.cr||inc.includes('UKR'), ids=Object.keys(M.r).filter(id=>(id!=='CR'&&id!=='SEV')||cr), on=id=>m.only?m.only.includes(id):!(m.exc||[]).includes(id);
   return '<svg class="fut-map" viewBox="'+(b[0]-8)+' '+(b[1]-8)+' '+(b[2]-b[0]+16)+' '+(b[3]-b[1]+16)+'" role="img" aria-label="Границы">'+
     inc.map(k=>'<use href="#fc-'+k+'" fill="'+col+'" fill-opacity=".7"/>').join('')+
     ids.map(id=>'<use href="#fr-'+id+'" '+(on(id)?'fill="'+(sp[id]||col)+'"':'class="off"')+'/>').join('')+'</svg>'; }
@@ -816,8 +817,7 @@ function futCard(e,st,when){ const col=e.party[1], ph=PH[e.lead]||'', lgo=LG[e.p
   return '<div class="fut-card" style="--fc:'+esc(col)+'"><div class="fut-head">'+flagSvg(e.flag)+'<div><small>'+esc(when)+'</small><b>'+esc(e.n)+'</b></div></div>'+
     '<div class="fut-body"><div class="fut-info"><div class="fut-lead"><div class="wb-ph'+(ph?' pic':'')+'" style="background:'+esc(col)+'">'+(ph?'<img src="'+esc(ph)+'" alt="">':'<span>'+esc(e.lead.split(' ').map(x=>x[0]).join(''))+'</span>')+'</div><div><small>Лидер</small><b>'+esc(e.lead)+'</b></div></div>'+
     '<dl>'+row('Идеология',esc(e.ideo))+row('Форма правления',esc(e.form))+row('Правящая партия',(lgo?'<img class="logo" src="'+esc(lgo)+'" alt="" style="border-color:'+esc(col)+'">':'<span class="fut-mono" style="background:'+esc(col)+'">'+esc(mono)+'</span>')+esc(e.party[0]))+'</dl></div>'+
-    '<div class="fut-vis"><figure>'+futMapSvg(e.map,col)+'<figcaption>Границы</figcaption></figure><figure>'+pr.svg+'<figcaption>Парламент: у правящей партии '+pr.own+' из '+pr.N+' мест</figcaption></figure></div></div>'+
-    '<p class="fut-t">'+esc(e.t)+'</p></div>'; }
+    '<div class="fut-vis"><figure>'+futMapSvg(e.map,col)+'<figcaption>Границы</figcaption></figure><figure>'+pr.svg+'<figcaption>Парламент: у правящей партии '+pr.own+' из '+pr.N+' мест</figcaption></figure></div></div></div>'; }
 function futureBox(st){ const r=futRank(st); if(!r) return ''; const all=!!S.futAll;
   return '<div class="box fut"><h3>Ваша Прекрасная Россия Будущего</h3><p class="hint">'+esc(r.era.intro)+' Концовка подобрана по ответам во всех темах (тема «Будущее» весит вдвое больше) и по составу вашей Думы. Сценарий вымышленный, политики настоящие.</p>'+
     futCard(r.list[0].e,st,r.era.when)+

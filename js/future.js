@@ -4,7 +4,8 @@
 // Запись: n — название страны, lead — лидер, ideo — идеология, form — форма правления, party — [правящая партия, цвет],
 // flag — {s: полосы сверху вниз (цвет или [цвет, доля]), e: знак, ec: цвет знака, ep: “c” — по центру, иначе у древка, h: полоса у древка},
 // map — {cr: с Крымом, inc: присоединённые страны, exc: вышедшие регионы, only: страна состоит только из этих регионов, split: [[регионы, цвет]]},
-// w — веса черт (плюс — подходит, минус — мешает), fam — партии Думы, чья сила приближает концовку, maj — доля правящей партии в парламенте, t — описание.
+// w — веса черт (плюс — подходит, минус — мешает), fam — партии Думы, чья сила приближает концовку, maj — доля правящей партии в парламенте,
+// t — описание (на карточке не показывается: там только инфографика). Крым рисуется при cr:1 и всегда, когда в состав входит Украина.
 const F_TRI=['#FFFFFF','#0039A6','#D52B1E'], F_IMP=['#111111','#F5C400','#FFFFFF'], F_RED=['#CC0000'], GOLD='#FFD700';
 const F_USSR={s:F_RED,e:'☭',ec:GOLD}, F_RSFSR={s:F_RED,h:'#0039A6',e:'☭',ec:GOLD};
 const G_CAU=['CE','DA','IN','KB','KC','SE'], G_URAL=['SVE','CHE','KGN','PER','TYU','KHM','YAN','ORE'], G_SIB=['OMS','NVS','TOM','KEM','ALT','AL','KYA','KK','TY','IRK','BU','ZAB'], G_FE=['SA','AMU','YEV','KHA','PRI','SAK','MAG','KAM','CHU'], G_VOL=['TA','BA','UD','CU','ME','MO'];
@@ -23,7 +24,7 @@ a:[
     w:{soviet:3,gos:2,nat:2,welfare:2,labor:2,parl:1,antiwest:1,evo:1,rad:-1,mkt:-2,priv:-2},t:'The Communists come to power through elections: privatisation is revised, the Soviets and state planning return, but without one-party rule.'},
   {n:'Union of Soviet Socialist Republics',lead:'Viktor Anpilov',ideo:'Marxism–Leninism',form:'One-party republic of Soviets',party:['Working Russia','#CC0000'],flag:F_USSR,map:{inc:G_USSR},maj:1,fam:['CPRF'],
     w:{soviet:3,emp:3,rad:2,nat:3,equal:2,labor:2,antiwest:2,mkt:-3,priv:-3,evo:-1,west:-2},t:'The Belovezha Accords are annulled, the Union is restored within its old borders, and private ownership of factories and land is abolished.'},
-  {n:'Soviet Russia',lead:'Albert Makashov',ideo:'National Stalinism',form:'Military dictatorship',party:['Stalin Bloc','#8B0000'],flag:{s:F_RED,e:'★',ec:GOLD},map:{},maj:1,fam:['CPRF'],
+  {n:'Soviet Russia',lead:'Albert Makashov',ideo:'National Stalinism',form:'Military dictatorship',party:['Stalin Bloc','#8B0000'],flag:{s:F_RED,e:'★',ec:GOLD},map:{cr:1},maj:1,fam:['CPRF'],
     w:{mil:3,auth:3,soviet:2,nation:2,rad:3,law:2,antiwest:2,plural:-3,lib:-3,west:-2,evo:-2},t:'Generals and the radical opposition take power by force: a state of emergency, tribunals for the reformers, closed borders.'},
   {n:'Great Russia',lead:'Vladimir Zhirinovsky',ideo:'Imperial national populism',form:'Presidential dictatorship, governorates instead of republics',party:['LDPR','#E3B505'],flag:{s:F_IMP},map:{inc:G_USSR.concat(['FIN'])},maj:.8,fam:['LDPR','Zhirinovsky Bloc'],
     w:{emp:3,nation:3,auth:2,pres:2,cent:3,unity:2,lang_one:2,pop:2,mil:2,rad:2,fed:-3,sep:-3,multi:-2,plural:-1},t:'The ethnic republics are abolished, the country is divided into governorates, and the borders are pushed out to those of the empire.'},
@@ -39,7 +40,7 @@ a:[
     w:{biz:3,priv:3,mkt:2,tax_lo:2,stab:1,pres:1,equal:-3,nat:-3,welfare:-2,labor:-2,direct:-2,plural:-1},t:'The bankers who paid for the 1996 election keep power for themselves: presidents and parties change, the owners do not.'},
   {n:'Russian Federation',lead:'Viktor Chernomyrdin',ideo:'Nomenklatura centrism',form:'Presidential republic',party:['Our Home — Russia','#1D4E89'],flag:{s:F_TRI},map:{},maj:.55,fam:['Our Home — Russia','PRES'],
     w:{stab:3,evo:3,gos:1,mkt:1,pres:2,growth:1,rad:-3,pop:-1,sep:-1},t:'Power passes to the industrial managers: no sudden moves, gas and pipelines feed the budget, reforms go as they go.'},
-  {n:'Russian Federation',lead:'Alexander Rutskoy',ideo:'Soviet parliamentarism',form:'Parliamentary republic: the Supreme Soviet stands above the president',party:['Derzhava','#7A1F1F'],flag:{s:F_TRI},map:{},maj:.5,fam:['CPRF','Agrarian Party'],
+  {n:'Russian Federation',lead:'Alexander Rutskoy',ideo:'Soviet parliamentarism',form:'Parliamentary republic: the Supreme Soviet stands above the president',party:['Derzhava','#7A1F1F'],flag:{s:F_TRI},map:{cr:1},maj:.5,fam:['CPRF','Agrarian Party'],
     w:{parl:3,soviet:1,gos:2,nation:1,sov:1,welfare:1,rad:1,pres:-3,mkt:-1,west:-1},t:'In autumn 1993 the White House wins: the presidential constitution is not adopted and the country is run by the congress of deputies.'},
   {n:'Russian Union',lead:'Aleksandr Solzhenitsyn',ideo:'Zemstvo national conservatism',form:'Presidential republic with zemstvo self-government',party:['Zemstvo Movement','#6B4F2A'],flag:{s:F_TRI},map:{inc:['BLR','UKR']},maj:.6,fam:[],
     w:{nation:2,trad:3,rel:2,direct:2,emp:1,agr:2,fed:1,self:1,soviet:-3,cosmo:-2,west:-1,mil:-1},t:'The country is arranged along the lines of the book “Rebuilding Russia”: a union of Russia, Ukraine and Belarus, power built from the bottom up through zemstvos, and no imperial ambitions beyond that.'},
@@ -107,9 +108,9 @@ b:[
     w:{mil:4,rad:4,nation:3,rel:1,auth:2,soviet:1,stab:-3,evo:-3,cosmo:-3,biz:-2},t:'Retired officers mutiny and take the Kremlin: emergency courts, nationalisation and “Russian order”.'},
   {n:'National Bolshevik Empire',lead:'Eduard Limonov',ideo:'National Bolshevism',form:'Revolutionary dictatorship',party:['The Other Russia','#B30000'],flag:{s:F_RED,e:'☭',ec:'#111111',ep:'c'},map:{cr:1,inc:G_USSR},maj:1,fam:[],
     w:{rad:4,nation:2,soviet:2,emp:3,equal:1,antiwest:3,mil:2,stab:-3,evo:-3,mkt:-2,biz:-2},t:'The radicals carry out a revolution: the red banner and imperial borders at once, officials and the bourgeoisie sent for re-education.'},
-  {n:'Republic of Rus',lead:'Konstantin Krylov',ideo:'National democracy',form:'Parliamentary republic, a nation state of ethnic Russians',party:['National Democratic Party','#C9A227'],flag:{s:['#FFFFFF','#F5C400','#111111']},map:{exc:G_CAU},maj:.55,fam:[],
+  {n:'Republic of Rus',lead:'Konstantin Krylov',ideo:'National democracy',form:'Parliamentary republic, a nation state of ethnic Russians',party:['National Democratic Party','#C9A227'],flag:{s:['#FFFFFF','#F5C400','#111111']},map:{cr:1,exc:G_CAU},maj:.55,fam:[],
     w:{nation:3,sep:2,plural:2,parl:2,imm_anti:3,assim:1,lang_one:1,mkt:1,multi:-3,eurasia:-2,emp:-1,auth:-1},t:'The slogan “Stop feeding the Caucasus” is carried out: the North Caucasus republics are separated, visas are introduced with Central Asia, and those who remain get free elections.'},
-  {n:'Russian National State',lead:'Dmitry Dyomushkin',ideo:'Ethnic nationalism',form:'Leader-centred republic',party:['The Russians','#757575'],flag:{s:F_IMP},map:{exc:G_CAU},maj:.9,fam:['LDPR'],
+  {n:'Russian National State',lead:'Dmitry Dyomushkin',ideo:'Ethnic nationalism',form:'Leader-centred republic',party:['The Russians','#757575'],flag:{s:F_IMP},map:{cr:1,exc:G_CAU},maj:.9,fam:['LDPR'],
     w:{nation:4,imm_anti:4,rad:3,auth:2,assim:2,multi:-4,cosmo:-3,imm_pro:-3,lib:-1},t:'The “Russian March” has reached the Kremlin: citizenship by descent, migrants deported, the Caucasus republics cut off by a border.'},
   {n:'Russian Republic',lead:'Garry Kasparov',ideo:'Radical democratism',form:'Parliamentary republic after lustration',party:['United Civil Front','#E2001A'],flag:{s:F_TRI},map:{},maj:.5,fam:[],
     w:{rad:3,plural:3,parl:2,west:3,lib:2,rehab:1,stab:-4,auth:-3,antiwest:-3,evo:-2},t:'The regime is swept away, not reformed: former officials, judges and security officers are removed, and the constitution is written anew.'},
