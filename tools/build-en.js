@@ -58,7 +58,7 @@ app = rep(app, "const KEY='svoy-parlament-v5', PKEY='svoy-parlament-presets';", 
 // ── ключи фотографий и логотипов: те же имена и названия, что в переведённых данных
 const ctx = { window: {} }; vm.createContext(ctx); vm.runInContext(R('js/photos.js') + R('js/logos.js'), ctx);
 const remap = (o, f, what) => { const r = {}; Object.keys(o).forEach(k => { const nk = f(k); if (nk === undefined || nk === null) throw new Error('нет перевода ключа ' + what + ': ' + k); r[nk] = o[k]; }); return r; };
-const pName = k => nameMap.get(k), lName = k => dict[k];
+const pName = k => nameMap.get(k) || translit(k), lName = k => dict[k]; // снимок без персонажа в данных остаётся под транслитерированным именем
 const PH = remap(ctx.window.PHOTO, pName, 'фото'), PHS = remap(ctx.window.PHOTO_SRC, pName, 'фото'), LG = remap(ctx.window.LOGO, lName, 'лого'), LGS = remap(ctx.window.LOGO_SRC, lName, 'лого');
 
 fs.writeFileSync(OUT('js/app.js'), app); fs.writeFileSync(OUT('js/data.js'), data); fs.writeFileSync(OUT('js/world.js'), world); fs.writeFileSync(OUT('js/future.js'), future); fs.writeFileSync(OUT('index.html'), index);

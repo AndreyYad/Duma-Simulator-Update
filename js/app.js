@@ -805,23 +805,17 @@ function futMapSvg(m,col){ const M=window.RUMAP, K=window.FUTMAP||{}; if(!M) ret
   return '<svg class="fut-map" viewBox="'+(b[0]-8)+' '+(b[1]-8)+' '+(b[2]-b[0]+16)+' '+(b[3]-b[1]+16)+'" role="img" aria-label="Borders">'+
     inc.map(k=>'<use href="#fc-'+k+'" fill="'+col+'" fill-opacity=".7"/>').join('')+
     ids.map(id=>'<use href="#fr-'+id+'" '+(on(id)?'fill="'+(sp[id]||col)+'"':'class="off"')+'/>').join('')+'</svg>'; }
-// Мини-парламент: правящая партия занимает долю maj, остальные места делят партии вашей Думы
-function futParl(e,st){ const N=90, rows=[[38,14],[51,19],[64,24],[77,33]], pts=[];
-  rows.forEach(r=>{ for(let k=0;k<r[1];k++){ const an=Math.PI*(1-(k+.5)/r[1]); pts.push({an,x:90+r[0]*Math.cos(an),y:88-r[0]*Math.sin(an)}); } }); pts.sort((x,y)=>y.an-x.an);
-  const own=Math.min(N,Math.round(e.maj*N)), rest=C.fams.map((F,f)=>f).filter(f=>st[f]>0&&C.fams[f].n!==e.party[0]).sort((x,y)=>st[y]-st[x]), sh=lr(rest.map(f=>st[f]),N-own), cols=[];
-  for(let k=0;k<own;k++) cols.push(e.party[1]); rest.forEach((f,j)=>{ for(let k=0;k<sh[j];k++) cols.push(C.fams[f].c); }); while(cols.length<N) cols.push(e.party[1]);
-  return {own,N,svg:'<svg class="fut-parl" viewBox="0 0 180 94" role="img" aria-label="Parliament">'+pts.map((p,i)=>'<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="4.6" fill="'+esc(cols[i])+'"/>').join('')+'</svg>'}; }
-function futCard(e,st,when){ const col=e.party[1], ph=PH[e.lead]||'', lgo=LG[e.party[0]]||'', pr=futParl(e,st);
+function futCard(e,st,when){ const col=e.party[1], ph=PH[e.lead]||'', lgo=LG[e.party[0]]||'';
   const mono=e.party[0].replace(/[“”“”"]/g,'').split(/[\s—–-]+/).filter(Boolean).map(x=>x[0].toUpperCase()).join('').slice(0,3);
   const row=(k,v)=>'<div><dt>'+k+'</dt><dd>'+v+'</dd></div>';
   return '<div class="fut-card" style="--fc:'+esc(col)+'"><div class="fut-head">'+flagSvg(e.flag)+'<div><small>'+esc(when)+'</small><b>'+esc(e.n)+'</b></div></div>'+
     '<div class="fut-body"><div class="fut-info"><div class="fut-lead"><div class="wb-ph'+(ph?' pic':'')+'" style="background:'+esc(col)+'">'+(ph?'<img src="'+esc(ph)+'" alt="">':'<span>'+esc(e.lead.split(' ').map(x=>x[0]).join(''))+'</span>')+'</div><div><small>Leader</small><b>'+esc(e.lead)+'</b></div></div>'+
     '<dl>'+row('Ideology',esc(e.ideo))+row('Form of government',esc(e.form))+row('Ruling party',(lgo?'<img class="logo" src="'+esc(lgo)+'" alt="" style="border-color:'+esc(col)+'">':'<span class="fut-mono" style="background:'+esc(col)+'">'+esc(mono)+'</span>')+esc(e.party[0]))+'</dl></div>'+
-    '<div class="fut-vis"><figure>'+futMapSvg(e.map,col)+'<figcaption>Borders</figcaption></figure><figure>'+pr.svg+'<figcaption>Parliament: the ruling party holds '+pr.own+' of '+pr.N+' seats</figcaption></figure></div></div></div>'; }
+    '<div class="fut-vis"><figure>'+futMapSvg(e.map,col)+'<figcaption>Borders</figcaption></figure></div></div></div>'; }
 function futureBox(st){ const r=futRank(st); if(!r) return ''; const all=!!S.futAll;
   return '<div class="box fut"><h3>Your Beautiful Russia of the Future</h3><p class="hint">'+esc(r.era.intro)+' The ending is chosen from your answers in every topic (the “Future” topic counts double) and from the make-up of your Duma. The scenario is fictional, the politicians are real.</p>'+
     futCard(r.list[0].e,st,r.era.when)+
-    '<p class="hint" style="margin-top:10px">It could also have gone this way: '+r.list.slice(1,4).map(x=>esc(x.e.lead)+' — '+esc(x.e.n)+' ('+esc(x.e.ideo.toLowerCase())+')').join('; ')+'.</p>'+
+    '<p class="hint" style="margin-top:10px">It could also have gone this way: '+r.list.slice(1,4).map(x=>esc(x.e.lead)+' — '+esc(x.e.n)+' ('+esc(x.e.ideo)+')').join('; ')+'.</p>'+
     '<p style="margin:12px 0 0"><button type="button" class="chip" id="futall" aria-pressed="'+all+'">'+(all?'Hide the other futures':'Show all possible futures: '+r.list.length)+'</button></p>'+
     (all?'<p class="hint" style="margin-top:10px">A temporary preview for checking: every ending of this era, from the closest to your answers to the furthest.</p>'+r.list.slice(1).map((x,i)=>'<div class="fut-num">'+(i+2)+' of '+r.list.length+'</div>'+futCard(x.e,st,r.era.when)).join(''):'')+'</div>'; }
 
