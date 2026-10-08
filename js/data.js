@@ -272,7 +272,7 @@ const DQ=[
   [2026,2027,0,-1,'Foreign companies that left','Bring foreign companies back and let them buy back their former assets','Do not bring them back: domestic owners have taken their place',['mkt','west'],['prot','sov']],
   [2026,2027,0,1,'Review of privatisation','Return to the state the enterprises that were privatised unlawfully','Lock in the results of privatisation and protect owners',['nat','gos'],['priv','biz']],
   // Тема “Будущее”. Сюда попадает только то, чего нет в других темах: радикальные развилки.
-  [1993,2016,6,1,'Integrity of the country','Russia must stay united under any circumstances','If the regions are better off apart, let the country split into several states',['unity','evo'],['sep','rad']],
+  [1993,2026,6,1,'Integrity of the country','Russia must stay united under any circumstances','If the regions are better off apart, let the country split into several states',['unity','evo'],['sep','rad']],
   // набор для выборов 1990-х
   [1993,1999,6,1,'The path of change','Change the country gradually: through elections and laws','A sharp break is needed: emergency measures and, if it comes to it, force',['evo','stab'],['rad']],
   [1993,1999,6,1,'Borders','The 1991 borders are final','The borders should be revised: take back Crimea, northern Kazakhstan and other lands where ethnic Russians live',['evo','cosmo','west'],['emp','nation']],
@@ -283,15 +283,22 @@ const DQ=[
   [1993,1999,6,-1,'Big capital','The biggest owners are the backbone of the economy and can be trusted with power too','Remove the oligarchs from both power and property',['biz','priv','mkt'],['nat','gos','pop']],
   [1993,1999,6,-1,'Banning the Communist Party','Ban the Communist Party and remove former party officials from office','No bans and no purges: leave the past to historians',['rad','lib','west'],['stab','soviet','evo']],
   // набор для выборов 2003–2016 годов
-  [2003,2016,6,1,'The path of change','Peaceful evolution only: elections, courts, gradual reforms','The system cannot be reformed: a revolution or a coup is needed',['evo','stab'],['rad']],
+  [2003,2026,6,1,'The path of change','Peaceful evolution only: elections, courts, gradual reforms','The system cannot be reformed: a revolution or a coup is needed',['evo','stab'],['rad']],
   [2003,2016,6,1,'Historic lands','The neighbours’ borders are inviolable','Take back the historic lands: Crimea, Novorossiya, northern Kazakhstan',['cosmo','west','pac'],['emp','nation','mil']],
   [2003,2016,6,1,'Union or empire','A voluntary economic union with the neighbours is enough','A new Union is needed: one state from Brest to Vladivostok',['eurasia','evo'],['emp','soviet']],
-  [2003,2016,6,1,'North Caucasus','The North Caucasus is an inseparable part of Russia','“Stop feeding the Caucasus”: separate these republics',['unity','multi'],['sep','nation']],
-  [2003,2016,6,1,'Monarchy','Russia should remain a secular republic','Restore the Romanov monarchy, resting on Orthodoxy',['sec','evo'],['mon','rel','trad']],
-  [2003,2016,6,1,'Lustration','No purges: civil peace matters more','Remove and try the officials, judges and security officers of the current authorities',['stab','evo'],['rad','plural']],
-  [2003,2016,6,1,'How much state is needed','The state should look after citizens and steer the economy','The state cut to a minimum: low taxes, the rest is a private matter',['gos','welfare'],['self','tax_lo','lib','rad']],
+  [2003,2026,6,1,'North Caucasus','The North Caucasus is an inseparable part of Russia','“Stop feeding the Caucasus”: separate these republics',['unity','multi'],['sep','nation']],
+  [2003,2026,6,1,'Monarchy','Russia should remain a secular republic','Restore the Romanov monarchy, resting on Orthodoxy',['sec','evo'],['mon','rel','trad']],
+  [2003,2026,6,1,'Lustration','No purges: civil peace matters more','Remove and try the officials, judges and security officers of the current authorities',['stab','evo'],['rad','plural']],
+  [2003,2026,6,1,'How much state is needed','The state should look after citizens and steer the economy','The state cut to a minimum: low taxes, the rest is a private matter',['gos','welfare'],['self','tax_lo','lib','rad']],
   [2003,2016,6,1,'Civilians or the military','The country should be run by civilian politicians','Only the military and the security services will restore order',['plural','evo'],['mil','auth','law']],
-  [2003,2016,6,1,'Who decides','The main decisions are taken by voters','Professional managers should decide, not a vote',['direct','plural'],['tech','auth']]
+  [2003,2026,6,1,'Who decides','The main decisions are taken by voters','Professional managers should decide, not a vote',['direct','plural'],['tech','auth']],
+  // набор для выборов 2020-х: к общим вопросам выше добавляются эти
+  [2021,2026,6,1,'The big war','A direct clash with NATO must be avoided at any cost','A clash with NATO is inevitable: prepare for it and win',['pac','evo','west'],['mil','antiwest','emp']],
+  [2021,2026,6,1,'Gathering the lands','The neighbours’ recognised borders are inviolable','The lands of the former Union and empire should be gathered into one state',['cosmo','west','evo'],['emp','nation']],
+  [2021,2026,6,1,'The Soviet project','The USSR is a closed chapter; there is nowhere to go back to','Restore Soviet power and the planned economy',['mkt','evo'],['soviet','nat','rad']],
+  [2021,2026,6,1,'Those who fought','Weapons and power belong only to the state and the regular army','The country should be led by those who fought: veterans and volunteer units',['plural','evo','stab'],['mil','rad','auth','nation']],
+  [2021,2026,6,1,'State ideology','The state should have no compulsory ideology','A state ideology is needed, compulsory for schools, the media and officials',['lib','sec','plural'],['auth','trad','antiwest']],
+  [2021,2026,6,1,'The successor','Power should change hands in competitive elections','The successor should be agreed inside the system',['plural','parl'],['stab','pres','auth']]
 ];
 // Малая партия — та, что по списку набрала меньше 5%; пятый элемент записи партии задаёт признак явно (1 — малая, 0 — нет).
 // Пониженный приоритет малых партий включён по умолчанию только в сценариях с low:1.

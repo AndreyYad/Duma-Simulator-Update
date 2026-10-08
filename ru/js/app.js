@@ -783,10 +783,10 @@ function futProfile(st){ const ft=C.topics.findIndex(t=>t.n==='Будущее'),
   C.fams.forEach((F,f)=>{ if(!st[f]) return; Object.keys(F.tr).forEach(id=>{ p[id]=(p[id]||0)+.5*st[f]/N*SV[F.tr[id]]; }); });
   return p; }
 function futRank(st){ const era=futEra(); if(!era||typeof FUT==='undefined'||!S.qs.length||S.ans.every(v=>v==null)) return null; const p=futProfile(st), N=sum(st)||1;
-  const list=FUT[era.k].map(e=>{ let x=0,y=0; Object.keys(e.w).forEach(id=>{ x+=e.w[id]*(p[id]||0); y+=e.w[id]*e.w[id]; });
+  const list=FUT[era.k].filter(e=>(!e.from||C.year>=e.from)&&(!e.to||C.year<=e.to)).map(e=>{ let x=0,y=0; Object.keys(e.w).forEach(id=>{ x+=e.w[id]*(p[id]||0); y+=e.w[id]*e.w[id]; });
     return {e,sc:x/Math.sqrt(y||1)+.8*sum(C.fams.map((F,f)=>e.fam.includes(F.n)?st[f]/N:0))}; }).sort((x,y)=>y.sc-x.sc);
   const dbg=/[?&]fut=([0-9]+)/.exec(location.search), pick=dbg&&FUT[era.k][+dbg[1]]; // ?fut=N в адресе показывает концовку с номером N — для проверки оформления
-  if(pick){ const i=list.findIndex(x=>x.e===pick); list.unshift(list.splice(i,1)[0]); }
+  if(pick){ const i=list.findIndex(x=>x.e===pick); if(i>=0) list.unshift(list.splice(i,1)[0]); }
   return {era,list}; }
 function flagSvg(f){ const tot=sum(f.s.map(x=>Array.isArray(x)?x[1]:1)); let y=0;
   let h='<svg class="fut-flag" viewBox="0 0 90 60" role="img" aria-label="Флаг">'+f.s.map(x=>{ const c=Array.isArray(x)?x[0]:x, hh=60*(Array.isArray(x)?x[1]:1)/tot, r='<rect x="0" y="'+y+'" width="90" height="'+(hh+.4)+'" fill="'+c+'"/>'; y+=hh; return r; }).join('');
