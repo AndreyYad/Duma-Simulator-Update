@@ -271,34 +271,27 @@ const DQ=[
   [2026,2027,1,1,'Combat veterans','Lifelong benefits, university quotas and priority in the civil service','Support is needed, but without special privileges over other citizens',['mil','welfare','nation'],['equal']],
   [2026,2027,0,-1,'Foreign companies that left','Bring foreign companies back and let them buy back their former assets','Do not bring them back: domestic owners have taken their place',['mkt','west'],['prot','sov']],
   [2026,2027,0,1,'Review of privatisation','Return to the state the enterprises that were privatised unlawfully','Lock in the results of privatisation and protect owners',['nat','gos'],['priv','biz']],
-  // Тема “Будущее”: набор для выборов 1990-х
+  // Тема “Будущее”. Сюда попадает только то, чего нет в других темах: радикальные развилки.
+  [1993,2016,6,1,'Integrity of the country','Russia must stay united under any circumstances','If the regions are better off apart, let the country split into several states',['unity','evo'],['sep','rad']],
+  // набор для выборов 1990-х
   [1993,1999,6,1,'The path of change','Change the country gradually: through elections and laws','A sharp break is needed: emergency measures and, if it comes to it, force',['evo','stab'],['rad']],
-  [1993,1999,6,1,'The former Union','The 1991 borders are final; Russia should be built within them','Restore a single state across the former USSR',['evo','cosmo'],['emp','soviet','eurasia']],
-  [1993,1999,6,1,'Russia, Ukraine, Belarus','Ukraine and Belarus are independent neighbours, and that is for good','The three Slavic republics should become one country again',['west','cosmo'],['emp','nation']],
-  [1993,1999,6,1,'Republics within Russia','Hold the country together at any cost','Let those who want to leave go, and make a treaty of equals with the rest',['unity','cent'],['sep','fed']],
+  [1993,1999,6,1,'Borders','The 1991 borders are final','The borders should be revised: take back Crimea, northern Kazakhstan and other lands where ethnic Russians live',['evo','cosmo','west'],['emp','nation']],
   [1993,1999,6,1,'Who should rule','An elected president and parliament that check each other','A strong hand: a leader or the military, with no regard for parliament',['plural','parl','evo'],['auth','mil','rad']],
-  [1993,1999,6,1,'Monarchy','Russia should remain a republic','Restore the monarchy and the Romanov dynasty',['sec','evo'],['mon','trad']],
-  [1993,1999,6,1,'Church and power','The church is separate from the state','Orthodoxy should become the foundation of state and law',['sec','lib'],['rel','trad']],
-  [1993,1999,6,1,'The results of the reforms','Do not revisit privatisation and the reforms; move on','Put the reformers on trial and return property to the state',['mkt','priv','evo'],['nat','soviet','rad']],
-  [1993,1999,6,1,'Place in the world','Join Europe: the EU and NATO as the goal','A special path: a civilisation of its own, opposed to the West',['euro','west'],['antiwest','sov','eurasia']],
+  [1993,1999,6,1,'Monarchy','Russia should remain a secular republic','Restore the Romanov monarchy, resting on Orthodoxy',['sec','evo'],['mon','rel','trad']],
+  [1993,1999,6,1,'Accountability for the reforms','Do not prosecute the authors of the reforms and privatisation','Put the authors of the reforms and privatisation on trial',['mkt','priv','evo'],['nat','soviet','rad']],
   [1993,1999,6,1,'Whose state this is','A state of all citizens regardless of ethnicity','Russia is the state of ethnic Russians; the others are guests in it',['multi','cosmo'],['nation','assim','rad']],
   [1993,1999,6,-1,'Big capital','The biggest owners are the backbone of the economy and can be trusted with power too','Remove the oligarchs from both power and property',['biz','priv','mkt'],['nat','gos','pop']],
-  [1993,1999,6,1,'The past','Condemn the Soviet past: ban the Communist Party and remove former party officials','No bans and no purges: leave the past to historians',['rad','lib','west'],['stab','soviet','evo']],
-  // Тема “Будущее”: набор для выборов 2003–2016 годов
+  [1993,1999,6,-1,'Banning the Communist Party','Ban the Communist Party and remove former party officials from office','No bans and no purges: leave the past to historians',['rad','lib','west'],['stab','soviet','evo']],
+  // набор для выборов 2003–2016 годов
   [2003,2016,6,1,'The path of change','Peaceful evolution only: elections, courts, gradual reforms','The system cannot be reformed: a revolution or a coup is needed',['evo','stab'],['rad']],
-  [2003,2016,6,-1,'The power vertical','A strong president for a long time is the guarantee of stability','A parliamentary republic with a president who has no real power',['pres','stab','auth'],['parl','plural']],
   [2003,2016,6,1,'Historic lands','The neighbours’ borders are inviolable','Take back the historic lands: Crimea, Novorossiya, northern Kazakhstan',['cosmo','west','pac'],['emp','nation','mil']],
   [2003,2016,6,1,'Union or empire','A voluntary economic union with the neighbours is enough','A new Union is needed: one state from Brest to Vladivostok',['eurasia','evo'],['emp','soviet']],
   [2003,2016,6,1,'North Caucasus','The North Caucasus is an inseparable part of Russia','“Stop feeding the Caucasus”: separate these republics',['unity','multi'],['sep','nation']],
-  [2003,2016,6,1,'Centre and regions','A single chain of command from Moscow down to the village','Regions get their own laws, taxes and the right to leave',['cent','unity'],['fed','sep']],
-  [2003,2016,6,1,'Monarchy and church','A secular republic','An Orthodox monarchy',['sec','evo'],['mon','rel','trad']],
-  [2003,2016,6,1,'The West','Join the EU and NATO','The West is an enemy; only confrontation is possible',['euro','west'],['antiwest','sov','mil']],
+  [2003,2016,6,1,'Monarchy','Russia should remain a secular republic','Restore the Romanov monarchy, resting on Orthodoxy',['sec','evo'],['mon','rel','trad']],
   [2003,2016,6,1,'Lustration','No purges: civil peace matters more','Remove and try the officials, judges and security officers of the current authorities',['stab','evo'],['rad','plural']],
-  [2003,2016,6,1,'Large-scale property','Lock in the results of privatisation','Nationalise large-scale property and bring back the planned economy',['priv','mkt','evo'],['nat','soviet','rad']],
   [2003,2016,6,1,'How much state is needed','The state should look after citizens and steer the economy','The state cut to a minimum: low taxes, the rest is a private matter',['gos','welfare'],['self','tax_lo','lib','rad']],
   [2003,2016,6,1,'Civilians or the military','The country should be run by civilian politicians','Only the military and the security services will restore order',['plural','evo'],['mil','auth','law']],
-  [2003,2016,6,1,'Who decides','The main decisions are taken by voters','Professional managers should decide, not a vote',['direct','plural'],['tech','auth']],
-  [2003,2016,6,1,'Whose state this is','A state of all citizens regardless of ethnicity','Russia should become a nation state of ethnic Russians',['multi','cosmo'],['nation','imm_anti','assim']]
+  [2003,2016,6,1,'Who decides','The main decisions are taken by voters','Professional managers should decide, not a vote',['direct','plural'],['tech','auth']]
 ];
 // Малая партия — та, что по списку набрала меньше 5%; пятый элемент записи партии задаёт признак явно (1 — малая, 0 — нет).
 // Пониженный приоритет малых партий включён по умолчанию только в сценариях с low:1.

@@ -402,9 +402,10 @@ span.tchip{cursor:default}
 .fut-vis figure{margin:0}
 .fut-vis figcaption{font-size:12px;color:var(--ink2);text-align:center;margin-top:2px}
 .fut-map{width:100%;height:auto;display:block}
-.fut-map path{stroke:var(--ink3);stroke-width:.6;stroke-opacity:.55}
+.fut-map use{stroke:var(--ink3);stroke-width:.6;stroke-opacity:.55}
 .fut-map .off{fill:var(--line2)}
 .fut-parl{width:100%;max-width:260px;height:auto;display:block;margin:0 auto}
 .fut-parl circle{stroke:var(--ink3);stroke-width:.5;stroke-opacity:.6}
 .fut-t{margin:14px 0 0;font-size:14.5px}
+.fut-num{margin:18px 0 -4px;font:800 12px var(--display);color:var(--ink2);text-transform:uppercase;letter-spacing:.05em}
 @media (max-width:640px){ .fut-body{grid-template-columns:1fr} .fut-head b{font-size:19px} }
