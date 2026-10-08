@@ -8,7 +8,7 @@ const dict = JSON.parse(fs.readFileSync(path.join(__dirname, 'dict.json'), 'utf8
 
 // ── имена персонажей и кандидатов: транслитерация
 const ctx0 = {}; vm.createContext(ctx0);
-vm.runInContext(R('js/data.js') + R('js/world.js') + ';this.N=[...new Set(Object.values(DUMA_P).flatMap(y=>Object.values(y).flat().map(p=>p[0])).concat(Object.values(PRES).flatMap(p=>p.c.map(c=>c[0]))))];', ctx0);
+vm.runInContext(R('js/data.js') + R('js/world.js') + R('js/future.js') + ';this.N=[...new Set(Object.values(DUMA_P).flatMap(y=>Object.values(y).flat().map(p=>p[0])).concat(Object.values(PRES).flatMap(p=>p.c.map(c=>c[0]))).concat(Object.values(FUT).flat().map(e=>e.lead)))];', ctx0);
 const FIRST = { 'Александр': 'Alexander', 'Алексей': 'Alexei', 'Юрий': 'Yuri', 'Эмилия': 'Emilia', 'Ксения': 'Ksenia', 'Мария': 'Maria', 'Лидия': 'Lidia', 'Пётр': 'Pyotr', 'Виктор': 'Viktor', 'Юлия': 'Yulia', 'Максим': 'Maxim', 'Кац': 'Katz', 'Гуриев': 'Guriev' };
 const CH = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', ж: 'zh', з: 'z', и: 'i', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'shch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya', ё: 'yo' };
 const VOW = 'аеёиоуыэюяьъ';
@@ -19,7 +19,9 @@ function word(w) {
     out += c === '\u0001' ? 'y' : c === 'е' ? ((i === 0 || VOW.includes(p)) ? 'ye' : 'e') : c === 'й' ? 'i' : CH[c] !== undefined ? CH[c] : c; }
   return out.charAt(0).toUpperCase() + out.slice(1);
 }
-const translit = n => n.split(' ').map(part => part.split('-').map(word).join('-')).join(' ');
+// устоявшиеся английские написания, которые транслитерация не даёт
+const FULL = { 'Патриарх Алексий II': 'Patriarch Alexy II', 'Патриарх Кирилл': 'Patriarch Kirill', 'Мария Владимировна Романова': 'Maria Vladimirovna Romanova', 'Георгий Романов': 'George Romanov', 'Гарри Каспаров': 'Garry Kasparov', 'Михаил Горбачёв': 'Mikhail Gorbachev', 'Борис Березовский': 'Boris Berezovsky', 'Александр Солженицын': 'Aleksandr Solzhenitsyn', 'Нурсултан Назарбаев': 'Nursultan Nazarbayev', 'Алексей Навальный': 'Alexei Navalny', 'Анатолий Чубайс': 'Anatoly Chubais', 'Александр Руцкой': 'Alexander Rutskoy', 'Валерия Новодворская': 'Valeriya Novodvorskaya', 'Сергей Ковалёв': 'Sergei Kovalev', 'Александр Баркашов': 'Alexander Barkashov' };
+const translit = n => FULL[n] || n.split(' ').map(part => part.split('-').map(word).join('-')).join(' ');
 const nameMap = new Map(ctx0.N.map(n => [n, translit(n)]));
 
 // ── замена русских фрагментов: фрагмент — кусок текста без кавычек и угловых скобок, в котором есть кириллица; комментарии не трогаются
@@ -34,7 +36,7 @@ const rep = (s, x, y, name, all) => { const n = s.split(x).length - 1; if (!n ||
 const quotes = s => s.replace(/«/g, '“').replace(/»/g, '”');
 const between = (s, a, b, y, name) => { const i = s.indexOf(a), j = s.indexOf(b, i); if (i < 0 || j < 0) throw new Error('нет метки ' + name); return s.slice(0, i) + y + s.slice(j + b.length); };
 
-let app = quotes(translate(R('js/app.js'))), data = quotes(translate(R('js/data.js'))), world = quotes(translate(R('js/world.js')));
+let app = quotes(translate(R('js/app.js'))), data = quotes(translate(R('js/data.js'))), world = quotes(translate(R('js/world.js'))), future = quotes(translate(R('js/future.js')));
 // страница: сначала вырезать помеченные вставки (в них остаётся слово «Русский»), потом переводить остальное
 let index = R('index.html');
 index = between(index, '<!--redirect-->', '<!--/redirect-->', '@@REDIRECT@@', 'redirect');
@@ -59,7 +61,7 @@ const remap = (o, f, what) => { const r = {}; Object.keys(o).forEach(k => { cons
 const pName = k => nameMap.get(k), lName = k => dict[k];
 const PH = remap(ctx.window.PHOTO, pName, 'фото'), PHS = remap(ctx.window.PHOTO_SRC, pName, 'фото'), LG = remap(ctx.window.LOGO, lName, 'лого'), LGS = remap(ctx.window.LOGO_SRC, lName, 'лого');
 
-fs.writeFileSync(OUT('js/app.js'), app); fs.writeFileSync(OUT('js/data.js'), data); fs.writeFileSync(OUT('js/world.js'), world); fs.writeFileSync(OUT('index.html'), index);
+fs.writeFileSync(OUT('js/app.js'), app); fs.writeFileSync(OUT('js/data.js'), data); fs.writeFileSync(OUT('js/world.js'), world); fs.writeFileSync(OUT('js/future.js'), future); fs.writeFileSync(OUT('index.html'), index);
 fs.writeFileSync(OUT('js/photos.js'), '// Character photos: free images from Wikipedia and Wikimedia Commons. Author and licence of each image are in PHOTO_SRC.\nwindow.PHOTO=' + JSON.stringify(PH) + ';\nwindow.PHOTO_SRC=' + JSON.stringify(PHS) + ';\n');
 fs.writeFileSync(OUT('js/logos.js'), '// Party logos: images from Wikimedia Commons. Author and licence of each file are in LOGO_SRC.\nwindow.LOGO=' + JSON.stringify(LG) + ';\nwindow.LOGO_SRC=' + JSON.stringify(LGS) + ';\n');
 

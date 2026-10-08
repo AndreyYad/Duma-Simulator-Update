@@ -526,7 +526,7 @@ function viewResult(){
   app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px">'+(C.year?'<span class="pill">Election of '+C.year+' </span>':'')+(FIC()?'<span class="pill">Fictional scenario</span>':'')+(thrOn()?'<span class="pill">Threshold '+thrTxt()+'%</span>':'')+'<span class="pill">'+SYSF[R.party]+'</span><span class="pill">'+(mixed?'Mixed: party list and districts':'By party lists')+'</span><span class="pill">'+mest(C.seats)+'</span></div><h2 tabindex="-1" style="outline:none">'+(C.year?'Your Duma of '+C.year+' ':'Your parliament')+'</h2><p class="lead" id="lead" style="margin:0"></p></div>'+
     '<div class="box main"><div class="hemi" id="rh"></div><div><div class="chips" id="tiers" style="margin:0 0 8px"></div><div class="chips" id="ringrow" style="margin:0 0 8px"></div>'+(mixed?'<div id="dsres" style="margin:0 0 10px"><label class="lbl" for="dshare2">Share of single-member districts: <b id="dshv2">'+C.dshare+'%</b></label><input type="range" id="dshare2" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"></div>':'')+'<p class="hint" id="thrline" style="margin:0 0 8px" hidden></p><div class="leg" id="leg"></div><div class="desc" id="desc"></div></div></div>'+
     '<div class="box"><h3>Election results</h3><p class="hint">A card in the style of Wikipedia. It is easy to save as a screenshot.</p><div id="wb"></div></div>'+
-    '<div id="presbox"></div><div id="mapbox"></div>'+
+    '<div id="presbox"></div><div id="mapbox"></div><div id="futbox"></div>'+
     '<div class="box" id="cobox"><h3>Possible majorities and the government</h3><p class="hint">Alliances that reach '+maj()+' or more.'+(C.span?' Only neighbours on the axis may unite: no more than three steps apart.':'')+(C.no.length?' Parties that refuse to work together never end up in the same alliance.':'')+' Pick an alliance or put together your own to hand out ministerial portfolios.</p><div class="coal" id="coal"></div><p class="hint" id="cmline" style="margin:12px 0 0"></p><div id="copick"></div></div>'+
     '<div id="billbox"></div>'+
     '<div class="box"><h3>Seats by topic</h3><p class="hint">Click a topic to highlight its seats in the chamber. Change its importance and the parliament is recalculated.</p><div class="ths" id="ths"></div></div>'+
@@ -590,6 +590,7 @@ function updResult(){
   $('#coal').innerHTML=solo?'<div class="co"><div class="t"><span>'+esc(C.fams[L].n)+' alone</span><em>'+st[L]+'</em></div>'+bar([L])+'</div>':
     co.length?co.map(c=>{ const nm=coName(c.m), ps=c.m.map(f=>esc(C.fams[f].n)).join(' + '); return '<div class="co"><div class="t"><span>'+(nm?esc(nm)+'<small>'+ps+'</small>':ps)+'</span><em>'+c.t+'</em></div>'+bar(c.m)+'</div>'; }).join(''):'<p class="hint">With this result, no permitted alliance reaches '+M+'.</p>';
   wikibox(st,li,di,bo); try{ worldBoxes(st,scope,co); }catch(e){ if(window.console) console.error(e); }
+  try{ const fb=$('#futbox'); if(fb) fb.innerHTML=futureBox(st); }catch(e){ if(window.console) console.error(e); }
   S.st=st; S.pick=S.pick.filter(f=>st[f]>0); const pt=sum(S.pick.map(f=>st[f])), vp=vetoPair(S.pick), pn=coName(S.pick);
   $('#copick').innerHTML='<span class="lbl" style="margin:14px 0 6px">Your own coalition</span><div class="chips">'+C.fams.map((F,f)=>st[f]?'<button type="button" class="chip" data-pk="'+f+'" aria-pressed="'+S.pick.includes(f)+'">'+mark(F)+esc(F.n)+' · '+st[f]+'</button>':'').join('')+'</div>'+
     '<div class="go" style="margin-top:10px"><button type="button" class="chip" data-co="'+S.pick.join(',')+'"'+(S.pick.length&&!vp?'':' disabled')+'>Form a government</button><span>'+(vp?'“'+esc(C.fams[vp[0]].n)+'” and “'+esc(C.fams[vp[1]].n)+'” refuse to sit in the same coalition':S.pick.length?(pn?'“'+esc(pn)+'”: ':'')+pt+' of '+C.seats+(pt>=M?': a majority':': a minority government, short of a majority by '+(M-pt)):'Tick the parties that will join the government')+'</span></div>';
@@ -770,6 +771,49 @@ function presBox(){
     '<tr><th scope="row">Outcome</th><td colspan="3" class="wb-left"><b>'+esc(W.n)+'</b> wins '+(r.second?'in the second round':'in the first round')+'</td></tr>'+
     '<tr><th scope="row">In reality</th><td colspan="3" class="wb-left">'+esc(r.real)+'</td></tr></tbody></table></div>';
 }
+
+// ══════ “Ваша Прекрасная Россия Будущего”: концовка по взглядам отвечающего и составу Думы ══════
+function futEra(){ return typeof FUT_ERA!=='undefined'&&C.year&&!FIC()?FUT_ERA.find(e=>C.year>=e.from&&C.year<=e.to):null; }
+// Профиль: средний ответ по каждой черте (тема “Будущее” с двойным весом) плюс половина веса черт партий по их доле мест
+function futProfile(st){ const ft=C.topics.findIndex(t=>t.n==='The Future'), s={}, n={}, p={}, N=sum(st)||1;
+  S.qs.forEach((q,i)=>{ const v=S.ans[i]; if(v==null) return; const k=q.t===ft?2:1; q.a.forEach(id=>{ s[id]=(s[id]||0)-v*k; n[id]=(n[id]||0)+k; }); q.b.forEach(id=>{ s[id]=(s[id]||0)+v*k; n[id]=(n[id]||0)+k; }); });
+  Object.keys(s).forEach(id=>{ p[id]=s[id]/n[id]; });
+  C.fams.forEach((F,f)=>{ if(!st[f]) return; Object.keys(F.tr).forEach(id=>{ p[id]=(p[id]||0)+.5*st[f]/N*SV[F.tr[id]]; }); });
+  return p; }
+function futRank(st){ const era=futEra(); if(!era||typeof FUT==='undefined'||!S.qs.length||S.ans.every(v=>v==null)) return null; const p=futProfile(st), N=sum(st)||1;
+  const list=FUT[era.k].map(e=>{ let x=0,y=0; Object.keys(e.w).forEach(id=>{ x+=e.w[id]*(p[id]||0); y+=e.w[id]*e.w[id]; });
+    return {e,sc:x/Math.sqrt(y||1)+.8*sum(C.fams.map((F,f)=>e.fam.includes(F.n)?st[f]/N:0))}; }).sort((x,y)=>y.sc-x.sc);
+  const dbg=/[?&]fut=([0-9]+)/.exec(location.search), pick=dbg&&FUT[era.k][+dbg[1]]; // ?fut=N в адресе показывает концовку с номером N — для проверки оформления
+  if(pick){ const i=list.findIndex(x=>x.e===pick); list.unshift(list.splice(i,1)[0]); }
+  return {era,list}; }
+function flagSvg(f){ const tot=sum(f.s.map(x=>Array.isArray(x)?x[1]:1)); let y=0;
+  let h='<svg class="fut-flag" viewBox="0 0 90 60" role="img" aria-label="Flag">'+f.s.map(x=>{ const c=Array.isArray(x)?x[0]:x, hh=60*(Array.isArray(x)?x[1]:1)/tot, r='<rect x="0" y="'+y+'" width="90" height="'+(hh+.4)+'" fill="'+c+'"/>'; y+=hh; return r; }).join('');
+  if(f.h) h+='<rect x="0" y="0" width="12" height="60" fill="'+f.h+'"/>';
+  if(f.e) h+=f.ep==='c'?'<text x="45" y="42" font-size="34" text-anchor="middle" fill="'+f.ec+'">'+f.e+'</text>':'<text x="'+(f.h?27:17)+'" y="25" font-size="22" text-anchor="middle" fill="'+f.ec+'">'+f.e+'</text>';
+  return h+'</svg>'; }
+function futMapSvg(m,col){ const M=window.RUMAP, K=window.FUTMAP||{}; if(!M) return '';
+  let b=[0,0,M.w,M.h]; const inc=(m.inc||[]).filter(k=>K[k]); inc.forEach(k=>{ const q=K[k].b; b=[Math.min(b[0],q[0]),Math.min(b[1],q[1]),Math.max(b[2],q[2]),Math.max(b[3],q[3])]; });
+  const sp={}; (m.split||[]).forEach(g=>g[0].forEach(id=>{ sp[id]=g[1]; }));
+  const ids=Object.keys(M.r).filter(id=>(id!=='CR'&&id!=='SEV')||m.cr), on=id=>m.only?m.only.includes(id):!(m.exc||[]).includes(id);
+  return '<svg class="fut-map" viewBox="'+(b[0]-8)+' '+(b[1]-8)+' '+(b[2]-b[0]+16)+' '+(b[3]-b[1]+16)+'" role="img" aria-label="Borders">'+
+    inc.map(k=>'<path d="'+K[k].d+'" fill="'+col+'" fill-opacity=".7"/>').join('')+
+    ids.map(id=>'<path d="'+M.r[id]+'" '+(on(id)?'fill="'+(sp[id]||col)+'"':'class="off"')+'/>').join('')+'</svg>'; }
+// Мини-парламент: правящая партия занимает долю maj, остальные места делят партии вашей Думы
+function futParl(e,st){ const N=90, rows=[[38,14],[51,19],[64,24],[77,33]], pts=[];
+  rows.forEach(r=>{ for(let k=0;k<r[1];k++){ const an=Math.PI*(1-(k+.5)/r[1]); pts.push({an,x:90+r[0]*Math.cos(an),y:88-r[0]*Math.sin(an)}); } }); pts.sort((x,y)=>y.an-x.an);
+  const own=Math.min(N,Math.round(e.maj*N)), rest=C.fams.map((F,f)=>f).filter(f=>st[f]>0&&C.fams[f].n!==e.party[0]).sort((x,y)=>st[y]-st[x]), sh=lr(rest.map(f=>st[f]),N-own), cols=[];
+  for(let k=0;k<own;k++) cols.push(e.party[1]); rest.forEach((f,j)=>{ for(let k=0;k<sh[j];k++) cols.push(C.fams[f].c); }); while(cols.length<N) cols.push(e.party[1]);
+  return {own,N,svg:'<svg class="fut-parl" viewBox="0 0 180 94" role="img" aria-label="Parliament">'+pts.map((p,i)=>'<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="4.6" fill="'+esc(cols[i])+'"/>').join('')+'</svg>'}; }
+function futureBox(st){ const r=futRank(st); if(!r) return ''; const e=r.list[0].e, col=e.party[1], ph=PH[e.lead]||'', lgo=LG[e.party[0]]||'', pr=futParl(e,st);
+  const mono=e.party[0].replace(/[“”“”"]/g,'').split(/[\s—–-]+/).filter(Boolean).map(x=>x[0].toUpperCase()).join('').slice(0,3);
+  const row=(k,v)=>'<div><dt>'+k+'</dt><dd>'+v+'</dd></div>';
+  return '<div class="box fut"><h3>Your Beautiful Russia of the Future</h3><p class="hint">'+esc(r.era.intro)+' The ending is chosen from your answers in every topic (the “Future” topic counts double) and from the make-up of your Duma. The scenario is fictional, the politicians are real.</p>'+
+    '<div class="fut-card" style="--fc:'+esc(col)+'"><div class="fut-head">'+flagSvg(e.flag)+'<div><small>'+esc(r.era.when)+'</small><b>'+esc(e.n)+'</b></div></div>'+
+    '<div class="fut-body"><div class="fut-info"><div class="fut-lead"><div class="wb-ph'+(ph?' pic':'')+'" style="background:'+esc(col)+'">'+(ph?'<img src="'+esc(ph)+'" alt="">':'<span>'+esc(e.lead.split(' ').map(x=>x[0]).join(''))+'</span>')+'</div><div><small>Leader</small><b>'+esc(e.lead)+'</b></div></div>'+
+    '<dl>'+row('Ideology',esc(e.ideo))+row('Form of government',esc(e.form))+row('Ruling party',(lgo?'<img class="logo" src="'+esc(lgo)+'" alt="" style="border-color:'+esc(col)+'">':'<span class="fut-mono" style="background:'+esc(col)+'">'+esc(mono)+'</span>')+esc(e.party[0]))+'</dl></div>'+
+    '<div class="fut-vis"><figure>'+futMapSvg(e.map,col)+'<figcaption>Borders</figcaption></figure><figure>'+pr.svg+'<figcaption>Parliament: the ruling party holds '+pr.own+' of '+pr.N+' seats</figcaption></figure></div></div>'+
+    '<p class="fut-t">'+esc(e.t)+'</p></div>'+
+    '<p class="hint" style="margin-top:10px">It could also have gone this way: '+r.list.slice(1,4).map(x=>esc(x.e.lead)+' — '+esc(x.e.n)+' ('+esc(x.e.ideo.toLowerCase())+')').join('; ')+'.</p></div>'; }
 
 // ── Законопроекты: фракция голосует “за”, если её черты ближе к закону, чем к возражениям
 function billVote(b,st){ const yes=[], no=[], abs=[]; C.fams.forEach((F,f)=>{ if(!st[f]) return; const p=sv(F.tr,b[2])-sv(F.tr,b[3]); (p>=.2?yes:p<=-.2?no:abs).push(f); }); const cnt=a=>sum(a.map(f=>st[f])); return {yes,no,abs,y:cnt(yes),n:cnt(no),a:cnt(abs)}; }

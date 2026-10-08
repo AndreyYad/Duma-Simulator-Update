@@ -383,3 +383,28 @@ span.tchip{cursor:default}
   .pole{font-size:14px;padding:10px 11px}
 }
 @media (prefers-reduced-motion:reduce){ .hemi .seat,.sr,.sr .bar span,.sr .pts,.row .bar span,.ball,.track.anim .ball,.track.anim .fill{transition:none} }
+
+/* Карточка «Россия будущего» */
+.fut-card{border:1px solid var(--line2);border-top:5px solid var(--fc);border-radius:12px;padding:16px;margin-top:12px;background:var(--surface)}
+.fut-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.fut-flag{width:96px;height:64px;flex-shrink:0;border:1px solid var(--line2);border-radius:4px;display:block}
+.fut-head small,.fut-lead small{display:block;font-size:12px;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+.fut-head b{font:800 22px/1.15 var(--display);display:block;overflow-wrap:anywhere}
+.fut-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:start}
+.fut-lead{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.fut-lead .wb-ph{margin:0;flex-shrink:0;color:#fff;font-weight:700}
+.fut-lead b{font-size:17px}
+.fut-info dl{margin:0;display:grid;gap:9px}
+.fut-info dt{font-size:12px;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+.fut-info dd{margin:2px 0 0;font-weight:600;overflow-wrap:anywhere}
+.fut-mono{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 4px;border-radius:6px;color:#fff;font:800 10px var(--display);margin-right:7px;vertical-align:-5px;box-shadow:0 0 0 1px var(--line2)}
+.fut-vis{display:grid;gap:10px}
+.fut-vis figure{margin:0}
+.fut-vis figcaption{font-size:12px;color:var(--ink2);text-align:center;margin-top:2px}
+.fut-map{width:100%;height:auto;display:block}
+.fut-map path{stroke:var(--ink3);stroke-width:.6;stroke-opacity:.55}
+.fut-map .off{fill:var(--line2)}
+.fut-parl{width:100%;max-width:260px;height:auto;display:block;margin:0 auto}
+.fut-parl circle{stroke:var(--ink3);stroke-width:.5;stroke-opacity:.6}
+.fut-t{margin:14px 0 0;font-size:14.5px}
+@media (max-width:640px){ .fut-body{grid-template-columns:1fr} .fut-head b{font-size:19px} }

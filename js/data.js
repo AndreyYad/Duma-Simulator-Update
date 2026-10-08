@@ -14,7 +14,8 @@ const TR=[
   ['fed','Regionalism','Territory'],['cent','Centralism','Territory'],['sep','Right to self-determination','Territory'],['unity','Unity of the country','Territory'],['lang_min','Minority languages','Territory'],['lang_one','Single state language','Territory'],
   ['eco','Environmentalism','Environment'],['growth','Growth first','Environment'],['agr','Agrarianism','Environment'],
   ['euro','European integration','World'],['sov','Sovereigntism','World'],['nation','Nationalism','World'],['cosmo','Internationalism','World'],
-  ['west','Rapprochement with the West','World'],['antiwest','Confrontation with the West','World'],['eurasia','Eurasian integration','World']
+  ['west','Rapprochement with the West','World'],['antiwest','Confrontation with the West','World'],['eurasia','Eurasian integration','World'],
+  ['evo','Gradual change','The Future'],['rad','Radical rupture','The Future'],['emp','Restoring the empire','The Future'],['mon','Monarchism','The Future']
 ];
 const DEF_T=[
   ['Economy and employment','Taxes, labour, business','#94A8F9','More state','More market'],
@@ -134,7 +135,8 @@ const DT=[
   ['Political system','President, Duma, elections','#EF92B3','More competition','More stability'],
   ['State and order','Crime, defence, media','#9DA4B1','More public oversight','More toughness'],
   ['Regions, nations, migration','Republics, migrants, language','#F9C566','More openness','More control'],
-  ['Foreign policy','The West, the CIS, NATO','#77B1E6','Rapprochement with the West','An independent course']
+  ['Foreign policy','The West, the CIS, NATO','#77B1E6','Rapprochement with the West','An independent course'],
+  ['The Future','Which way Russia should go next','#B79CF2','Gradual change','Radical turn']
 ];
 // Банк вопросов: [с какого года, по какой год, тема, d, заголовок, A, B, черты A, черты B].
 // В сценарий попадают вопросы, чей период включает год выборов.
@@ -268,14 +270,42 @@ const DQ=[
   [2026,2027,3,-1,'Conscription and mobilisation','Keep conscription and the option of mobilisation','Switch to a fully professional army',['mil'],['pac','lib']],
   [2026,2027,1,1,'Combat veterans','Lifelong benefits, university quotas and priority in the civil service','Support is needed, but without special privileges over other citizens',['mil','welfare','nation'],['equal']],
   [2026,2027,0,-1,'Foreign companies that left','Bring foreign companies back and let them buy back their former assets','Do not bring them back: domestic owners have taken their place',['mkt','west'],['prot','sov']],
-  [2026,2027,0,1,'Review of privatisation','Return to the state the enterprises that were privatised unlawfully','Lock in the results of privatisation and protect owners',['nat','gos'],['priv','biz']]
+  [2026,2027,0,1,'Review of privatisation','Return to the state the enterprises that were privatised unlawfully','Lock in the results of privatisation and protect owners',['nat','gos'],['priv','biz']],
+  // Тема “Будущее”: набор для выборов 1990-х
+  [1993,1999,6,1,'The path of change','Change the country gradually: through elections and laws','A sharp break is needed: emergency measures and, if it comes to it, force',['evo','stab'],['rad']],
+  [1993,1999,6,1,'The former Union','The 1991 borders are final; Russia should be built within them','Restore a single state across the former USSR',['evo','cosmo'],['emp','soviet','eurasia']],
+  [1993,1999,6,1,'Russia, Ukraine, Belarus','Ukraine and Belarus are independent neighbours, and that is for good','The three Slavic republics should become one country again',['west','cosmo'],['emp','nation']],
+  [1993,1999,6,1,'Republics within Russia','Hold the country together at any cost','Let those who want to leave go, and make a treaty of equals with the rest',['unity','cent'],['sep','fed']],
+  [1993,1999,6,1,'Who should rule','An elected president and parliament that check each other','A strong hand: a leader or the military, with no regard for parliament',['plural','parl','evo'],['auth','mil','rad']],
+  [1993,1999,6,1,'Monarchy','Russia should remain a republic','Restore the monarchy and the Romanov dynasty',['sec','evo'],['mon','trad']],
+  [1993,1999,6,1,'Church and power','The church is separate from the state','Orthodoxy should become the foundation of state and law',['sec','lib'],['rel','trad']],
+  [1993,1999,6,1,'The results of the reforms','Do not revisit privatisation and the reforms; move on','Put the reformers on trial and return property to the state',['mkt','priv','evo'],['nat','soviet','rad']],
+  [1993,1999,6,1,'Place in the world','Join Europe: the EU and NATO as the goal','A special path: a civilisation of its own, opposed to the West',['euro','west'],['antiwest','sov','eurasia']],
+  [1993,1999,6,1,'Whose state this is','A state of all citizens regardless of ethnicity','Russia is the state of ethnic Russians; the others are guests in it',['multi','cosmo'],['nation','assim','rad']],
+  [1993,1999,6,-1,'Big capital','The biggest owners are the backbone of the economy and can be trusted with power too','Remove the oligarchs from both power and property',['biz','priv','mkt'],['nat','gos','pop']],
+  [1993,1999,6,1,'The past','Condemn the Soviet past: ban the Communist Party and remove former party officials','No bans and no purges: leave the past to historians',['rad','lib','west'],['stab','soviet','evo']],
+  // Тема “Будущее”: набор для выборов 2003–2016 годов
+  [2003,2016,6,1,'The path of change','Peaceful evolution only: elections, courts, gradual reforms','The system cannot be reformed: a revolution or a coup is needed',['evo','stab'],['rad']],
+  [2003,2016,6,-1,'The power vertical','A strong president for a long time is the guarantee of stability','A parliamentary republic with a president who has no real power',['pres','stab','auth'],['parl','plural']],
+  [2003,2016,6,1,'Historic lands','The neighbours’ borders are inviolable','Take back the historic lands: Crimea, Novorossiya, northern Kazakhstan',['cosmo','west','pac'],['emp','nation','mil']],
+  [2003,2016,6,1,'Union or empire','A voluntary economic union with the neighbours is enough','A new Union is needed: one state from Brest to Vladivostok',['eurasia','evo'],['emp','soviet']],
+  [2003,2016,6,1,'North Caucasus','The North Caucasus is an inseparable part of Russia','“Stop feeding the Caucasus”: separate these republics',['unity','multi'],['sep','nation']],
+  [2003,2016,6,1,'Centre and regions','A single chain of command from Moscow down to the village','Regions get their own laws, taxes and the right to leave',['cent','unity'],['fed','sep']],
+  [2003,2016,6,1,'Monarchy and church','A secular republic','An Orthodox monarchy',['sec','evo'],['mon','rel','trad']],
+  [2003,2016,6,1,'The West','Join the EU and NATO','The West is an enemy; only confrontation is possible',['euro','west'],['antiwest','sov','mil']],
+  [2003,2016,6,1,'Lustration','No purges: civil peace matters more','Remove and try the officials, judges and security officers of the current authorities',['stab','evo'],['rad','plural']],
+  [2003,2016,6,1,'Large-scale property','Lock in the results of privatisation','Nationalise large-scale property and bring back the planned economy',['priv','mkt','evo'],['nat','soviet','rad']],
+  [2003,2016,6,1,'How much state is needed','The state should look after citizens and steer the economy','The state cut to a minimum: low taxes, the rest is a private matter',['gos','welfare'],['self','tax_lo','lib','rad']],
+  [2003,2016,6,1,'Civilians or the military','The country should be run by civilian politicians','Only the military and the security services will restore order',['plural','evo'],['mil','auth','law']],
+  [2003,2016,6,1,'Who decides','The main decisions are taken by voters','Professional managers should decide, not a vote',['direct','plural'],['tech','auth']],
+  [2003,2016,6,1,'Whose state this is','A state of all citizens regardless of ethnicity','Russia should become a nation state of ethnic Russians',['multi','cosmo'],['nation','imm_anti','assim']]
 ];
 // Малая партия — та, что по списку набрала меньше 5%; пятый элемент записи партии задаёт признак явно (1 — малая, 0 — нет).
 // Пониженный приоритет малых партий включён по умолчанию только в сценариях с low:1.
 // Базовые наборы черт для партий, которые участвовали во многих выборах; tr() подправляет их под конкретный год
 const tr=(base,over)=>Object.assign({},base,over||{});
-const B_KPRF={gos:3,nat:3,tax_hi:3,labor:3,welfare:3,pub:3,equal:3,soviet:3,prot:2,agr:1,parl:3,plural:2,direct:2,mil:3,sov:3,antiwest:3,eurasia:3,trad:2,law:2,unity:2,nation:1,imm_anti:1,cent:1};
-const B_LDPR={nation:3,imm_anti:3,assim:2,cent:3,unity:3,lang_one:3,auth:2,pres:3,law:3,mil:3,pop:3,antiwest:2,sov:3,gos:2,welfare:2,prot:2,plural:1,eurasia:2};
+const B_KPRF={emp:1,gos:3,nat:3,tax_hi:3,labor:3,welfare:3,pub:3,equal:3,soviet:3,prot:2,agr:1,parl:3,plural:2,direct:2,mil:3,sov:3,antiwest:3,eurasia:3,trad:2,law:2,unity:2,nation:1,imm_anti:1,cent:1};
+const B_LDPR={emp:2,rad:1,nation:3,imm_anti:3,assim:2,cent:3,unity:3,lang_one:3,auth:2,pres:3,law:3,mil:3,pop:3,antiwest:2,sov:3,gos:2,welfare:2,prot:2,plural:1,eurasia:2};
 const B_YAB={plural:3,parl:3,lib:3,privacy:3,west:3,euro:2,mkt:2,biz:2,welfare:2,pub:1,eco:3,rehab:3,pac:2,fed:3,sec:1,prog:2,direct:1,equal:1,imm_pro:1,multi:2,cosmo:2};
 const B_ER={stab:3,pres:3,cent:3,unity:3,auth:1,law:2,mkt:1,gos:2,nat:2,tax_lo:2,welfare:2,trad:2,rel:1,mil:2,sov:1,antiwest:1,eurasia:2,growth:2,tech:1,multi:1};
 const B_SR={gos:2,tax_hi:3,labor:3,welfare:3,pub:3,equal:3,nat:1,parl:1,plural:2,direct:1,prog:1,sov:1,eurasia:1,law:1,mil:1};
@@ -433,13 +463,13 @@ const DUMA_P={
     'DPR':[['Nikolai Travkin',''],['Sergei Glazyev','eco'],['Stanislav Govorukhin','cul'],['Oleg Bogomolov','fin']],
     'Yabloko':[['Grigory Yavlinsky','eco'],['Yuri Boldyrev',''],['Vladimir Lukin','for'],['Tatyana Yarygina','soc'],['Viktor Sheinis','jus'],['Alexei Arbatov','def'],['Nikolai Petrakov','fin']],
     'PRES':[['Sergei Shakhrai','ter'],['Alexander Shokhin','eco'],['Sergei Stankevich',''],['Konstantin Zatulin','for'],['Yuri Kalmykov','jus']],
-    'Russia’s Choice':[['Yegor Gaidar','eco'],['Anatoly Chubais',''],['Andrei Kozyrev','for'],['Boris Fyodorov','fin'],['Sergei Kovalyov','jus'],['Ella Pamfilova','soc'],['Sergei Yushenkov','def'],['Mikhail Poltoranin','cul'],['Gennady Burbulis','']],
+    'Russia’s Choice':[['Yegor Gaidar','eco'],['Anatoly Chubais',''],['Andrei Kozyrev','for'],['Boris Fyodorov','fin'],['Sergei Kovalev','jus'],['Ella Pamfilova','soc'],['Sergei Yushenkov','def'],['Mikhail Poltoranin','cul'],['Gennady Burbulis','']],
     'LDPR':[['Vladimir Zhirinovsky',''],['Alexander Vengerovsky',''],['Alexei Mitrofanov','for'],['Viktor Kobelev',''],['Stanislav Zhebrovsky',''],['Vladimir Gusev','eco']]},
   1995:{'CPRF':[['Gennady Zyuganov',''],['Svetlana Goryacheva','jus'],['Aman Tuleyev','ter'],['Gennady Seleznyov',''],['Yuri Maslyukov','eco'],['Valentin Kuptsov',''],['Anatoly Lukyanov',''],['Ivan Melnikov','edu'],['Viktor Ilyukhin','int']],
     'Agrarian Party':[['Mikhail Lapshin',''],['Nikolai Kharitonov',''],['Alexander Nazarchuk','agr'],['Vasily Starodubtsev',''],['Gennady Kulik','fin']],
     'Women of Russia':[['Alevtina Fedulova',''],['Yekaterina Lakhova','soc'],['Galina Klimantova','']],
     'Yabloko':[['Grigory Yavlinsky','eco'],['Vladimir Lukin','for'],['Tatyana Yarygina','soc'],['Sergei Ivanenko',''],['Oksana Dmitriyeva','fin'],['Viktor Sheinis',''],['Alexei Arbatov','def'],['Yelena Mizulina','jus'],['Vyacheslav Igrunov','']],
-    'Democratic Choice of Russia':[['Yegor Gaidar','fin'],['Sergei Kovalyov','jus'],['Lidia Fedoseyeva-Shukshina','cul'],['Sergei Yushenkov','def'],['Anatoly Chubais','eco'],['Arkady Murashyov','int']],
+    'Democratic Choice of Russia':[['Yegor Gaidar','fin'],['Sergei Kovalev','jus'],['Lidia Fedoseyeva-Shukshina','cul'],['Sergei Yushenkov','def'],['Anatoly Chubais','eco'],['Arkady Murashyov','int']],
     'Our Home — Russia':[['Viktor Chernomyrdin',''],['Nikita Mikhalkov','cul'],['Lev Rokhlin','def'],['Alexander Shokhin','eco'],['Sergei Belyayev',''],['Vladimir Ryzhkov',''],['Alexei Golovkov','fin']],
     'LDPR':[['Vladimir Zhirinovsky',''],['Alexei Mitrofanov','for'],['Sergei Kalashnikov','soc'],['Mikhail Gutseriyev','eco'],['Stanislav Zhebrovsky',''],['Vladimir Gusev','']]},
   1999:{'CPRF':[['Gennady Zyuganov',''],['Gennady Seleznyov',''],['Vasily Starodubtsev','agr'],['Sergei Glazyev','eco'],['Yuri Maslyukov','fin'],['Valentin Kuptsov',''],['Ivan Melnikov','edu'],['Viktor Ilyukhin','int'],['Anatoly Lukyanov','jus'],['Nikolai Kharitonov','']],
@@ -458,7 +488,7 @@ const DUMA_P={
   2007:{'CPRF':[['Gennady Zyuganov',''],['Zhores Alfyorov','edu'],['Nikolai Kharitonov','agr'],['Ivan Melnikov',''],['Viktor Ilyukhin','int'],['Svetlana Savitskaya','def'],['Vladimir Kashin',''],['Valery Rashkin','']],
     'Agrarian Party':[['Vladimir Plotnikov','agr'],['Nina Brusnikova','']],
     'A Just Russia':[['Sergei Mironov',''],['Svetlana Goryacheva','jus'],['Nikolai Levichev',''],['Oksana Dmitriyeva','fin'],['Galina Khovanskaya','soc'],['Gennady Gudkov','int'],['Yelena Mizulina',''],['Ivan Grachyov','eco'],['Oleg Shein',''],['Yelena Drapeko','cul']],
-    'Yabloko':[['Grigory Yavlinsky','eco'],['Sergei Kovalyov','jus'],['Sergei Ivanenko',''],['Sergei Mitrokhin',''],['Alexei Yablokov','env']],
+    'Yabloko':[['Grigory Yavlinsky','eco'],['Sergei Kovalev','jus'],['Sergei Ivanenko',''],['Sergei Mitrokhin',''],['Alexei Yablokov','env']],
     'United Russia':[['Vladimir Putin',''],['Boris Gryzlov','int'],['Sergei Shoigu','def'],['Vyacheslav Volodin',''],['Andrei Isayev','soc'],['Oleg Morozov',''],['Lyubov Sliska',''],['Andrei Vorobyov',''],['Pavel Krasheninnikov','jus'],['Svetlana Zhurova','cul'],['Vladimir Pekhtin','']],
     'Union of Right Forces':[['Nikita Belykh',''],['Boris Nemtsov','eco'],['Marietta Chudakova','cul'],['Leonid Gozman',''],['Maria Gaidar','soc']],
     'LDPR':[['Vladimir Zhirinovsky',''],['Andrei Lugovoi','int'],['Igor Lebedev',''],['Alexei Ostrovsky',''],['Sergei Abeltsev',''],['Leonid Slutsky','for']]},
@@ -505,7 +535,7 @@ const DUMA_P={
 const BUILTIN=Object.keys(DUMA).map(y=>{ const D=DUMA[y], yr=parseInt(String(y).replace(/\D/g,''),10), qy=D.qy||yr; // ключ с буквой — второй сценарий того же года
   return {h:D.hide?1:0,n:D.name||'Duma-'+yr,d:D.note+' · '+(D.sys==='mixed'?'party list and districts':'party lists only')+' · '+D.F.length+' parties',
     set:{seats:450,sys:D.sys,party:'multi',year:yr,span:false,thr:D.thr||0,thron:!!D.thr,lowpri:!!D.low,key:String(yr)===String(y)?'':String(y)},
-    raw:{T:DT,F:D.F,Q:DQ.filter(q=>q[0]<=qy&&qy<=q[1]).map(q=>q.slice(2)),no:D.no,co:D.co,P:DUMA_P[y]||{},cap:D.cap,gate:D.gate}}; }).concat([
+    raw:{T:DQ.some(q=>q[2]===6&&q[0]<=qy&&qy<=q[1])?DT:DT.slice(0,6),F:D.F,Q:DQ.filter(q=>q[0]<=qy&&qy<=q[1]).map(q=>q.slice(2)),no:D.no,co:D.co,P:DUMA_P[y]||{},cap:D.cap,gate:D.gate}}; }).concat([
   {n:'Standard',d:'Based on the Spanish test “Tu hemiciclo” (objetivo176.es): six questions choose the system, followed by 48 questions and seven European parties',set:{seats:350,sys:'prop',party:'auto'}},
   {h:1,n:'As in the original',d:'350 seats by party list, many parties',set:{seats:350,sys:'prop',party:'multi'}},
   {h:1,n:'Question = seat',d:'96 seats: 48 by party list and 48 question-districts',set:{seats:96,sys:'mixed',party:'multi'}},
