@@ -797,13 +797,14 @@ function flagSvg(f){ const tot=sum(f.s.map(x=>Array.isArray(x)?x[1]:1)); let y=0
 function futDefs(){ if(document.getElementById('futdefs')) return; const M=window.RUMAP, K=window.FUTMAP||{}; if(!M) return;
   const h=document.createElement('div'); h.id='futdefs'; h.setAttribute('aria-hidden','true'); h.style.cssText='position:absolute;width:0;height:0;overflow:hidden';
   h.innerHTML='<svg><defs>'+Object.keys(M.r).map(id=>'<path id="fr-'+id+'" d="'+M.r[id]+'"/>').join('')+Object.keys(K).map(k=>'<path id="fc-'+k+'" d="'+K[k].d+'"/>').join('')+'</defs></svg>'; document.body.appendChild(h); }
-// В контуре Украины Крыма нет: он рисуется отдельно, когда Украина в составе или у концовки стоит cr
+// В контуре Украины Крыма нет: он рисуется отдельно, когда Украина в составе или у концовки стоит cr.
+// nr — нынешние границы: Донецкая, Луганская, Запорожская и Херсонская области в составе России (целиком, как в российской Конституции)
 function futMapSvg(m,col){ const M=window.RUMAP, K=window.FUTMAP||{}; if(!M) return ''; futDefs();
-  let b=[0,0,M.w,M.h]; const inc=(m.inc||[]).filter(k=>K[k]); inc.forEach(k=>{ const q=K[k].b; b=[Math.min(b[0],q[0]),Math.min(b[1],q[1]),Math.max(b[2],q[2]),Math.max(b[3],q[3])]; });
+  let b=[0,0,M.w,M.h]; const inc=(m.inc||[]).concat(m.nr&&!(m.inc||[]).includes('UKR')?['DON','LUG','ZAP','KHE']:[]).filter(k=>K[k]), solid={DON:1,LUG:1,ZAP:1,KHE:1}; inc.forEach(k=>{ const q=K[k].b; b=[Math.min(b[0],q[0]),Math.min(b[1],q[1]),Math.max(b[2],q[2]),Math.max(b[3],q[3])]; });
   const sp={}; (m.split||[]).forEach(g=>g[0].forEach(id=>{ sp[id]=g[1]; }));
   const cr=m.cr||inc.includes('UKR'), ids=Object.keys(M.r).filter(id=>(id!=='CR'&&id!=='SEV')||cr), on=id=>m.only?m.only.includes(id):!(m.exc||[]).includes(id);
   return '<svg class="fut-map" viewBox="'+(b[0]-8)+' '+(b[1]-8)+' '+(b[2]-b[0]+16)+' '+(b[3]-b[1]+16)+'" role="img" aria-label="Границы">'+
-    inc.map(k=>'<use href="#fc-'+k+'" fill="'+col+'" fill-opacity=".7"/>').join('')+
+    inc.map(k=>'<use href="#fc-'+k+'" fill="'+col+'"'+(solid[k]?'':' fill-opacity=".7"')+'/>').join('')+
     ids.map(id=>'<use href="#fr-'+id+'" '+(on(id)?'fill="'+(sp[id]||col)+'"':'class="off"')+'/>').join('')+'</svg>'; }
 function futCard(e,st,when){ const col=e.party[1], ph=PH[e.lead]||'', lgo=LG[e.party[0]]||'';
   const mono=e.party[0].replace(/[«»“”"]/g,'').split(/[\s—–-]+/).filter(Boolean).map(x=>x[0].toUpperCase()).join('').slice(0,3);
