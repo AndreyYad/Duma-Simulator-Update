@@ -16,6 +16,8 @@ function defaults(set,raw){ raw=raw||{T:DEF_T,F:DEF_F,Q:DEF_Q}; const ix=n=>raw.
   fams:raw.F.map(([n,c,d,tr,sm])=>({n,c,d,logo:'',sm:sm!=null?!!sm:(()=>{ const x=/По списку — ([\d,]+)%/.exec(d); return !!x&&parseFloat(x[1].replace(',','.'))<5; })(),tr:Object.assign({},tr),ppl:((raw.P||{})[n]||[]).map(p=>({n:p[0],s:p[1]})),cap:(()=>{ const c=(raw.cap||[]).find(x=>x[0]===n); return c?ix(c[1]):-1; })()})),
   qs:raw.Q.map(([t,d,q,A,B,a,b])=>({t,d,q,A,B,on:true,a:a.slice(),b:b.slice()}))},set||{}); }
 const HEX=/^#[0-9a-f]{6}$/i;
+// Картинка — либо загруженный файл (data:), либо ссылка http(s)
+const isUrl=s=>typeof s==='string'&&/^https?:\/\/\S+$/i.test(s)&&s.length<=2000, okImg=s=>typeof s==='string'&&(s.indexOf('data:image/')===0||isUrl(s))?s:'';
 function norm(c){
   if(!c||!Array.isArray(c.topics)||!Array.isArray(c.fams)||!Array.isArray(c.qs)||c.fams.length<2||!c.topics.length) return null;
   c.name=String(c.name||'Без названия').slice(0,60);
@@ -25,8 +27,8 @@ function norm(c){
   const ok=new Set(c.traits.map(x=>x.id)), ids=a=>(Array.isArray(a)?a:[]).filter((id,i,arr)=>ok.has(id)&&arr.indexOf(id)===i);
   c.topics=c.topics.map(t=>({n:String(t.n||'Тема'),s:String(t.s||''),c:HEX.test(t.c)?t.c:'#94A8F9',lo:String(t.lo||''),hi:String(t.hi||'')}));
   c.fams=c.fams.slice(0,12).map(f=>{ const tr={}; Object.keys(f.tr||{}).forEach(id=>{ const l=Math.round(+f.tr[id]); if(ok.has(id)&&l>=1&&l<=3) tr[id]=l; });
-    return {n:String(f.n||'Партия'),c:HEX.test(f.c)?f.c:'#888888',d:String(f.d||''),logo:typeof f.logo==='string'&&f.logo.indexOf('data:image/')===0?f.logo:'',tr,sm:!!f.sm,cap:Number.isInteger(f.cap)?f.cap:-1,
-      ppl:(Array.isArray(f.ppl)?f.ppl:[]).filter(p=>p&&typeof p.n==='string').slice(0,12).map(p=>({n:p.n.slice(0,60),s:PORT.some(x=>x[0]===p.s)?p.s:'',img:typeof p.img==='string'&&p.img.indexOf('data:image/')===0?p.img:''}))}; });
+    return {n:String(f.n||'Партия'),c:HEX.test(f.c)?f.c:'#888888',d:String(f.d||''),logo:okImg(f.logo),tr,sm:!!f.sm,cap:Number.isInteger(f.cap)?f.cap:-1,
+      ppl:(Array.isArray(f.ppl)?f.ppl:[]).filter(p=>p&&typeof p.n==='string').slice(0,12).map(p=>({n:p.n.slice(0,60),s:PORT.some(x=>x[0]===p.s)?p.s:'',img:okImg(p.img)}))}; });
   c.qs=c.qs.filter(q=>q&&q.t>=0&&q.t<c.topics.length).map(q=>({t:+q.t,d:q.d===-1?-1:1,q:String(q.q||''),A:String(q.A||''),B:String(q.B||''),on:q.on!==false,a:ids(q.a),b:ids(q.b)}));
   const nf=c.fams.length, okf=x=>Number.isInteger(x)&&x>=0&&x<nf;
   c.no=(Array.isArray(c.no)?c.no:[]).filter(p=>Array.isArray(p)&&okf(p[0])&&okf(p[1])&&p[0]!==p[1]).map(p=>[p[0],p[1]]);
@@ -62,6 +64,7 @@ const thrOn=()=>!!(C.year&&C.thron&&C.thr>0&&(R.party==='multi'||R.party==='dom'
 // Пониженный приоритет малых партий: при равной близости малая партия получает PRI от веса обычной
 const PRI=.4, pen=f=>C.lowpri&&C.fams[f]&&C.fams[f].sm?-2*SIGMA*SIGMA*Math.log(PRI):0, lowOn=()=>C.lowpri&&C.fams.some(F=>F.sm);
 const gateOut=()=>C.gate>=0&&!!C.fams[C.gate]&&S.gv>0; // партия не допущена ответом на первый вопрос
+const NEWREG=['DON','LUG','ZAP','KHE']; // регионы, включённые в 2022 году
 const maj=()=>Math.floor(C.seats/2)+1, bonus=()=>R.party==='dom'?maj():0, pool=()=>C.seats-bonus();
 const distTotal=()=>R.sys==='mixed'?Math.round(pool()*C.dshare/100):0, listTotal=()=>pool()-distTotal();
 const enabled=()=>C.qs.filter(q=>q.on);
@@ -253,11 +256,11 @@ function updCo(){
 function famBody(i){
   const F=C.fams[i];
   return '<div class="f-f"><input type="color" id="f-fams-'+i+'-c" data-k="fams.'+i+'.c" value="'+esc(F.c)+'" aria-label="Цвет">'+inp('fams.'+i+'.n',F.n,'aria-label="Название партии"')+'<span class="fd">'+inp('fams.'+i+'.d',F.d,'aria-label="Описание" placeholder="Короткое описание"')+'</span><button type="button" class="x" data-act="delFam" data-i="'+i+'" aria-label="Удалить партию"'+(C.fams.length<=2?' disabled':'')+'>×</button></div>'+
-    '<div class="f-logo">'+(lg(F)?'<img class="logo" src="'+esc(lg(F))+'" alt="Логотип" style="border-color:'+esc(F.c)+'">':'<span class="ph">лого</span>')+'<label for="logo-'+i+'">Логотип</label><input type="file" id="logo-'+i+'" data-logo="'+i+'" accept="image/*">'+(F.logo?'<button type="button" class="link" data-act="delLogo" data-i="'+i+'">Убрать логотип</button>':'')+'</div>'+
+    '<div class="f-logo">'+(lg(F)?'<img class="logo" src="'+esc(lg(F))+'" alt="Логотип" style="border-color:'+esc(F.c)+'">':'<span class="ph">лого</span>')+'<label for="logo-'+i+'">Логотип</label><input type="file" id="logo-'+i+'" data-logo="'+i+'" accept="image/*"><button type="button" class="chip" data-act="logoUrl" data-i="'+i+'">Указать ссылку</button>'+(F.logo?'<button type="button" class="link" data-act="delLogo" data-i="'+i+'">Убрать логотип</button>':'')+'</div>'+
     '<div class="tg"><span>Размер</span><div><label class="chk"><input type="checkbox" id="sm-'+i+'" data-sm="'+i+'"'+(F.sm?' checked':'')+'> Малая партия: её приоритет понижен, если это включено в настройках парламента</label></div></div>'+
     '<div class="tg"><span>Особое условие</span><div><select class="in" id="f-fams-'+i+'-cap" data-k="fams.'+i+'.cap" data-int="1" aria-label="Особое условие для партии"><option value="-1">Нет: места считаются как у всех</option>'+C.fams.map((G,j)=>j===i?'':'<option value="'+j+'"'+(F.cap===j?' selected':'')+'>Только один одномандатный округ, остальные места — партии «'+esc(G.n)+'»</option>').join('')+'</select></div></div>'+
-    '<div class="tg"><span>Персонажи</span><div class="ppl">'+F.ppl.map((p,j)=>'<div class="pp">'+(face(p)?'<img class="ava sm" src="'+esc(face(p))+'" alt="">':'<span class="ava sm ph"></span>')+inp('fams.'+i+'.ppl.'+j+'.n',p.n,'aria-label="Имя персонажа" maxlength="60" placeholder="Имя"')+'<select class="in" id="f-fams-'+i+'-ppl-'+j+'-s" data-k="fams.'+i+'.ppl.'+j+'.s" aria-label="Профильный портфель"><option value="">'+(j?'Без профиля':'Лидер, без профиля')+'</option>'+PORT.filter(x=>x[0]!=='pm').map(x=>'<option value="'+x[0]+'"'+(p.s===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><label class="chip up" title="Загрузить своё фото">Фото<input type="file" accept="image/*" id="pimg-'+i+'-'+j+'" data-pimg="'+i+','+j+'" hidden></label><button type="button" class="x" data-act="delP" data-i="'+i+'" data-j="'+j+'" aria-label="Удалить персонажа">×</button></div>').join('')+
-      (F.ppl.length<12?'<button type="button" class="add" data-act="addP" data-i="'+i+'">+ Добавить персонажа</button>':'')+'<small class="hint">Первый в списке — лидер: он станет премьером, если партия возглавит правительство. Профиль подсказывает, какое министерство человеку ближе. Фото подставляется по имени, своё можно загрузить кнопкой «Фото».</small></div></div>'+
+    '<div class="tg"><span>Персонажи</span><div class="ppl">'+F.ppl.map((p,j)=>'<div class="pp">'+(face(p)?'<img class="ava sm" src="'+esc(face(p))+'" alt="">':'<span class="ava sm ph"></span>')+inp('fams.'+i+'.ppl.'+j+'.n',p.n,'aria-label="Имя персонажа" maxlength="60" placeholder="Имя"')+'<select class="in" id="f-fams-'+i+'-ppl-'+j+'-s" data-k="fams.'+i+'.ppl.'+j+'.s" aria-label="Профильный портфель"><option value="">'+(j?'Без профиля':'Лидер, без профиля')+'</option>'+PORT.filter(x=>x[0]!=='pm').map(x=>'<option value="'+x[0]+'"'+(p.s===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><label class="chip up" title="Загрузить своё фото">Фото<input type="file" accept="image/*" id="pimg-'+i+'-'+j+'" data-pimg="'+i+','+j+'" hidden></label><button type="button" class="chip" data-act="pimgUrl" data-i="'+i+'" data-j="'+j+'" title="Указать ссылку на фото">Ссылка</button><button type="button" class="x" data-act="delP" data-i="'+i+'" data-j="'+j+'" aria-label="Удалить персонажа">×</button></div>').join('')+
+      (F.ppl.length<12?'<button type="button" class="add" data-act="addP" data-i="'+i+'">+ Добавить персонажа</button>':'')+'<small class="hint">Первый в списке — лидер: он станет премьером, если партия возглавит правительство. Профиль подсказывает, какое министерство человеку ближе. Фото подставляется по имени; своё можно загрузить кнопкой «Фото» или указать кнопкой «Ссылка».</small></div></div>'+
     '<div class="tg"><span>Не войдёт в коалицию с</span><div class="chips">'+C.fams.map((G,j)=>j===i?'':'<button type="button" class="chip veto" data-act="veto" data-i="'+i+'" data-j="'+j+'" aria-pressed="'+vetoed(i,j)+'">'+esc(G.n)+'</button>').join('')+'</div></div>'+
     groups().map(g=>'<div class="tg"><span>'+esc(g)+'</span><div class="chips">'+C.traits.filter(x=>x.g===g).map(x=>{ const l=F.tr[x.id]||0; return '<button type="button" class="tchip" data-act="tr" data-i="'+i+'" data-id="'+esc(x.id)+'" data-l="'+l+'" aria-pressed="'+(l>0)+'">'+esc(x.n)+'<small>'+SL[l]+'</small></button>'; }).join('')+'</div></div>').join('');
 }
@@ -358,6 +361,10 @@ function onAct(e){
   else if(a==='addFam'){ C.fams.push({n:'Новая партия',c:'#8a8f9c',d:'',logo:'',tr:{},ppl:[],cap:-1}); OPEN['f'+(C.fams.length-1)]=true; rerender(); }
   else if(a==='delFam'){ C.fams.splice(i,1); C.duo=[-1,-1]; const sh=x=>x>i?x-1:x; C.no=C.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); C.coal.forEach(c=>{ c.m=c.m.filter(x=>x!==i).map(sh); }); C.fams.forEach(F=>{ F.cap=F.cap===i?-1:sh(F.cap); }); Object.keys(OPEN).forEach(k=>{ if(k[0]==='f') delete OPEN[k]; }); rerender(); }
   else if(a==='delLogo'){ C.fams[i].logo=''; rerender(); }
+  else if(a==='logoUrl'||a==='pimgUrl'){ const P=a==='pimgUrl'?C.fams[i].ppl[+b.dataset.j]:null, cur=P?P.img:C.fams[i].logo;
+    const u=window.prompt('Ссылка на картинку (начинается с https://). Пустая строка убирает картинку.',isUrl(cur)?cur:''); if(u===null) return; const v=u.trim();
+    if(v&&!isUrl(v)){ window.alert('Нужна ссылка, которая начинается с http:// или https://'); return; }
+    if(P) P.img=v; else C.fams[i].logo=v; rerender(); }
   else if(a==='addP'){ C.fams[i].ppl.push({n:'Новый персонаж',s:'',img:''}); rerender(); }
   else if(a==='delP'){ C.fams[i].ppl.splice(+b.dataset.j,1); rerender(); }
   else if(a==='veto'){ const j=+b.dataset.j, k=C.no.findIndex(p=>(p[0]===i&&p[1]===j)||(p[0]===j&&p[1]===i)); if(k>=0) C.no.splice(k,1); else C.no.push([i,j]); save();
@@ -717,14 +724,14 @@ function regionResult(id,share){
 }
 function mapBox(share){
   const M=window.RUMAP; if(!WORLD||!M||!C.year) return '';
-  const ids=Object.keys(REG).filter(id=>M.r[id]&&((id!=='CR'&&id!=='SEV')||C.year>=2016)), res={}, wins=C.fams.map(()=>0);
+  const ids=Object.keys(REG).filter(id=>M.r[id]&&((id!=='CR'&&id!=='SEV')||C.year>=2016)&&(!NEWREG.includes(id)||C.year>=2026)), res={}, wins=C.fams.map(()=>0);
   ids.forEach(id=>{ const r=regionResult(id,share); r.w=leader(r.p); res[id]=r; wins[r.w]++; });
   S.regRes=res; S.natShare=share; if(!res[S.reg]) S.reg='MOW';
   const tip=id=>esc(REG[id][0]+': '+C.fams[res[id].w].n+' '+pc(res[id].p[res[id].w]));
   let g=ids.map(id=>'<path class="rg" data-r="'+id+'" d="'+M.r[id]+'" fill="'+esc(C.fams[res[id].w].c)+'"><title>'+tip(id)+'</title></path>').join('');
   ['MOW','SPE','SEV'].forEach(id=>{ if(res[id]) g+='<circle class="rg city" data-r="'+id+'" cx="'+M.c[id][0]+'" cy="'+M.c[id][1]+'" r="6" fill="'+esc(C.fams[res[id].w].c)+'"><title>'+tip(id)+'</title></circle>'; });
   const order=wins.map((v,f)=>f).filter(f=>wins[f]).sort((a,b)=>wins[b]-wins[a]);
-  return '<div class="box"><h3>Карта России: как проголосовали регионы</h3><p class="hint">Цвет показывает победителя по спискам в регионе. Результат региона получается из ваших ответов и из того, что важно именно ему: красный пояс, национальные республики, столицы и Дальний Восток голосуют по-разному. Нажмите на регион или выберите его в списке.'+(C.year>=2016?' Для выборов '+C.year+' года на карте показаны также Крым и Севастополь, где тогда проходило голосование.':'')+'</p>'+
+  return '<div class="box"><h3>Карта России: как проголосовали регионы</h3><p class="hint">Цвет показывает победителя по спискам в регионе. Результат региона получается из ваших ответов и из того, что важно именно ему: красный пояс, национальные республики, столицы и Дальний Восток голосуют по-разному. Нажмите на регион или выберите его в списке.'+(C.year>=2026?' Для выборов '+C.year+' года на карте показаны также Крым, Севастополь и четыре региона, включённые в состав России в 2022 году.':C.year>=2016?' Для выборов '+C.year+' года на карте показаны также Крым и Севастополь, где тогда проходило голосование.':'')+'</p>'+
     '<div class="mapgrid"><div><div class="rumap"><svg viewBox="0 0 '+M.w+' '+M.h+'" role="img" aria-label="Карта России с победителями по регионам">'+g+'</svg></div>'+
       '<div class="fleg" style="justify-content:center;margin:8px 0 0">'+order.map(f=>'<span><i class="dot" style="background:'+esc(C.fams[f].c)+'"></i>'+esc(C.fams[f].n)+' — '+wins[f]+'</span>').join('')+'</div></div>'+
     '<div><label class="lbl" for="regsel">Регион</label><select class="in" id="regsel">'+ids.slice().sort((a,b)=>REG[a][0].localeCompare(REG[b][0],'ru')).map(id=>'<option value="'+id+'"'+(id===S.reg?' selected':'')+'>'+esc(REG[id][0])+'</option>').join('')+'</select><div id="reginfo">'+regInfo(S.reg)+'</div></div></div></div>';
@@ -799,7 +806,7 @@ function futDefs(){ if(document.getElementById('futdefs')) return; const M=windo
 function futMapSvg(m,col){ const M=window.RUMAP, K=window.FUTMAP||{}; if(!M) return ''; futDefs();
   let b=[0,0,M.w,M.h]; const inc=(m.inc||[]).concat(m.nr&&!(m.inc||[]).includes('UKR')?['DON','LUG','ZAP','KHE']:[]).filter(k=>K[k]), solid={DON:1,LUG:1,ZAP:1,KHE:1}; inc.forEach(k=>{ const q=K[k].b; b=[Math.min(b[0],q[0]),Math.min(b[1],q[1]),Math.max(b[2],q[2]),Math.max(b[3],q[3])]; });
   const sp={}; (m.split||[]).forEach(g=>g[0].forEach(id=>{ sp[id]=g[1]; }));
-  const cr=m.cr||inc.includes('UKR'), ids=Object.keys(M.r).filter(id=>(id!=='CR'&&id!=='SEV')||cr), on=id=>m.only?m.only.includes(id):!(m.exc||[]).includes(id);
+  const cr=m.cr||inc.includes('UKR'), ids=Object.keys(M.r).filter(id=>!NEWREG.includes(id)&&((id!=='CR'&&id!=='SEV')||cr)), on=id=>m.only?m.only.includes(id):!(m.exc||[]).includes(id);
   return '<svg class="fut-map" viewBox="'+(b[0]-8)+' '+(b[1]-8)+' '+(b[2]-b[0]+16)+' '+(b[3]-b[1]+16)+'" role="img" aria-label="Границы">'+
     inc.map(k=>'<use href="#fc-'+k+'" fill="'+col+'"'+(solid[k]?'':' fill-opacity=".7"')+'/>').join('')+
     ids.map(id=>'<use href="#fr-'+id+'" '+(on(id)?'fill="'+(sp[id]||col)+'"':'class="off"')+'/>').join('')+'</svg>'; }

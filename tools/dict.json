@@ -2092,5 +2092,16 @@
  "Партия, которая в конце теста окажется ближе всех к ответам, получает": "The party that ends up closest to the answers at the end of the test gets",
  "Ещё": "Another",
  "— гарантированное большинство: кому оно достанется, решится в конце теста": "is the guaranteed majority: who gets it is decided at the end of the test",
- "Гарантированное большинство получает": "The guaranteed majority goes to"
+ "Гарантированное большинство получает": "The guaranteed majority goes to",
+ "Донецкая Народная Республика": "Donetsk People’s Republic",
+ "Луганская Народная Республика": "Luhansk People’s Republic",
+ "Запорожская область": "Zaporozhye Oblast",
+ "Херсонская область": "Kherson Oblast",
+ "года на карте показаны также Крым, Севастополь и четыре региона, включённые в состав России в 2022 году.": ", the map also shows Crimea, Sevastopol and the four regions incorporated into Russia in 2022.",
+ "Указать ссылку": "Set by link",
+ "Указать ссылку на фото": "Set a photo by link",
+ "Ссылка": "Link",
+ "Ссылка на картинку (начинается с https://). Пустая строка убирает картинку.": "Image link (starting with https://). An empty line removes the image.",
+ "Нужна ссылка, которая начинается с http:// или https://": "A link starting with http:// or https:// is required",
+ "Первый в списке — лидер: он станет премьером, если партия возглавит правительство. Профиль подсказывает, какое министерство человеку ближе. Фото подставляется по имени; своё можно загрузить кнопкой «Фото» или указать кнопкой «Ссылка».": "The first on the list is the leader: they become prime minister if the party heads the government. The specialty hints at which ministry suits the person. The photo is matched by name; you can upload your own with the “Photo” button or set one with the “Link” button."
 }

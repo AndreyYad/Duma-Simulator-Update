@@ -23,7 +23,7 @@ const REG_T={
   protest:['Protest region of the 2010s','Discontent with Moscow and its appointees. In 2018–2021 CPRF and LDPR candidates won here.',{pop:.7,plural:.6,fed:.5,welfare:.5,stab:-.6},2011,2026],
   ex:['Exclave','A border with the European Union, trade, the navy.',{west:.6,mkt:.5,biz:.4,mil:.3},1993,2026]
 };
-// Регионы: код: [название, типы]. Крым и Севастополь участвуют только в сценариях с 2016 года.
+// Регионы: код: [название, типы]. Крым и Севастополь участвуют только в сценариях с 2016 года, четыре региона 2022 года — с 2026 года.
 const REG={
   MOW:['Moscow',['cap']],SPE:['St Petersburg',['cap']],MOS:['Moscow Oblast',['big']],LEN:['Leningrad Oblast',['north']],
   BEL:['Belgorod Oblast',['red','agr','loyal']],BRY:['Bryansk Oblast',['red','agr']],VLA:['Vladimir Oblast',['big','protest']],VOR:['Voronezh Oblast',['red','agr']],
@@ -46,7 +46,9 @@ const REG={
   OMS:['Omsk Oblast',['sib','big','red','protest']],TOM:['Tomsk Oblast',['sib','lib90']],TY:['Tuva',['nat','loyal']],KK:['Khakassia',['sib','protest']],
   SA:['Yakutia',['nat','res','far','protest']],KAM:['Kamchatka Krai',['far']],PRI:['Primorsky Krai',['far','protest']],KHA:['Khabarovsk Krai',['far','protest']],AMU:['Amur Oblast',['far','red']],
   MAG:['Magadan Oblast',['far']],SAK:['Sakhalin Oblast',['far','res']],YEV:['Jewish Autonomous Oblast',['far']],CHU:['Chukotka',['far','res','loyal']],
-  CR:['Crimea',['border','loyal','mil']],SEV:['Sevastopol',['mil','loyal']]
+  CR:['Crimea',['border','loyal','mil']],SEV:['Sevastopol',['mil','loyal']],
+  // регионы, включённые в состав России в 2022 году: на карте только с выборов 2026 года
+  DON:['Donetsk People’s Republic',['big','mil','loyal']],LUG:['Luhansk People’s Republic',['big','mil','loyal']],ZAP:['Zaporozhye Oblast',['agr','mil','loyal']],KHE:['Kherson Oblast',['agr','border','loyal']]
 };
 
 // ══════ Законопроекты по созывам ══════
