@@ -9,11 +9,11 @@ const plural=(n,a,b,c)=>{ const m=Math.abs(n)%100, k=m%10; return m>10&&m<20?c:k
 const mest=n=>n+' '+plural(n,'место','места','мест');
 
 function defaults(set,raw){ raw=raw||{T:DEF_T,F:DEF_F,Q:DEF_Q}; const ix=n=>raw.F.findIndex(f=>f[0]===n);
-  return Object.assign({name:'Стандартный',seats:350,sys:'prop',party:'auto',duo:[-1,-1],year:0,span:true,dshare:50,thr:0,thron:false,key:'',gate:raw.gate?ix(raw.gate[0]):-1,gnote:raw.gate?raw.gate[1]:'',
+  return Object.assign({name:'Стандартный',seats:350,sys:'prop',party:'auto',duo:[-1,-1],year:0,span:true,dshare:50,lowpri:true,thr:0,thron:false,key:'',gate:raw.gate?ix(raw.gate[0]):-1,gnote:raw.gate?raw.gate[1]:'',
   no:(raw.no||[]).map(p=>p.map(ix)),coal:(raw.co||[]).map(x=>({n:x[0],m:x[1].map(ix)})),
   traits:TR.map(([id,n,g])=>({id,n,g})),
   topics:raw.T.map(([n,s,c,lo,hi])=>({n,s,c,lo,hi})),
-  fams:raw.F.map(([n,c,d,tr])=>({n,c,d,logo:'',tr:Object.assign({},tr),ppl:((raw.P||{})[n]||[]).map(p=>({n:p[0],s:p[1]})),cap:(()=>{ const c=(raw.cap||[]).find(x=>x[0]===n); return c?ix(c[1]):-1; })()})),
+  fams:raw.F.map(([n,c,d,tr,sm])=>({n,c,d,logo:'',sm:sm!=null?!!sm:(()=>{ const x=/По списку — ([\d,]+)%/.exec(d); return !!x&&parseFloat(x[1].replace(',','.'))<5; })(),tr:Object.assign({},tr),ppl:((raw.P||{})[n]||[]).map(p=>({n:p[0],s:p[1]})),cap:(()=>{ const c=(raw.cap||[]).find(x=>x[0]===n); return c?ix(c[1]):-1; })()})),
   qs:raw.Q.map(([t,d,q,A,B,a,b])=>({t,d,q,A,B,on:true,a:a.slice(),b:b.slice()}))},set||{}); }
 const HEX=/^#[0-9a-f]{6}$/i;
 function norm(c){
@@ -25,7 +25,7 @@ function norm(c){
   const ok=new Set(c.traits.map(x=>x.id)), ids=a=>(Array.isArray(a)?a:[]).filter((id,i,arr)=>ok.has(id)&&arr.indexOf(id)===i);
   c.topics=c.topics.map(t=>({n:String(t.n||'Тема'),s:String(t.s||''),c:HEX.test(t.c)?t.c:'#94A8F9',lo:String(t.lo||''),hi:String(t.hi||'')}));
   c.fams=c.fams.slice(0,12).map(f=>{ const tr={}; Object.keys(f.tr||{}).forEach(id=>{ const l=Math.round(+f.tr[id]); if(ok.has(id)&&l>=1&&l<=3) tr[id]=l; });
-    return {n:String(f.n||'Партия'),c:HEX.test(f.c)?f.c:'#888888',d:String(f.d||''),logo:typeof f.logo==='string'&&f.logo.indexOf('data:image/')===0?f.logo:'',tr,cap:Number.isInteger(f.cap)?f.cap:-1,
+    return {n:String(f.n||'Партия'),c:HEX.test(f.c)?f.c:'#888888',d:String(f.d||''),logo:typeof f.logo==='string'&&f.logo.indexOf('data:image/')===0?f.logo:'',tr,sm:!!f.sm,cap:Number.isInteger(f.cap)?f.cap:-1,
       ppl:(Array.isArray(f.ppl)?f.ppl:[]).filter(p=>p&&typeof p.n==='string').slice(0,12).map(p=>({n:p.n.slice(0,60),s:PORT.some(x=>x[0]===p.s)?p.s:'',img:typeof p.img==='string'&&p.img.indexOf('data:image/')===0?p.img:''}))}; });
   c.qs=c.qs.filter(q=>q&&q.t>=0&&q.t<c.topics.length).map(q=>({t:+q.t,d:q.d===-1?-1:1,q:String(q.q||''),A:String(q.A||''),B:String(q.B||''),on:q.on!==false,a:ids(q.a),b:ids(q.b)}));
   const nf=c.fams.length, okf=x=>Number.isInteger(x)&&x>=0&&x<nf;
@@ -34,6 +34,7 @@ function norm(c){
   c.span=c.span!==false; c.year=Math.round(+c.year)||0;
   c.dshare=Number.isFinite(+c.dshare)&&c.dshare!==null&&c.dshare!==undefined?Math.max(0,Math.min(100,Math.round(+c.dshare))):50;
   c.thr=Math.max(0,Math.min(20,Math.round((+c.thr||0)*2)/2)); c.thron=!!c.thron; c.key=typeof c.key==='string'?c.key.slice(0,12):'';
+  c.lowpri=c.lowpri!==false;
   c.gate=okf(c.gate)?c.gate:-1; c.gnote=String(c.gnote||'').slice(0,400);
   c.fams.forEach((f,i)=>{ if(!okf(f.cap)||f.cap===i) f.cap=-1; });
   c.duo=[0,1].map(k=>{ const v=Math.round(+(c.duo||[])[k]); return v>=0&&v<c.fams.length?v:-1; });
@@ -58,6 +59,8 @@ const R={party:'multi',sys:'prop'}; // система, действующая в
 const SK=()=>C.key||C.year; // ключ сценария в DUMA, BILLS и PRES
 const FIC=()=>!!(C.year&&typeof DUMA!=='undefined'&&DUMA[SK()]&&DUMA[SK()].fic); // вымышленный сценарий
 const thrOn=()=>!!(C.year&&C.thron&&C.thr>0&&(R.party==='multi'||R.party==='dom')), thrTxt=()=>String(C.thr).replace('.',','); // проходной барьер для списков
+// Пониженный приоритет малых партий: при равной близости малая партия получает PRI от веса обычной
+const PRI=.4, pen=f=>C.lowpri&&C.fams[f]&&C.fams[f].sm?-2*SIGMA*SIGMA*Math.log(PRI):0, lowOn=()=>C.lowpri&&C.fams.some(F=>F.sm);
 const gateOut=()=>C.gate>=0&&!!C.fams[C.gate]&&S.gv>0; // партия не допущена ответом на первый вопрос
 const maj=()=>Math.floor(C.seats/2)+1, bonus=()=>R.party==='dom'?maj():0, pool=()=>C.seats-bonus();
 const distTotal=()=>R.sys==='mixed'?Math.round(pool()*C.dshare/100):0, listTotal=()=>pool()-distTotal();
@@ -103,8 +106,8 @@ function lr(w,total){ // метод наибольших остатков
 function plan(lv,qs){ return {list:lr(lv.map(l=>LV[l].w),listTotal()), dist:lr(qs.map(q=>LV[lv[q.t]].w),distTotal())}; }
 function chunkTot(t,P,qs){ let n=P.list[t]; qs.forEach((q,i)=>{ if(q.t===t) n+=P.dist[i]; }); return n; }
 // Вопрос как маленькое голосование среди допущенных партий (el): доли по колоколу Гаусса от расстояния до ответа
-function shares(i,v,el){ const e=S.pp[i].map((x,f)=>el[f]?(v-x)*(v-x):Infinity), m=Math.min(...e), w=e.map(x=>x===Infinity?0:Math.exp(-(x-m)/(2*SIGMA*SIGMA))), W=sum(w); return w.map(x=>x/W); }
-function nearest(i,v,el,w){ let b=-1; S.pp[i].forEach((x,f)=>{ if(!el[f]) return; if(b<0){ b=f; return; } const d=Math.abs(v-x), bd=Math.abs(v-S.pp[i][b]); if(d<bd-1e-9||(Math.abs(d-bd)<=1e-9&&w&&w[f]>w[b])) b=f; }); return b; }
+function shares(i,v,el){ const e=S.pp[i].map((x,f)=>el[f]?(v-x)*(v-x)+pen(f):Infinity), m=Math.min(...e), w=e.map(x=>x===Infinity?0:Math.exp(-(x-m)/(2*SIGMA*SIGMA))), W=sum(w); return w.map(x=>x/W); }
+function nearest(i,v,el,w){ let b=-1; S.pp[i].forEach((x,f)=>{ if(!el[f]) return; if(b<0){ b=f; return; } const d=(v-x)*(v-x)+pen(f), bd=(v-S.pp[i][b])*(v-S.pp[i][b])+pen(b); if(d<bd-1e-9||(Math.abs(d-bd)<=1e-9&&w&&w[f]>w[b])) b=f; }); return b; }
 // Главный противник партии a: та, чьи позиции по вопросам теста дальше всего от её позиций
 function rival(a){ let b=-1, bd=-1; C.fams.forEach((_,f)=>{ if(f===a) return; const d=sum(S.pp.map(p=>Math.abs(p[f]-p[a]))); if(d>bd+1e-9){ bd=d; b=f; } }); return b; }
 // Кто допущен к местам и кто лидер, если считать только темы из scope
@@ -216,6 +219,7 @@ function viewBuild(){
         '<label><input type="radio" name="sys" id="sys-mixed" value="mixed"'+(C.sys==='mixed'?' checked':'')+'><b>Смешанная, как в России</b><span>Часть мест по списку, часть по округам: вопрос — округ.</span></label>'+
         '<div id="dshrow" style="grid-column:1/-1"><label class="lbl" for="dshare" style="margin-top:6px">Доля одномандатных округов: <b id="dshv"></b></label><input type="range" id="dshare" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"><p class="hint" id="dshhint" style="margin:4px 0 0">Применится, если по вводным вопросам выйдет смешанная система.</p></div>'+
         '<div id="thrrow" style="grid-column:1/-1"'+(C.year?'':' hidden')+'><label class="chk"><input type="checkbox" id="thron"'+(C.thron?' checked':'')+'> Проходной барьер для партийных списков</label> <input type="number" class="in" id="thr" min="0.5" max="20" step="0.5" value="'+C.thr+'" style="width:86px;display:inline-block;margin-left:8px" aria-label="Проходной барьер, %"> %<p class="hint" style="margin:4px 0 0">Партия, набравшая меньше барьера, не получает мест по списку; выигранные округа остаются за ней. После прохождения теста барьер изменить нельзя.</p></div>'+
+        '<div id="lowrow" style="grid-column:1/-1"'+(C.fams.some(F=>F.sm)?'':' hidden')+'><label class="chk"><input type="checkbox" id="lowpri"'+(C.lowpri?' checked':'')+'> Пониженный приоритет малых партий</label><p class="hint" style="margin:4px 0 0">Малые партии получают меньше голосов и округов при той же близости к ответам, так что их результат ближе к настоящему. Сейчас малые: '+esc(C.fams.filter(F=>F.sm).map(F=>F.n).join(', '))+'. Признак малой партии меняется в карточке партии.</p></div>'+
         '<label class="chk" id="ringchk" style="grid-column:1/-1"><input type="checkbox" id="f-rings"'+(RINGS?' checked':'')+'> Показывать места от округов кольцами</label>'+
       '</fieldset></div><div class="note" id="parl-note"></div></div>'+
     '<figure class="parl-fig"><div class="hemi" id="parl-h"></div><div class="parl-leg" id="parl-leg"></div></figure>'+
@@ -253,6 +257,7 @@ function famBody(i){
   const F=C.fams[i];
   return '<div class="f-f"><input type="color" id="f-fams-'+i+'-c" data-k="fams.'+i+'.c" value="'+esc(F.c)+'" aria-label="Цвет">'+inp('fams.'+i+'.n',F.n,'aria-label="Название партии"')+'<span class="fd">'+inp('fams.'+i+'.d',F.d,'aria-label="Описание" placeholder="Короткое описание"')+'</span><button type="button" class="x" data-act="delFam" data-i="'+i+'" aria-label="Удалить партию"'+(C.fams.length<=2?' disabled':'')+'>×</button></div>'+
     '<div class="f-logo">'+(lg(F)?'<img class="logo" src="'+esc(lg(F))+'" alt="Логотип" style="border-color:'+esc(F.c)+'">':'<span class="ph">лого</span>')+'<label for="logo-'+i+'">Логотип</label><input type="file" id="logo-'+i+'" data-logo="'+i+'" accept="image/*">'+(F.logo?'<button type="button" class="link" data-act="delLogo" data-i="'+i+'">Убрать логотип</button>':'')+'</div>'+
+    '<div class="tg"><span>Размер</span><div><label class="chk"><input type="checkbox" id="sm-'+i+'" data-sm="'+i+'"'+(F.sm?' checked':'')+'> Малая партия: её приоритет понижен, если это включено в настройках парламента</label></div></div>'+
     '<div class="tg"><span>Особое условие</span><div><select class="in" id="f-fams-'+i+'-cap" data-k="fams.'+i+'.cap" data-int="1" aria-label="Особое условие для партии"><option value="-1">Нет: места считаются как у всех</option>'+C.fams.map((G,j)=>j===i?'':'<option value="'+j+'"'+(F.cap===j?' selected':'')+'>Только один одномандатный округ, остальные места — партии «'+esc(G.n)+'»</option>').join('')+'</select></div></div>'+
     '<div class="tg"><span>Персонажи</span><div class="ppl">'+F.ppl.map((p,j)=>'<div class="pp">'+(face(p)?'<img class="ava sm" src="'+esc(face(p))+'" alt="">':'<span class="ava sm ph"></span>')+inp('fams.'+i+'.ppl.'+j+'.n',p.n,'aria-label="Имя персонажа" maxlength="60" placeholder="Имя"')+'<select class="in" id="f-fams-'+i+'-ppl-'+j+'-s" data-k="fams.'+i+'.ppl.'+j+'.s" aria-label="Профильный портфель"><option value="">'+(j?'Без профиля':'Лидер, без профиля')+'</option>'+PORT.filter(x=>x[0]!=='pm').map(x=>'<option value="'+x[0]+'"'+(p.s===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><label class="chip up" title="Загрузить своё фото">Фото<input type="file" accept="image/*" id="pimg-'+i+'-'+j+'" data-pimg="'+i+','+j+'" hidden></label><button type="button" class="x" data-act="delP" data-i="'+i+'" data-j="'+j+'" aria-label="Удалить персонажа">×</button></div>').join('')+
       (F.ppl.length<12?'<button type="button" class="add" data-act="addP" data-i="'+i+'">+ Добавить персонажа</button>':'')+'<small class="hint">Первый в списке — лидер: он станет премьером, если партия возглавит правительство. Профиль подсказывает, какое министерство человеку ближе. Фото подставляется по имени, своё можно загрузить кнопкой «Фото».</small></div></div>'+
@@ -306,12 +311,14 @@ function updMeta(){
   C.topics.forEach((_,t)=>{ const el=$('[data-tq="'+t+'"]'); if(!el) return; const all=C.qs.filter(q=>q.t===t), on=all.filter(q=>q.on).length; el.textContent=on===all.length?cnt(on):on+' из '+all.length+' включено'; });
   C.fams.forEach((F,i)=>{ const el=$('[data-ft="'+i+'"]'), n=Object.keys(F.tr).length; if(el) el.textContent=n+' '+plural(n,'черта','черты','черт')+' · '+F.ppl.length+' '+plural(F.ppl.length,'персонаж','персонажа','персонажей'); });
   $('#run').disabled=!nq;
-  $('#run-info').textContent=nq?(C.party==='auto'?'6 вопросов о системе · ':'')+nt+' '+plural(nt,'тема','темы','тем')+' · '+cnt(nq)+' · '+mest(C.seats)+' · '+(C.party==='auto'?'систему выбирает тест':SYSF[C.party].toLowerCase()+', '+(C.sys==='mixed'?'смешанная':'по списку'))+(C.year&&C.thron&&C.thr>0?' · барьер '+thrTxt()+'%':''):'Включите хотя бы один вопрос';
+  $('#run-info').textContent=nq?(C.party==='auto'?'6 вопросов о системе · ':'')+nt+' '+plural(nt,'тема','темы','тем')+' · '+cnt(nq)+' · '+mest(C.seats)+' · '+(C.party==='auto'?'систему выбирает тест':SYSF[C.party].toLowerCase()+', '+(C.sys==='mixed'?'смешанная':'по списку'))+(C.year&&C.thron&&C.thr>0?' · барьер '+thrTxt()+'%':'')+(lowOn()?' · малые партии с пониженным приоритетом':''):'Включите хотя бы один вопрос';
 }
 function setSeats(n){ C.seats=Math.max(10,Math.min(1000,Math.round(n))); save(); updParl(); updMeta(); }
 function onInput(e){
   const el=e.target;
   if(el.id==='seats'||el.id==='seatsR'){ const n=+el.value; if(!(n>=10&&n<=1000)) return; setSeats(n); (el.id==='seats'?$('#seatsR'):$('#seats')).value=C.seats; return; }
+  if(el.id==='lowpri'){ C.lowpri=el.checked; save(); updMeta(); return; }
+  if(el.dataset&&el.dataset.sm!==undefined){ const F=C.fams[+el.dataset.sm]; if(F){ F.sm=el.checked; rerender(); } return; }
   if(el.id==='thron'){ C.thron=el.checked; if(C.thron&&!(C.thr>0)){ C.thr=5; $('#thr').value=5; } save(); updMeta(); return; }
   if(el.id==='thr'){ const v=+el.value; if(!(v>=0&&v<=20)) return; C.thr=Math.round(v*2)/2; save(); updMeta(); return; }
   if(el.id==='dshare'){ C.dshare=Math.max(0,Math.min(100,+el.value||0)); save(); updParl(); updMeta(); return; }
@@ -530,6 +537,7 @@ function viewResult(){
       '<p><b>Партии.</b> У каждой партии есть набор идейных черт с силой: слабо, умеренно или сильно. К каждому варианту ответа тоже привязаны черты. Партия стоит на шкале вопроса тем ближе к варианту, чем сильнее её самая выраженная черта из привязанных к нему.</p>'+
       '<p><b>Политическая система.</b> '+(C.party==='two'&&(C.duo[0]>=0||C.duo[1]>=0)?'Места делят две партии, выбранные в настройках теста.':SYSD[R.party])+(R.party==='dom'?' Гарантированное большинство — это '+bonus()+' из '+C.seats+'.':'')+'</p>'+
       C.fams.map(F=>F.cap>=0&&C.fams[F.cap]?'<p><b>Особое условие.</b> «'+esc(F.n)+'» при любом раскладе получает ровно один одномандатный округ. Все остальные места, которые ей причитались бы, переходят партии «'+esc(C.fams[F.cap].n)+'».</p>':'').join('')+
+      (lowOn()?'<p><b>Малые партии.</b> У партий, отмеченных как малые ('+esc(C.fams.filter(F=>F.sm).map(F=>F.n).join(', '))+'), приоритет понижен: при одинаковой близости к вашему ответу такая партия получает 40% от доли обычной, а округ выигрывает, только если она заметно ближе остальных.</p>':'')+
       (thrOn()?'<p><b>Проходной барьер.</b> Доля голосов партии — это её средняя близость к вашим ответам по всем темам с учётом их важности. Партия с долей ниже '+thrTxt()+'% не участвует в делении мест по списку, но округа выигрывать может.</p>':'')+
       '<p><b>Темы.</b> Важность тем делит места между ними (не важно — 0, мало — 1, средне — 2, важно — 3,5, очень — 5 долей) по методу наибольших остатков.</p>'+
       '<p><b>Места по списку.</b> Каждый вопрос работает как маленькое голосование: ваш ползунок сравнивается с позицией каждой партии, ближайшая получает бо́льшую часть вопроса, близкие — понемногу, далёкие — почти ничего (колокол Гаусса). Места темы делятся по сумме этих долей.</p>'+

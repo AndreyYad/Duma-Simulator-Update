@@ -50,7 +50,7 @@ if (left.size) { console.error('Нет перевода в tools/dict.json дл�
 app = rep(app, "const plural=(n,a,b,c)=>{ const m=Math.abs(n)%100, k=m%10; return m>10&&m<20?c:k===1?a:k>=2&&k<=4?b:c; };", "const plural=(n,a,b,c)=>Math.abs(n)===1?a:c; // English: singular for 1, plural otherwise (the middle form is unused)", 'plural');
 app = rep(app, ".replace('.',',')", "", 'десятичная запятая', true);
 app = rep(app, ",'ru'))", ",'en'))", 'сортировка');
-app = rep(app, "/По списку — ([\\d,]+)%/", "/Party-list vote: ([\\d.]+)%/", 'процент по списку');
+app = rep(app, "/По списку — ([\\d,]+)%/", "/Party-list vote: ([\\d.]+)%/", 'процент по списку', true);
 app = rep(app, "const KEY='svoy-parlament-v5', PKEY='svoy-parlament-presets';", "const KEY='duma-simulator-en-v1', PKEY='duma-simulator-en-presets';", 'ключи хранилища');
 
 // ── ключи фотографий и логотипов: те же имена и названия, что в переведённых данных
