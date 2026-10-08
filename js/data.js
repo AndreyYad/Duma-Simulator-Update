@@ -304,12 +304,12 @@ const DQ=[
 // Пониженный приоритет малых партий включён по умолчанию только в сценариях с low:1.
 // Базовые наборы черт для партий, которые участвовали во многих выборах; tr() подправляет их под конкретный год
 const tr=(base,over)=>Object.assign({},base,over||{});
-const B_KPRF={emp:1,gos:3,nat:3,tax_hi:3,labor:3,welfare:3,pub:3,equal:3,soviet:3,prot:2,agr:1,parl:3,plural:2,direct:2,mil:3,sov:3,antiwest:3,eurasia:3,trad:2,law:2,unity:2,nation:1,imm_anti:1,cent:1};
+const B_KPRF={emp:1,evo:1,gos:3,nat:3,tax_hi:3,labor:3,welfare:3,pub:3,equal:3,soviet:3,prot:2,agr:1,parl:3,plural:2,direct:2,mil:3,sov:3,antiwest:3,eurasia:3,trad:2,law:2,unity:2,nation:1,imm_anti:1,cent:1};
 const B_LDPR={emp:2,rad:1,nation:3,imm_anti:3,assim:2,cent:3,unity:3,lang_one:3,auth:2,pres:3,law:3,mil:3,pop:3,antiwest:2,sov:3,gos:2,welfare:2,prot:2,plural:1,eurasia:2};
-const B_YAB={plural:3,parl:3,lib:3,privacy:3,west:3,euro:2,mkt:2,biz:2,welfare:2,pub:1,eco:3,rehab:3,pac:2,fed:3,sec:1,prog:2,direct:1,equal:1,imm_pro:1,multi:2,cosmo:2};
-const B_ER={stab:3,pres:3,cent:3,unity:3,auth:1,law:2,mkt:1,gos:2,nat:2,tax_lo:2,welfare:2,trad:2,rel:1,mil:2,sov:1,antiwest:1,eurasia:2,growth:2,tech:1,multi:1};
-const B_SR={gos:2,tax_hi:3,labor:3,welfare:3,pub:3,equal:3,nat:1,parl:1,plural:2,direct:1,prog:1,sov:1,eurasia:1,law:1,mil:1};
-const B_SPS={mkt:3,priv:3,biz:3,tax_lo:3,self:2,choice:2,west:3,lib:3,plural:3,prog:2,fed:2,cosmo:1,imm_pro:1};
+const B_YAB={evo:2,plural:3,parl:3,lib:3,privacy:3,west:3,euro:2,mkt:2,biz:2,welfare:2,pub:1,eco:3,rehab:3,pac:2,fed:3,sec:1,prog:2,direct:1,equal:1,imm_pro:1,multi:2,cosmo:2};
+const B_ER={evo:2,stab:3,pres:3,cent:3,unity:3,auth:1,law:2,mkt:1,gos:2,nat:2,tax_lo:2,welfare:2,trad:2,rel:1,mil:2,sov:1,antiwest:1,eurasia:2,growth:2,tech:1,multi:1};
+const B_SR={evo:1,gos:2,tax_hi:3,labor:3,welfare:3,pub:3,equal:3,nat:1,parl:1,plural:2,direct:1,prog:1,sov:1,eurasia:1,law:1,mil:1};
+const B_SPS={evo:1,mkt:3,priv:3,biz:3,tax_lo:3,self:2,choice:2,west:3,lib:3,plural:3,prog:2,fed:2,cosmo:1,imm_pro:1};
 const B_APR={agr:3,gos:3,prot:3,welfare:2,soviet:2,nat:2,labor:2,trad:2,parl:2,sov:2,eurasia:2,antiwest:1,tax_hi:1};
 const B_ROST={mkt:3,biz:3,priv:2,tax_lo:3,self:1,choice:2,tech:2,plural:1,lib:1,growth:2,imm_pro:1};
 const CK='#C8102E', CL='#E3B505', CY='#2E9E4F', CE='#0C4DA2', CS='#E8730C', CR='#1FA3B5', CA='#7A8B2A';

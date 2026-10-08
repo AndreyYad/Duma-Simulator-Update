@@ -776,15 +776,15 @@ function presBox(){
 
 // ══════ “Ваша Прекрасная Россия Будущего”: концовка по взглядам отвечающего и составу Думы ══════
 function futEra(){ return typeof FUT_ERA!=='undefined'&&C.year&&!FIC()?FUT_ERA.find(e=>C.year>=e.from&&C.year<=e.to):null; }
-// Профиль: средний ответ по каждой черте (тема “Будущее” с двойным весом) плюс половина веса черт партий по их доле мест
-function futProfile(st){ const ft=C.topics.findIndex(t=>t.n==='The Future'), s={}, n={}, p={}, N=sum(st)||1;
-  S.qs.forEach((q,i)=>{ const v=S.ans[i]; if(v==null) return; const k=q.t===ft?2:1; q.a.forEach(id=>{ s[id]=(s[id]||0)-v*k; n[id]=(n[id]||0)+k; }); q.b.forEach(id=>{ s[id]=(s[id]||0)+v*k; n[id]=(n[id]||0)+k; }); });
-  Object.keys(s).forEach(id=>{ p[id]=s[id]/n[id]; });
-  C.fams.forEach((F,f)=>{ if(!st[f]) return; Object.keys(F.tr).forEach(id=>{ p[id]=(p[id]||0)+.5*st[f]/N*SV[F.tr[id]]; }); });
-  return p; }
-function futRank(st){ const era=futEra(); if(!era||typeof FUT==='undefined'||!S.qs.length||S.ans.every(v=>v==null)) return null; const p=futProfile(st), N=sum(st)||1;
-  const list=FUT[era.k].filter(e=>(!e.from||C.year>=e.from)&&(!e.to||C.year<=e.to)).map(e=>{ let x=0,y=0; Object.keys(e.w).forEach(id=>{ x+=e.w[id]*(p[id]||0); y+=e.w[id]*e.w[id]; });
-    return {e,sc:x/Math.sqrt(y||1)+.8*sum(C.fams.map((F,f)=>e.fam.includes(F.n)?st[f]/N:0))}; }).sort((x,y)=>y.sc-x.sc);
+// Как ответил бы сторонник концовки на вопрос: +1 — вариант Б, −1 — вариант А, 0 — ему всё равно
+function futIdeal(e,q){ const sc=ids=>ids.reduce((s,id)=>s+(e.w[id]||0),0), dv=sc(q.b)-sc(q.a); return dv>0?1:dv<0?-1:0; }
+// Близость к концовке — косинус между вашими ответами и ответами её сторонника (вопросы темы “Будущее” весят вдвое);
+// к ней прибавляется небольшая поправка за долю мест у партий, на которые концовка опирается.
+function futRank(st){ const era=futEra(); if(!era||typeof FUT==='undefined'||!S.qs.length||S.ans.every(v=>v==null)) return null;
+  const ft=C.topics.findIndex(t=>t.n==='The Future'), N=sum(st)||1, kq=S.qs.map(q=>q.t===ft?2:1); let un=0; S.qs.forEach((q,i)=>{ const v=S.ans[i]; if(v!=null) un+=kq[i]*v*v; });
+  const list=FUT[era.k].filter(e=>(!e.from||C.year>=e.from)&&(!e.to||C.year<=e.to)).map(e=>{ let x=0,y=0,ue=0; // ue — сила ваших ответов на вопросы, важные для концовки: безразличие концовки к остальным штрафуется вполовину
+    S.qs.forEach((q,i)=>{ const id=futIdeal(e,q); if(!id) return; y+=kq[i]; const v=S.ans[i]; if(v!=null){ x+=kq[i]*v*id; ue+=kq[i]*v*v; } });
+    return {e,sc:(ue&&y?x/Math.sqrt((.5*un+.5*ue)*y):0)+.2*sum(C.fams.map((F,f)=>e.fam.includes(F.n)?st[f]/N:0))}; }).sort((x,y)=>y.sc-x.sc);
   const dbg=/[?&]fut=([0-9]+)/.exec(location.search), pick=dbg&&FUT[era.k][+dbg[1]]; // ?fut=N в адресе показывает концовку с номером N — для проверки оформления
   if(pick){ const i=list.findIndex(x=>x.e===pick); if(i>=0) list.unshift(list.splice(i,1)[0]); }
   return {era,list}; }
