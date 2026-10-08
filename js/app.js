@@ -9,7 +9,7 @@ const plural=(n,a,b,c)=>Math.abs(n)===1?a:c; // English: singular for 1, plural 
 const mest=n=>n+' '+plural(n,'seat','seats','seats');
 
 function defaults(set,raw){ raw=raw||{T:DEF_T,F:DEF_F,Q:DEF_Q}; const ix=n=>raw.F.findIndex(f=>f[0]===n);
-  return Object.assign({name:'Standard',seats:350,sys:'prop',party:'auto',duo:[-1,-1],year:0,span:true,dshare:50,
+  return Object.assign({name:'Standard',seats:350,sys:'prop',party:'auto',duo:[-1,-1],year:0,span:true,dshare:50,thr:0,thron:false,key:'',gate:raw.gate?ix(raw.gate[0]):-1,gnote:raw.gate?raw.gate[1]:'',
   no:(raw.no||[]).map(p=>p.map(ix)),coal:(raw.co||[]).map(x=>({n:x[0],m:x[1].map(ix)})),
   traits:TR.map(([id,n,g])=>({id,n,g})),
   topics:raw.T.map(([n,s,c,lo,hi])=>({n,s,c,lo,hi})),
@@ -33,6 +33,8 @@ function norm(c){
   c.coal=(Array.isArray(c.coal)?c.coal:[]).filter(x=>x&&Array.isArray(x.m)).map(x=>({n:String(x.n||'Coalition').slice(0,60),m:x.m.filter(okf)}));
   c.span=c.span!==false; c.year=Math.round(+c.year)||0;
   c.dshare=Number.isFinite(+c.dshare)&&c.dshare!==null&&c.dshare!==undefined?Math.max(0,Math.min(100,Math.round(+c.dshare))):50;
+  c.thr=Math.max(0,Math.min(20,Math.round((+c.thr||0)*2)/2)); c.thron=!!c.thron; c.key=typeof c.key==='string'?c.key.slice(0,12):'';
+  c.gate=okf(c.gate)?c.gate:-1; c.gnote=String(c.gnote||'').slice(0,400);
   c.fams.forEach((f,i)=>{ if(!okf(f.cap)||f.cap===i) f.cap=-1; });
   c.duo=[0,1].map(k=>{ const v=Math.round(+(c.duo||[])[k]); return v>=0&&v<c.fams.length?v:-1; });
   return c;
@@ -53,7 +55,10 @@ function saveUser(){ try{ localStorage.setItem(PKEY,JSON.stringify(USER)); retur
 const LV=[{n:'Not important',w:0},{n:'A little',w:1},{n:'Medium',w:2},{n:'Important',w:3.5},{n:'Very',w:5}];
 const SV=[0,.35,.7,1], SL=['','weak','moderate','strong'], SIGMA=0.2;
 const R={party:'multi',sys:'prop'}; // система, действующая в текущем прохождении
-const FIC=()=>!!(C.year&&typeof DUMA!=='undefined'&&DUMA[C.year]&&DUMA[C.year].fic); // вымышленный сценарий
+const SK=()=>C.key||C.year; // ключ сценария в DUMA, BILLS и PRES
+const FIC=()=>!!(C.year&&typeof DUMA!=='undefined'&&DUMA[SK()]&&DUMA[SK()].fic); // вымышленный сценарий
+const thrOn=()=>!!(C.year&&C.thron&&C.thr>0&&(R.party==='multi'||R.party==='dom')), thrTxt=()=>String(C.thr); // проходной барьер для списков
+const gateOut=()=>C.gate>=0&&!!C.fams[C.gate]&&S.gv>0; // партия не допущена ответом на первый вопрос
 const maj=()=>Math.floor(C.seats/2)+1, bonus=()=>R.party==='dom'?maj():0, pool=()=>C.seats-bonus();
 const distTotal=()=>R.sys==='mixed'?Math.round(pool()*C.dshare/100):0, listTotal=()=>pool()-distTotal();
 const enabled=()=>C.qs.filter(q=>q.on);
@@ -104,7 +109,7 @@ function nearest(i,v,el,w){ let b=-1; S.pp[i].forEach((x,f)=>{ if(!el[f]) return
 function rival(a){ let b=-1, bd=-1; C.fams.forEach((_,f)=>{ if(f===a) return; const d=sum(S.pp.map(p=>Math.abs(p[f]-p[a]))); if(d>bd+1e-9){ bd=d; b=f; } }); return b; }
 // Кто допущен к местам и кто лидер, если считать только темы из scope
 function context(scope){
-  const nF=C.fams.length, all=Array(nF).fill(true), sc=Array(nF).fill(0);
+  const nF=C.fams.length, all=C.fams.map((_,f)=>!(gateOut()&&f===C.gate)), sc=Array(nF).fill(0);
   scope.forEach(t=>{ const w=Array(nF).fill(0); let k=0;
     S.qs.forEach((q,i)=>{ const v=S.ans[i]; if(q.t!==t||v==null) return; k++; shares(i,v,all).forEach((x,f)=>w[f]+=x); });
     if(k) w.forEach((x,f)=>sc[f]+=x/k*LV[S.lv[t]].w); });
@@ -114,13 +119,16 @@ function context(scope){
   else if(R.party==='two'){ // пара задана в конструкторе или подбирается: ближайшая к ответам и её главный противник
     let [a,b]=C.party==='two'?C.duo:[-1,-1]; if(a<0) a=ord.find(f=>f!==b); if(b<0||b===a) b=rival(a);
     el=all.map((_,f)=>f===a||f===b); }
-  return {el,dom:R.party==='dom'?ord[0]:-1,sc};
+  // барьер: партия с долей голосов ниже барьера не получает мест по списку, округа за ней остаются
+  const tot=sum(sc.filter((_,f)=>el[f])), vs=sc.map((v,f)=>el[f]&&tot?v/tot:0); let elL=el;
+  if(thrOn()&&tot){ elL=el.map((e,f)=>e&&vs[f]*100>=C.thr-1e-9); if(!elL.some(Boolean)) elL=el.map((e,f)=>f===ord[0]); }
+  return {el,elL,vs,dom:R.party==='dom'?ord[0]:-1,sc};
 }
 // Итог одной темы: места по списку + округа. Вопрос “без мнения” округ не разыгрывает: мандаты уходят в список темы.
 function block(t,P,X){
   const nF=C.fams.length, w=Array(nF).fill(0), dist=Array(nF).fill(0), wins={}; let n=P.list[t], k=0;
-  S.qs.forEach((q,i)=>{ if(q.t!==t) return; const v=S.ans[i]; if(v==null){ n+=P.dist[i]; return; } k++; shares(i,v,X.el).forEach((x,f)=>w[f]+=x); });
-  const ww=k?w:X.el.map(e=>e?1:0);
+  S.qs.forEach((q,i)=>{ if(q.t!==t) return; const v=S.ans[i]; if(v==null){ n+=P.dist[i]; return; } k++; shares(i,v,X.elL).forEach((x,f)=>w[f]+=x); });
+  const ww=k?w:X.elL.map(e=>e?1:0);
   S.qs.forEach((q,i)=>{ if(q.t!==t||S.ans[i]==null) return; const f=nearest(i,S.ans[i],X.el,ww); wins[i]=f; dist[f]+=P.dist[i]; });
   const list=lr(ww,n); return {list,dist,wins,tot:list.map((x,f)=>x+dist[f]),k};
 }
@@ -190,9 +198,9 @@ const cnt=n=>n+' '+plural(n,'question','questions','questions');
 function viewBuild(){
   toBuild.hidden=true; window.scrollTo(0,0);
   app.innerHTML='<div class="stack" id="build">'+
-  '<div class="intro"><h1>Build your own State Duma</h1><p>Pick an election, from 1993 to 2021, or the fictional 2026 scenario: each has its own parties, its own questions of the day and its own impossible alliances. Or set everything up yourself. The respondent moves a slider between two options, and the answers turn into the make-up of the Duma and a cabinet.</p></div>'+
+  '<div class="intro"><h1>Build your own State Duma</h1><p>Pick an election, from 1993 to 2026: each has its own parties, its own questions of the day and its own impossible alliances. Or set everything up yourself. The respondent moves a slider between two options, and the answers turn into the make-up of the Duma and a cabinet.</p></div>'+
   '<section class="step box"><header><h2>Presets</h2><p class="hint">Ready-made sets and your saved tests. Saved presets are stored in this browser.</p></header>'+
-    '<span class="lbl" style="margin:0">State Duma elections</span><div class="presets">'+BUILTIN.map((p,i)=>p.set.year?'<button type="button" class="preset" data-act="pre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>'+esc(p.d)+'</span></button>':'').join('')+'</div>'+
+    '<span class="lbl" style="margin:0">State Duma elections</span><div class="presets">'+BUILTIN.map((p,i)=>p.set.year&&!p.h?'<button type="button" class="preset" data-act="pre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>'+esc(p.d)+'</span></button>':'').join('')+'</div>'+
     '<span class="lbl" style="margin:0">Standard test and my presets</span><div class="presets">'+BUILTIN.map((p,i)=>p.set.year||p.h?'':'<button type="button" class="preset" data-act="pre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>'+esc(p.d)+'</span></button>').join('')+
       USER.map((p,i)=>'<div class="pwrap"><button type="button" class="preset" data-act="upre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>My preset · '+mest(p.c.seats)+' · '+p.c.fams.length+' '+plural(p.c.fams.length,'party','parties','parties')+'</span></button><button type="button" class="x" data-act="delPre" data-i="'+i+'" aria-label="Delete preset">×</button></div>').join('')+'</div>'+
     '<div class="psave"><input class="in" id="pname" value="'+esc(C.name)+'" maxlength="60" aria-label="Preset name" placeholder="Preset name"><button type="button" class="chip" data-act="savePre">Save the current test as a preset</button>'+(PREV?'<button type="button" class="link" data-act="undo">Restore the test that was open before loading</button>':'')+'<span class="hint" id="pmsg">'+esc(PMSG)+'</span></div></section>'+
@@ -207,6 +215,7 @@ function viewBuild(){
         '<label><input type="radio" name="sys" id="sys-prop" value="prop"'+(C.sys==='prop'?' checked':'')+'><b>By party list</b><span>In proportion to how close the parties are to the answers.</span></label>'+
         '<label><input type="radio" name="sys" id="sys-mixed" value="mixed"'+(C.sys==='mixed'?' checked':'')+'><b>Mixed, as in Russia</b><span>Some seats by party list, some by districts: each question is a district.</span></label>'+
         '<div id="dshrow" style="grid-column:1/-1"><label class="lbl" for="dshare" style="margin-top:6px">Share of single-member districts: <b id="dshv"></b></label><input type="range" id="dshare" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"><p class="hint" id="dshhint" style="margin:4px 0 0">Applies if the opening questions lead to a mixed system.</p></div>'+
+        '<div id="thrrow" style="grid-column:1/-1"'+(C.year?'':' hidden')+'><label class="chk"><input type="checkbox" id="thron"'+(C.thron?' checked':'')+'> Electoral threshold for party lists</label> <input type="number" class="in" id="thr" min="0.5" max="20" step="0.5" value="'+C.thr+'" style="width:86px;display:inline-block;margin-left:8px" aria-label="Electoral threshold, %"> %<p class="hint" style="margin:4px 0 0">A party below the threshold gets no party-list seats; the districts it wins stay with it. The threshold cannot be changed after the test is taken.</p></div>'+
         '<label class="chk" id="ringchk" style="grid-column:1/-1"><input type="checkbox" id="f-rings"'+(RINGS?' checked':'')+'> Show district seats as rings</label>'+
       '</fieldset></div><div class="note" id="parl-note"></div></div>'+
     '<figure class="parl-fig"><div class="hemi" id="parl-h"></div><div class="parl-leg" id="parl-leg"></div></figure>'+
@@ -297,12 +306,14 @@ function updMeta(){
   C.topics.forEach((_,t)=>{ const el=$('[data-tq="'+t+'"]'); if(!el) return; const all=C.qs.filter(q=>q.t===t), on=all.filter(q=>q.on).length; el.textContent=on===all.length?cnt(on):on+' of '+all.length+' enabled'; });
   C.fams.forEach((F,i)=>{ const el=$('[data-ft="'+i+'"]'), n=Object.keys(F.tr).length; if(el) el.textContent=n+' '+plural(n,'trait','traits','traits')+' · '+F.ppl.length+' '+plural(F.ppl.length,'character','characters','characters'); });
   $('#run').disabled=!nq;
-  $('#run-info').textContent=nq?(C.party==='auto'?'6 questions about the system · ':'')+nt+' '+plural(nt,'topic','topics','topics')+' · '+cnt(nq)+' · '+mest(C.seats)+' · '+(C.party==='auto'?'the test picks the system':SYSF[C.party].toLowerCase()+', '+(C.sys==='mixed'?'mixed':'party list')):'Enable at least one question';
+  $('#run-info').textContent=nq?(C.party==='auto'?'6 questions about the system · ':'')+nt+' '+plural(nt,'topic','topics','topics')+' · '+cnt(nq)+' · '+mest(C.seats)+' · '+(C.party==='auto'?'the test picks the system':SYSF[C.party].toLowerCase()+', '+(C.sys==='mixed'?'mixed':'party list'))+(C.year&&C.thron&&C.thr>0?' · threshold '+thrTxt()+'%':''):'Enable at least one question';
 }
 function setSeats(n){ C.seats=Math.max(10,Math.min(1000,Math.round(n))); save(); updParl(); updMeta(); }
 function onInput(e){
   const el=e.target;
   if(el.id==='seats'||el.id==='seatsR'){ const n=+el.value; if(!(n>=10&&n<=1000)) return; setSeats(n); (el.id==='seats'?$('#seatsR'):$('#seats')).value=C.seats; return; }
+  if(el.id==='thron'){ C.thron=el.checked; if(C.thron&&!(C.thr>0)){ C.thr=5; $('#thr').value=5; } save(); updMeta(); return; }
+  if(el.id==='thr'){ const v=+el.value; if(!(v>=0&&v<=20)) return; C.thr=Math.round(v*2)/2; save(); updMeta(); return; }
   if(el.id==='dshare'){ C.dshare=Math.max(0,Math.min(100,+el.value||0)); save(); updParl(); updMeta(); return; }
   if(el.id==='f-rings'){ setRings(el.checked); updParl(); return; }
   if(el.name==='sys'||el.name==='party'){ C[el.name]=el.value; save(); updParl(); updMeta(); return; }
@@ -364,7 +375,7 @@ function onAct(e){
     if(!c){ $('#io-msg').textContent='Could not read the text. Paste it in full, from the first curly brace to the last.'; return; }
     OPEN.io=true; const io=OPEN.io; loadCfg(c,'Test loaded from text.'); OPEN.io=io; }
   else if(a==='run'){ S.lv=C.topics.map((_,t)=>C.qs.some(q=>q.on&&q.t===t)?2:0); toBuild.hidden=false;
-    if(C.party==='auto'){ S.sa=[]; S.si=0; window.scrollTo(0,0); viewSys(); } else { R.party=C.party; R.sys=C.sys; viewPrio(); } }
+    if(C.party==='auto'){ S.sa=[]; S.si=0; window.scrollTo(0,0); viewSys(); } else { R.party=C.party; R.sys=C.sys; S.gv=undefined; begin(); } }
 }
 
 // ══════ Шкала с ползунком: общий экран вопроса ══════
@@ -410,6 +421,11 @@ function ask(o){
 }
 
 // ══════ 2. Шесть вопросов о системе ══════
+// Первый вопрос сценария: допускать ли партию к выборам. Ответ “нет” убирает её из расчёта мест.
+function begin(){ if(C.gate>=0&&C.fams[C.gate]) viewGate(); else viewPrio(); }
+function viewGate(){ const F=C.fams[C.gate]; window.scrollTo(0,0);
+  ask({prog:'',meta:'<b>First question</b><span>Admission to the election</span>',title:'Should the party “'+F.n+'” be allowed to stand in the election?',L:'Yes, allow it',R:'No, bar it',val:S.gv==null?null:S.gv,back:null,
+    next:x=>{ S.gv=x; viewPrio(); }}); }
 function viewSys(){
   const i=S.si, q=SYSQ[i], v=S.sa[i];
   ask({prog:'<div class="prog" aria-hidden="true">'+SYSQ.map((_,k)=>'<i class="'+(k===i?'cur':S.sa[k]===null?'skip':S.sa[k]!==undefined?'done':'')+'"></i>').join('')+'</div>',
@@ -500,8 +516,8 @@ function viewBoard(){
 function viewResult(){
   S.hl=null; S.pick=[]; window.scrollTo(0,0);
   const mixed=R.sys==='mixed', answered=S.ans.filter(v=>v!=null).length;
-  app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px">'+(C.year?'<span class="pill">Election of '+C.year+' </span>':'')+(FIC()?'<span class="pill">Fictional scenario</span>':'')+'<span class="pill">'+SYSF[R.party]+'</span><span class="pill">'+(mixed?'Mixed: party list and districts':'By party lists')+'</span><span class="pill">'+mest(C.seats)+'</span></div><h2 tabindex="-1" style="outline:none">'+(C.year?'Your Duma of '+C.year+' ':'Your parliament')+'</h2><p class="lead" id="lead" style="margin:0"></p></div>'+
-    '<div class="box main"><div class="hemi" id="rh"></div><div><div class="chips" id="tiers" style="margin:0 0 8px"></div><div class="chips" id="ringrow" style="margin:0 0 8px"></div>'+(mixed?'<div id="dsres" style="margin:0 0 10px"><label class="lbl" for="dshare2">Share of single-member districts: <b id="dshv2">'+C.dshare+'%</b></label><input type="range" id="dshare2" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"></div>':'')+'<div class="leg" id="leg"></div><div class="desc" id="desc"></div></div></div>'+
+  app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px">'+(C.year?'<span class="pill">Election of '+C.year+' </span>':'')+(FIC()?'<span class="pill">Fictional scenario</span>':'')+(thrOn()?'<span class="pill">Threshold '+thrTxt()+'%</span>':'')+'<span class="pill">'+SYSF[R.party]+'</span><span class="pill">'+(mixed?'Mixed: party list and districts':'By party lists')+'</span><span class="pill">'+mest(C.seats)+'</span></div><h2 tabindex="-1" style="outline:none">'+(C.year?'Your Duma of '+C.year+' ':'Your parliament')+'</h2><p class="lead" id="lead" style="margin:0"></p></div>'+
+    '<div class="box main"><div class="hemi" id="rh"></div><div><div class="chips" id="tiers" style="margin:0 0 8px"></div><div class="chips" id="ringrow" style="margin:0 0 8px"></div>'+(mixed?'<div id="dsres" style="margin:0 0 10px"><label class="lbl" for="dshare2">Share of single-member districts: <b id="dshv2">'+C.dshare+'%</b></label><input type="range" id="dshare2" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"></div>':'')+'<p class="hint" id="thrline" style="margin:0 0 8px" hidden></p><div class="leg" id="leg"></div><div class="desc" id="desc"></div></div></div>'+
     '<div class="box"><h3>Election results</h3><p class="hint">A card in the style of Wikipedia. It is easy to save as a screenshot.</p><div id="wb"></div></div>'+
     '<div id="presbox"></div><div id="mapbox"></div>'+
     '<div class="box" id="cobox"><h3>Possible majorities and the government</h3><p class="hint">Alliances that reach '+maj()+' or more.'+(C.span?' Only neighbours on the axis may unite: no more than three steps apart.':'')+(C.no.length?' Parties that refuse to work together never end up in the same alliance.':'')+' Pick an alliance or put together your own to hand out ministerial portfolios.</p><div class="coal" id="coal"></div><p class="hint" id="cmline" style="margin:12px 0 0"></p><div id="copick"></div></div>'+
@@ -514,6 +530,7 @@ function viewResult(){
       '<p><b>Parties.</b> Each party has a set of ideological traits with a strength: weak, moderate or strong. Each answer option has traits attached too. A party stands closer to an option on the question scale the stronger its most pronounced trait among those attached to it.</p>'+
       '<p><b>Political system.</b> '+(C.party==='two'&&(C.duo[0]>=0||C.duo[1]>=0)?'Seats are split between the two parties chosen in the test settings.':SYSD[R.party])+(R.party==='dom'?' The guaranteed majority is '+bonus()+' of '+C.seats+'.':'')+'</p>'+
       C.fams.map(F=>F.cap>=0&&C.fams[F.cap]?'<p><b>Special rule.</b> “'+esc(F.n)+'” always gets exactly one single-member district, whatever the answers. All other seats it would have won go to “'+esc(C.fams[F.cap].n)+'”.</p>':'').join('')+
+      (thrOn()?'<p><b>Electoral threshold.</b> A party’s vote share is its average closeness to your answers across all topics, weighted by their importance. A party with a share below '+thrTxt()+'% takes no part in the division of party-list seats but can still win districts.</p>':'')+
       '<p><b>Topics.</b> Topic importance divides the seats between topics (not important — 0, a little — 1, medium — 2, important — 3.5, very — 5 shares) by the largest remainder method.</p>'+
       '<p><b>Party-list seats.</b> Each question works like a small vote: your slider is compared with every party’s position; the closest gets most of the question, nearby ones get a little, distant ones almost nothing (a Gaussian bell). A topic’s seats are divided by the sum of these shares.</p>'+
       (mixed?'<p><b>District seats.</b> Each question is a district: all its seats go to the party whose position is closest to your answer. If there are as many seats as questions, it is exactly one question — one seat. A “no opinion” question does not contest its district; its seats move to the list of the same topic.</p>':'')+
@@ -526,7 +543,7 @@ function viewResult(){
     if(b){ e.stopPropagation(); const t=+b.dataset.t; S.lv[t]=+b.dataset.l; if(!S.order.some(x=>S.lv[x]>0)) S.lv[t]=1; updResult(); const nb=$('button[data-t="'+t+'"][data-l="'+S.lv[t]+'"]',ths); if(nb) nb.focus({preventScroll:true}); return; }
     const r=e.target.closest('.tr'); if(!r||r.classList.contains('na')) return; const k='t'+r.dataset.t; S.hl=S.hl===k?null:k; updResult(); });
   ths.addEventListener('keydown',e=>{ const r=e.target.closest('.tr'); if(r&&e.target===r&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); r.click(); } });
-  $('#again').addEventListener('click',()=>{ if(C.party==='auto'){ S.sa=[]; S.si=0; window.scrollTo(0,0); viewSys(); } else viewPrio(); });
+  $('#again').addEventListener('click',()=>{ if(C.party==='auto'){ S.sa=[]; S.si=0; window.scrollTo(0,0); viewSys(); } else { S.gv=undefined; begin(); } });
   { const ds=$('#dshare2'); if(ds) ds.addEventListener('input',()=>{ C.dshare=Math.max(0,Math.min(100,+ds.value||0)); $('#dshv2').textContent=C.dshare+'%'; save(); updResult(); }); }
   $('#edit').addEventListener('click',viewBuild); $('#shot').addEventListener('click',exportPng);
   updResult(); $('.res h2').focus({preventScroll:true});
@@ -543,7 +560,9 @@ function updResult(){
   const ch=t=>bl[t]?sum(bl[t].tot):0, KN={l:'party list',d:'by districts',b:'guaranteed to the leader'}, KS={l:sum(li),d:sum(di),b:sum(bo)};
   drawParl($('#rh'),gr,dim,hf!==null?st[hf]:ht!==null?ch(ht):hk?KS[hk]:C.seats,hf!==null?C.fams[hf].n:ht!==null?C.topics[ht].n:hk?KN[hk]:plural(C.seats,'seat','seats','seats'),
     d=>{ if(d.party&&d.party.f!==undefined){ const k='f'+d.party.f; S.hl=S.hl===k?null:k; updResult(); } });
-  $('#lead').innerHTML='Largest faction — <b>'+mark(C.fams[L])+esc(C.fams[L].n)+'</b>: '+mest(st[L])+' of '+C.seats+'. '+(R.party==='one'?'In a one-party system it takes the whole chamber.':solo?'That is an absolute majority; no allies are needed.':'No party reaches the majority of '+M+' on its own, so a deal will be needed.');
+  $('#lead').innerHTML='Largest faction — <b>'+mark(C.fams[L])+esc(C.fams[L].n)+'</b>: '+mest(st[L])+' of '+C.seats+'. '+(R.party==='one'?'In a one-party system it takes the whole chamber.':solo?'That is an absolute majority; no allies are needed.':'No party reaches the majority of '+M+' on its own, so a deal will be needed.')+(gateOut()?' The party “'+esc(C.fams[C.gate].n)+'” was not allowed to stand: that is how you answered the first question.':'')+(C.gate>=0&&C.gnote?' '+esc(C.gnote):'');
+  { const tl=$('#thrline'), under=C.fams.map((F,f)=>f).filter(f=>X.el[f]&&!X.elL[f]); tl.hidden=!thrOn();
+    tl.textContent=thrOn()?'Electoral threshold for party lists — '+thrTxt()+'%. '+(under.length?'Below the threshold: '+under.map(f=>C.fams[f].n+' ('+pc(X.vs[f])+')').join(', ')+'.':'All parties cleared it.'):''; }
   const rr=$('#ringrow'); rr.hidden=!sum(di); rr.innerHTML='<button type="button" class="chip" id="ringsw" aria-pressed="'+RINGS+'"><i class="ring" style="border-color:currentColor"></i>Districts as rings</button>';
   $('#ringsw').addEventListener('click',()=>{ setRings(!RINGS); updResult(); const b=$('#ringsw'); if(b) b.focus({preventScroll:true}); });
   const tr=$('#tiers'), tiers=[['l','<i class="dot" style="background:var(--ink2)"></i>By party list '],['d',(RINGS?'<i class="ring" style="border-color:var(--ink2)"></i>':'<i class="dot" style="background:var(--ink2)"></i>')+'By districts '],['b','<i class="dot" style="background:var(--ink2)"></i>To the leader upfront ']].filter(x=>KS[x[0]]>0);
@@ -646,7 +665,7 @@ function viewCabinet(m){
 function wikibox(st,li,di,bo){
   const el=$('#wb'); if(!el) return; const N=C.seats, M=maj(), mixed=R.sys==='mixed';
   const order=st.map((v,f)=>f).filter(f=>st[f]>0).sort((a,b)=>st[b]-st[a]||a-b), top=order.slice(0,6), rest=order.slice(6);
-  const years=BUILTIN.filter(p=>p.set.year).map(p=>p.set.year), yi=years.indexOf(C.year);
+  const years=BUILTIN.filter(p=>p.set.year&&!p.h).map(p=>p.set.year), yi=years.indexOf(C.year);
   const real=F=>{ const x=/Party-list vote: ([\d.]+)%/.exec(F.d); return x?x[1]+'%':''; }, anyReal=C.year&&top.some(f=>real(C.fams[f]));
   const ini=s=>s.split(/[\s—-]+/).filter(Boolean).map(w=>w[0]).join('').slice(0,3).toUpperCase(), pct=v=>(v/N*100).toFixed(1)+'%';
   let rows='';
@@ -662,7 +681,7 @@ function wikibox(st,li,di,bo){
       '<tr><td colspan="4" class="wb-hr"></td></tr>'; }
   el.innerHTML='<table class="wb"><tbody><tr><th colspan="4" class="wb-title">'+(C.year?'State Duma election ('+C.year+')':'Parliamentary election')+'<div>based on test answers</div></th></tr>'+
     (yi>=0?'<tr><td colspan="4"><div class="wb-nav"><span>'+(yi>0?'← '+years[yi-1]:'')+'</span><b>'+C.year+'</b><span>'+(yi<years.length-1?years[yi+1]+' →':'')+'</span></div></td></tr>':'')+
-    '<tr><td colspan="4" class="wb-sub">All '+N+' '+plural(N,'seat','seats','seats')+' '+(C.year?'in the State Duma':'in the parliament')+'<br>A majority requires '+M+' '+plural(M,'seat','seats','seats')+'<br>Constitutional majority — '+CM()+'</td></tr>'+rows+
+    '<tr><td colspan="4" class="wb-sub">All '+N+' '+plural(N,'seat','seats','seats')+' '+(C.year?'in the State Duma':'in the parliament')+'<br>A majority requires '+M+' '+plural(M,'seat','seats','seats')+'<br>Constitutional majority — '+CM()+(thrOn()?'<br>Electoral threshold — '+thrTxt()+'%':'')+'</td></tr>'+rows+
     '<tr><td colspan="4"><div class="hemi" id="wbh"></div><div class="wb-cap">Distribution of seats according to the test</div></td></tr>'+
     (rest.length?'<tr><th scope="row">Others</th><td colspan="3" class="wb-left">'+rest.map(f=>esc(C.fams[f].n)+' — '+st[f]).join(', ')+'</td></tr>':'')+
     '<tr><th scope="row">System</th><td colspan="3" class="wb-left">'+SYSF[R.party]+'; '+(mixed?'mixed: party list and districts':'party lists')+'</td></tr></tbody></table>';
@@ -712,7 +731,7 @@ function showReg(){ const mb=$('#mapbox'); if(!mb) return; $$('.rg',mb).forEach(
 
 // ── Президентские выборы: те же правила близости, но среди кандидатов; при необходимости второй тур
 function presResult(){
-  const P=WORLD&&PRES[C.year]; if(!P||!S.qs.length) return null;
+  const P=WORLD&&PRES[SK()]; if(!P||!S.qs.length) return null;
   const grey=['#6b7280','#9a6b3f','#7b5ea7','#3f8f8a']; let gi=0;
   const cands=P.c.map(c=>{ const f=c[1]?C.fams.findIndex(F=>F.n===c[1]):-1; return {n:c[0],f,tr:c[2]||(f>=0?C.fams[f].tr:{}),c:f>=0?C.fams[f].c:grey[gi++%4],pn:f>=0?C.fams[f].n:'Independent'}; });
   const w=cands.map(()=>0); let tw=0;
@@ -747,7 +766,7 @@ function presBox(){
 // ── Законопроекты: фракция голосует “за”, если её черты ближе к закону, чем к возражениям
 function billVote(b,st){ const yes=[], no=[], abs=[]; C.fams.forEach((F,f)=>{ if(!st[f]) return; const p=sv(F.tr,b[2])-sv(F.tr,b[3]); (p>=.2?yes:p<=-.2?no:abs).push(f); }); const cnt=a=>sum(a.map(f=>st[f])); return {yes,no,abs,y:cnt(yes),n:cnt(no),a:cnt(abs)}; }
 function billsBox(st){
-  const B=WORLD&&BILLS[C.year]; if(!B) return ''; const N=C.seats, ut=userTr(), um=ids=>ids.reduce((s,id)=>Math.max(s,ut[id]||0),0); let passed=0;
+  const B=WORLD&&BILLS[SK()]; if(!B) return ''; const N=C.seats, ut=userTr(), um=ids=>ids.reduce((s,id)=>Math.max(s,ut[id]||0),0); let passed=0;
   const items=B.map(b=>{ const v=billVote(b,st), need=b[4]==='const'?CM():maj(), ok=v.y>=need, up=um(b[2])-um(b[3]); if(ok) passed++;
     const who=(a,t)=>a.length?'<span class="bv"><b>'+t+':</b> '+a.map(f=>'<i class="dot" style="background:'+esc(C.fams[f].c)+'"></i>'+esc(C.fams[f].n)).join(', ')+'</span>':'';
     return '<div class="bill"><div class="h"><b>'+esc(b[0])+'</b><span class="pill '+(ok?'ok':'bad')+'">'+(ok?'Passed':'Rejected')+'</span></div><p class="hint">'+esc(b[1])+(b[4]==='const'?' A constitutional majority is required: '+need+'.':'')+'</p>'+

@@ -114,7 +114,7 @@ const BILLS={
     ['Nationwide electronic voting','Uniform rules for remote voting in elections at all levels.',['tech','stab'],['plural'],'law','Adopted in March 2022.'],
     ['Pension indexation for working pensioners','The return of indexation frozen in 2016.',['welfare','labor'],['self','stab'],'law','Opposition bills were rejected; indexation was brought back by a 2024 law.']
   ],
-  2026:[
+  x2026:[
     ['Amnesty for those convicted on political charges','Release of those convicted for statements, protests and membership of banned organisations.',['lib','plural','rehab'],['auth','law','stab'],'law','There has been no such amnesty. In the prisoner exchange of August 2024 Russia released 16 people.'],
     ['Repeal of the foreign agent laws','The register of foreign agents is abolished and the restrictions are lifted.',['lib','plural','west'],['sov','auth'],'law','The law has been in force since 2012 and has been tightened many times.'],
     ['Constitutional amendment: the Duma forms the government','The prime minister and ministers are appointed by the parliamentary majority; presidential powers are reduced.',['parl','plural'],['pres','stab'],'const','Under the 2020 amendments the Duma approves the prime minister and some ministers, but the decisive powers remain with the president.'],
@@ -149,6 +149,6 @@ const PRES={
     real:'Putin 76.7%, Grudinin 11.8%, Zhirinovsky 5.65%, Sobchak 1.68%, Yavlinsky 1.05%, Titov 0.76%, Baburin 0.65%.'},
   2021:{y:2024,c:[['Vladimir Putin','United Russia',null],['Nikolai Kharitonov','CPRF',null],['Vladislav Davankov','New People',null],['Leonid Slutsky','LDPR',null]],
     real:'Putin 87.3%, Kharitonov 4.3%, Davankov 3.85%, Slutsky 3.2%.'},
-  2026:{y:2026,c:[['Mikhail Mishustin','United Russia',{tech:3,stab:3,growth:3,pres:2,cent:2,gos:2,welfare:2,sov:2,unity:2,mkt:1,antiwest:1,law:1}],['Gennady Zyuganov','CPRF',null],['Yulia Navalnaya','Democratic coalition',null],['Vladislav Davankov','New People',null],['Leonid Slutsky','LDPR',null],['Igor Strelkov','Russian Patriotic Bloc',null],['Grigory Yavlinsky','Yabloko',null],['Sergei Mironov','A Just Russia — For Truth',null]],
+  x2026:{y:2026,c:[['Mikhail Mishustin','United Russia',{tech:3,stab:3,growth:3,pres:2,cent:2,gos:2,welfare:2,sov:2,unity:2,mkt:1,antiwest:1,law:1}],['Gennady Zyuganov','CPRF',null],['Yulia Navalnaya','Democratic coalition',null],['Vladislav Davankov','New People',null],['Leonid Slutsky','LDPR',null],['Igor Strelkov','Russian Patriotic Bloc',null],['Grigory Yavlinsky','Yabloko',null],['Sergei Mironov','A Just Russia — For Truth',null]],
     real:'The scenario is fictional: no such election took place. In the 2024 election Putin won 87.3%, Kharitonov 4.3%, Davankov 3.85%, Slutsky 3.2%.'}
 };
