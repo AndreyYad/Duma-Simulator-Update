@@ -2085,5 +2085,12 @@
  "Я/Мы Дальний Восток": "I/We Are the Far East",
  "Открыть": "Open",
  "Свернуть": "Collapse",
- "Ниже — настройки выбранного теста. Разделы свёрнуты: откройте тот, который хотите изменить.": "Below are the settings of the selected test. The sections are collapsed: open the one you want to change."
+ "Ниже — настройки выбранного теста. Разделы свёрнуты: откройте тот, который хотите изменить.": "Below are the settings of the selected test. The sections are collapsed: open the one you want to change.",
+ "Партия, которая по итогам всего теста окажется ближе всех к вашим ответам, получает гарантированное большинство; остальные места делятся по ответам.": "The party that ends up closest to your answers over the whole test gets a guaranteed majority; the remaining seats are divided according to your answers.",
+ "Достаточно одной-двух крупных партий: так понятнее, кто за что отвечает": "One or two large parties are enough: it is clearer who is responsible for what",
+ "Партия, ближайшая к ответам по итогам всего теста, получает большинство; остальное делится по ответам.": "The party closest to the answers over the whole test gets the majority; the rest is divided according to the answers.",
+ "Партия, которая в конце теста окажется ближе всех к ответам, получает": "The party that ends up closest to the answers at the end of the test gets",
+ "Ещё": "Another",
+ "— гарантированное большинство: кому оно достанется, решится в конце теста": "is the guaranteed majority: who gets it is decided at the end of the test",
+ "Гарантированное большинство получает": "The guaranteed majority goes to"
 }

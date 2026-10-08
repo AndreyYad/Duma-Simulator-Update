@@ -96,17 +96,17 @@ const DEF_Q=[
   [7,-1,'Identity','National identity first','Feeling a citizen of Europe as well as of one’s own country',['nation'],['euro','cosmo']]
 ];
 // Шесть вступительных вопросов о системе. a/b — очки вариантов для [одна, доминантная, две, много]
-const SYSK=['one','dom','two','multi'];
-const SYSN={auto:'Chosen by the test',one:'One-party',dom:'Dominant-party',two:'Two-party',multi:'Multi-party'};
-const SYSF={one:'One-party system',dom:'Dominant-party system',two:'Two-party system',multi:'Multi-party system'};
-const SYSD={one:'All seats go to a single party: the one closest to your answers.',dom:'The party closest to you immediately gets a majority; the remaining seats are divided by the answers.',two:'Two rival parties share the seats: the one closest to your answers and its main ideological opponent.',multi:'All parties share the seats according to your answers.'};
+const SYSK=['one','dom','multi'];
+const SYSN={auto:'Chosen by the test',one:'One-party',dom:'Dominant-party',multi:'Multi-party'};
+const SYSF={one:'One-party system',dom:'Dominant-party system',multi:'Multi-party system'};
+const SYSD={one:'All seats go to a single party: the one closest to your answers.',dom:'The party that ends up closest to your answers over the whole test gets a guaranteed majority; the remaining seats are divided according to your answers.',multi:'All parties share the seats according to your answers.'};
 const SYSQ=[
-  {q:'Who leads the country',A:'The country needs a single force that leads it without looking back at opponents',B:'Power should be shared among many forces',a:[2,1,0,0],b:[0,0,1,2]},
-  {q:'The opposition',A:'The opposition gets in the way of work and splits society',B:'A strong opposition is necessary, even if it slows decisions down',a:[3,1,0,0],b:[0,0,2,1]},
-  {q:'Turnover of power',A:'Let the same people govern as long as they cope: stability matters more',B:'Power should regularly pass from one group to another',a:[0,3,0,0],b:[0,0,2,1]},
-  {q:'How many parties',A:'Two clear alternatives are enough: one governs, the other criticises',B:'There should be many parties so that everyone can find their own',a:[0,0,2,0],b:[0,0,0,2]},
-  {q:'Government',A:'Single-party government: it is clear who answers for what',B:'Coalitions and compromises: decisions take more opinions into account',a:[2,1,2,0],b:[0,0,0,2]},
-  {q:'Whom to vote for',A:'For a party list and its programme',B:'For a specific deputy from one’s own district',a:[0,0,0,1],b:[0,0,1,0]}
+  {q:'Who leads the country',A:'The country needs a single force that leads it without looking back at opponents',B:'Power should be shared among many forces',a:[2,1,0],b:[0,0,2]},
+  {q:'The opposition',A:'The opposition gets in the way of work and splits society',B:'A strong opposition is necessary, even if it slows decisions down',a:[3,1,0],b:[0,0,2]},
+  {q:'Turnover of power',A:'Let the same people govern as long as they cope: stability matters more',B:'Power should regularly pass from one group to another',a:[0,3,0],b:[0,0,2]},
+  {q:'How many parties',A:'One or two large parties are enough: it is clearer who is responsible for what',B:'There should be many parties so that everyone can find their own',a:[1,2,0],b:[0,0,2]},
+  {q:'Government',A:'Single-party government: it is clear who answers for what',B:'Coalitions and compromises: decisions take more opinions into account',a:[2,1,0],b:[0,0,2]},
+  {q:'Whom to vote for',A:'For a party list and its programme',B:'For a specific deputy from one’s own district',a:[0,0,0],b:[0,0,0]}
 ];
 // Министерские портфели: [код, название, вес поста, черты, из-за которых партия хочет этот портфель]
 const PORT=[
@@ -539,7 +539,6 @@ const BUILTIN=Object.keys(DUMA).map(y=>{ const D=DUMA[y], yr=parseInt(String(y).
   {n:'Standard',d:'Based on the Spanish test “Tu hemiciclo” (objetivo176.es): six questions choose the system, followed by 48 questions and seven European parties',set:{seats:350,sys:'prop',party:'auto'}},
   {h:1,n:'As in the original',d:'350 seats by party list, many parties',set:{seats:350,sys:'prop',party:'multi'}},
   {h:1,n:'Question = seat',d:'96 seats: 48 by party list and 48 question-districts',set:{seats:96,sys:'mixed',party:'multi'}},
-  {h:1,n:'Two parties',d:'435 seats shared by two rival parties',set:{seats:435,sys:'prop',party:'two'}},
   {h:1,n:'Dominant party',d:'350 seats, the leader is guaranteed a majority',set:{seats:350,sys:'prop',party:'dom'}},
   {h:1,n:'One party',d:'All 300 seats go to the closest party',set:{seats:300,sys:'prop',party:'one'}}
 ]);

@@ -20,7 +20,7 @@ function norm(c){
   if(!c||!Array.isArray(c.topics)||!Array.isArray(c.fams)||!Array.isArray(c.qs)||c.fams.length<2||!c.topics.length) return null;
   c.name=String(c.name||'Без названия').slice(0,60);
   c.seats=Math.max(10,Math.min(1000,Math.round(+c.seats)||350)); c.sys=c.sys==='mixed'?'mixed':'prop';
-  c.party=['auto','one','dom','two','multi'].includes(c.party)?c.party:'multi';
+  c.party=['auto','one','dom','multi'].includes(c.party)?c.party:'multi';
   c.traits=(Array.isArray(c.traits)&&c.traits.length?c.traits:TR.map(([id,n,g])=>({id,n,g}))).filter(x=>x&&x.id).map(x=>({id:String(x.id),n:String(x.n||x.id),g:String(x.g||'Свои')}));
   const ok=new Set(c.traits.map(x=>x.id)), ids=a=>(Array.isArray(a)?a:[]).filter((id,i,arr)=>ok.has(id)&&arr.indexOf(id)===i);
   c.topics=c.topics.map(t=>({n:String(t.n||'Тема'),s:String(t.s||''),c:HEX.test(t.c)?t.c:'#94A8F9',lo:String(t.lo||''),hi:String(t.hi||'')}));
@@ -108,8 +108,6 @@ function chunkTot(t,P,qs){ let n=P.list[t]; qs.forEach((q,i)=>{ if(q.t===t) n+=P
 // Вопрос как маленькое голосование среди допущенных партий (el): доли по колоколу Гаусса от расстояния до ответа
 function shares(i,v,el){ const e=S.pp[i].map((x,f)=>el[f]?(v-x)*(v-x)+pen(f):Infinity), m=Math.min(...e), w=e.map(x=>x===Infinity?0:Math.exp(-(x-m)/(2*SIGMA*SIGMA))), W=sum(w); return w.map(x=>x/W); }
 function nearest(i,v,el,w){ let b=-1; S.pp[i].forEach((x,f)=>{ if(!el[f]) return; if(b<0){ b=f; return; } const d=(v-x)*(v-x)+pen(f), bd=(v-S.pp[i][b])*(v-S.pp[i][b])+pen(b); if(d<bd-1e-9||(Math.abs(d-bd)<=1e-9&&w&&w[f]>w[b])) b=f; }); return b; }
-// Главный противник партии a: та, чьи позиции по вопросам теста дальше всего от её позиций
-function rival(a){ let b=-1, bd=-1; C.fams.forEach((_,f)=>{ if(f===a) return; const d=sum(S.pp.map(p=>Math.abs(p[f]-p[a]))); if(d>bd+1e-9){ bd=d; b=f; } }); return b; }
 // Кто допущен к местам и кто лидер, если считать только темы из scope
 function context(scope){
   const nF=C.fams.length, all=C.fams.map((_,f)=>!(gateOut()&&f===C.gate)), sc=Array(nF).fill(0);
@@ -119,13 +117,11 @@ function context(scope){
   const ord=sc.map((_,f)=>f).sort((a,b)=>sc[b]-sc[a]||a-b);
   let el=all;
   if(R.party==='one') el=all.map((_,f)=>f===ord[0]);
-  else if(R.party==='two'){ // пара задана в конструкторе или подбирается: ближайшая к ответам и её главный противник
-    let [a,b]=C.party==='two'?C.duo:[-1,-1]; if(a<0) a=ord.find(f=>f!==b); if(b<0||b===a) b=rival(a);
-    el=all.map((_,f)=>f===a||f===b); }
   // барьер: партия с долей голосов ниже барьера не получает мест по списку, округа за ней остаются
   const tot=sum(sc.filter((_,f)=>el[f])), vs=sc.map((v,f)=>el[f]&&tot?v/tot:0); let elL=el;
   if(thrOn()&&tot){ elL=el.map((e,f)=>e&&vs[f]*100>=C.thr-1e-9); if(!elL.some(Boolean)) elL=el.map((e,f)=>f===ord[0]); }
-  return {el,elL,vs,dom:R.party==='dom'?ord[0]:-1,sc};
+  // Доминантная партия определяется только в конце теста: ближайшая по всем ответам или та, которую выбрали на экране результатов
+  return {el,elL,vs,dom:R.party==='dom'&&S.fin?(S.dom!=null&&el[S.dom]?S.dom:ord[0]):-1,sc};
 }
 // Итог одной темы: места по списку + округа. Вопрос «без мнения» округ не разыгрывает: мандаты уходят в список темы.
 function block(t,P,X){
@@ -212,9 +208,8 @@ function viewBuild(){
     '<div class="parl-form">'+
       '<div><label class="lbl" for="seats">Количество мест</label><div class="seats"><input type="number" id="seats" min="10" max="1000" value="'+C.seats+'"><input type="range" id="seatsR" min="10" max="1000" value="'+C.seats+'" aria-label="Количество мест"></div><div class="chips" id="presets" style="margin-top:8px"></div></div>'+
       '<div><span class="lbl">Политическая система</span><fieldset class="sys">'+
-        [['auto','Выбирает тест','Шесть вступительных вопросов решают, какая система подходит отвечающему.'],['multi','Многопартийная','Места делят все партии.'],['two','Двухпартийная','Места делят две конкурирующие партии: ближайшая к ответам и её главный противник.'],['dom','С доминантной партией','Самая близкая партия получает большинство, остальное делится по ответам.'],['one','Однопартийная','Все места у партии, самой близкой к ответам.']]
+        [['auto','Выбирает тест','Шесть вступительных вопросов решают, какая система подходит отвечающему.'],['multi','Многопартийная','Места делят все партии.'],['dom','С доминантной партией','Партия, ближайшая к ответам по итогам всего теста, получает большинство; остальное делится по ответам.'],['one','Однопартийная','Все места у партии, самой близкой к ответам.']]
           .map(([v,n,d])=>'<label><input type="radio" name="party" id="party-'+v+'" value="'+v+'"'+(C.party===v?' checked':'')+'><b>'+n+'</b><span>'+d+'</span></label>').join('')+'</fieldset></div>'+
-      '<div id="duo" hidden><span class="lbl">Какие две партии соревнуются</span><div class="psave">'+[0,1].map(k=>'<select class="in" id="duo-'+k+'" data-duo="'+k+'" aria-label="'+(k?'Вторая':'Первая')+' партия"><option value="-1">'+(k?'Авто: главный противник первой':'Авто: ближайшая к ответам')+'</option>'+C.fams.map((F,i)=>'<option value="'+i+'"'+(C.duo[k]===i?' selected':'')+'>'+esc(F.n)+'</option>').join('')+'</select>').join('')+'</div></div>'+
       '<div><span class="lbl">Как делятся места</span><fieldset class="sys">'+
         '<label><input type="radio" name="sys" id="sys-prop" value="prop"'+(C.sys==='prop'?' checked':'')+'><b>По списку</b><span>Пропорционально близости партий к ответам.</span></label>'+
         '<label><input type="radio" name="sys" id="sys-mixed" value="mixed"'+(C.sys==='mixed'?' checked':'')+'><b>Смешанная, как в России</b><span>Часть мест по списку, часть по округам: вопрос — округ.</span></label>'+
@@ -295,14 +290,13 @@ function refreshAxes(){ $$('[data-ax]').forEach(el=>{ const q=C.qs[+el.dataset.a
 function updParl(){
   const auto=C.party==='auto'; R.party=auto?'multi':C.party; R.sys=auto?'prop':C.sys;
   const B=bonus(), L=listTotal(), D=distTotal(), nq=enabled().length, one=R.party==='one';
-  $$('input[name="sys"]').forEach(r=>{ r.disabled=auto; }); $('#ringchk').hidden=R.sys!=='mixed'; $('#dshrow').hidden=R.sys!=='mixed'&&!auto; $('#dshhint').hidden=!auto; $('#dshv').textContent=C.dshare+'%'; $('#duo').hidden=C.party!=='two';
-  const [da,db]=C.duo, duoTxt=da>=0&&db>=0&&da!==db?'Места делят «'+C.fams[da].n+'» и «'+C.fams[db].n+'». ':da>=0?'Места делят «'+C.fams[da].n+'» и её главный противник: партия, чьи черты сильнее всего с ней расходятся. ':db>=0?'Места делят «'+C.fams[db].n+'» и та из остальных партий, что ближе всего к ответам. ':'К местам допущены две конкурирующие партии: самая близкая к ответам и та, чьи черты сильнее всего с ней расходятся. ';
+  $$('input[name="sys"]').forEach(r=>{ r.disabled=auto; }); $('#ringchk').hidden=R.sys!=='mixed'; $('#dshrow').hidden=R.sys!=='mixed'&&!auto; $('#dshhint').hidden=!auto; $('#dshv').textContent=C.dshare+'%';
   drawParl($('#parl-h'),one?[{seats:C.seats,c:'var(--ink)'}]:[{seats:B,c:'var(--ink)'},{seats:L,c:'var(--accent)'},{seats:D,c:'var(--accent2)',k:'d'}],null,C.seats,plural(C.seats,'место','места','мест'));
   $('#parl-leg').innerHTML=one?'<span><i class="dot" style="background:var(--ink)"></i>Победителю <b>'+C.seats+'</b></span>':
     (B?'<span><i class="dot" style="background:var(--ink)"></i>Лидеру сразу <b>'+B+'</b></span>':'')+'<span><i class="dot" style="background:var(--accent)"></i>По списку <b>'+L+'</b></span>'+(D?'<span>'+(RINGS?'<i class="ring"></i>':'<i class="dot" style="background:var(--accent2)"></i>')+'По округам <b>'+D+'</b></span>':'')+'<span>Большинство <b>'+maj()+'</b></span>';
   let note=auto?'Систему и способ деления мест выберут шесть вступительных вопросов. На схеме показан многопартийный вариант по списку.':
     one?'Все '+mest(C.seats)+' получает партия, самая близкая к ответам.':
-    (R.party==='dom'?'Самая близкая партия сразу получает '+mest(B)+', то есть большинство. Остальные '+pool()+' делятся по ответам между всеми партиями, включая её. ':R.party==='two'?duoTxt:'')+
+    (R.party==='dom'?'Партия, которая в конце теста окажется ближе всех к ответам, получает '+mest(B)+', то есть большинство. Остальные '+pool()+' делятся по ответам между всеми партиями, включая её. ':'')+
     (!D?'По списку места делятся методом наибольших остатков.':D===nq?'Ровно один вопрос — одно место: '+nq+' '+plural(nq,'округ','округа','округов')+'.':nq?(D>nq?'Округов '+D+', а вопросов '+nq+': каждый вопрос разыгрывает в среднем '+(D/nq).toFixed(1).replace('.',',')+' мандата, все они достаются победителю вопроса.':'Округов '+D+', а вопросов '+nq+': мандат получат вопросы самых важных для отвечающего тем.'):'Включите хотя бы один вопрос.');
   $('#parl-note').textContent=note;
   const pre=[100,350,450]; if(R.sys==='mixed'&&R.party==='multi'&&nq>=5&&!pre.includes(nq*2)) pre.unshift(nq*2);
@@ -336,7 +330,6 @@ function onInput(e){
 function rerender(){ const keep=window.scrollY; save(); viewBuild(); window.scrollTo(0,keep); }
 function onChange(e){
   const el=e.target;
-  if(el.dataset.duo){ C.duo[+el.dataset.duo]=+el.value; save(); updParl(); return; }
   if(el.dataset.pimg&&el.files&&el.files[0]){ const [pi,pj]=el.dataset.pimg.split(',').map(Number), file=el.files[0]; if(!/^image\//.test(file.type)) return;
     const rd=new FileReader(); rd.onload=()=>{ const im=new Image(); im.onload=()=>{ const w=120, hh=150, c=document.createElement('canvas'); c.width=w; c.height=hh; const k=Math.max(w/im.width,hh/im.height);
       c.getContext('2d').drawImage(im,(w-im.width*k)/2,(hh-im.height*k)/2,im.width*k,im.height*k); try{ C.fams[pi].ppl[pj].img=c.toDataURL('image/jpeg',.82); }catch(_){ return; } rerender(); }; im.src=rd.result; }; rd.readAsDataURL(file); return; }
@@ -443,8 +436,8 @@ function viewSys(){
     next:x=>{ S.sa[i]=x; if(i<SYSQ.length-1){ S.si++; viewSys(); } else viewVerdict(); }});
 }
 function viewVerdict(){
-  const sc=[0,0,0,0]; SYSQ.forEach((q,i)=>{ const v=S.sa[i]; if(v==null) return; (v<0?q.a:q.b).forEach((x,k)=>sc[k]+=Math.abs(v)*x); });
-  let best=3; sc.forEach((x,k)=>{ if(x>sc[best]+1e-9) best=k; });
+  const sc=SYSK.map(()=>0); SYSQ.forEach((q,i)=>{ const v=S.sa[i]; if(v==null) return; (v<0?q.a:q.b).forEach((x,k)=>sc[k]+=Math.abs(v)*x); });
+  let best=SYSK.length-1; sc.forEach((x,k)=>{ if(x>sc[best]+1e-9) best=k; });
   R.party=SYSK[best]; R.sys=S.sa[5]>0.08?'mixed':'prop';
   const mx=Math.max(1,...sc); window.scrollTo(0,0);
   app.innerHTML='<section class="narrow"><div class="meta"><b>Система выбрана</b></div><h2>'+SYSF[R.party]+'</h2><p class="lead">'+SYSD[R.party]+' '+(R.party==='one'?'':R.sys==='mixed'?'Места делятся по смешанной схеме: часть по списку, часть по округам, потому что вам важнее конкретный депутат.':'Места делятся по партийным спискам.')+'</p>'+
@@ -480,7 +473,7 @@ function startQuiz(){
   S.order=C.topics.map((_,t)=>t).filter(t=>S.lv[t]>0).sort((a,b)=>(a===ft)-(b===ft)||S.lv[a]-S.lv[b]||rnd[a]-rnd[b]);
   S.qs=[]; S.order.forEach(t=>shuffle(C.qs.filter(q=>q.on&&q.t===t)).forEach(q=>S.qs.push(q)));
   S.pp=S.qs.map(q=>C.fams.map(F=>pos(q,F)));
-  S.ans=S.qs.map(()=>undefined); S.flip=S.qs.map(()=>Math.random()<.5); S.open={}; S.i=0; S.bi=0; S.P=plan(S.lv,S.qs);
+  S.fin=false; S.dom=null; S.ans=S.qs.map(()=>undefined); S.flip=S.qs.map(()=>Math.random()<.5); S.open={}; S.i=0; S.bi=0; S.P=plan(S.lv,S.qs);
   window.scrollTo(0,0); viewQuiz();
 }
 function progHtml(cur){ return '<div class="prog" aria-hidden="true">'+S.qs.map((q,i)=>{ const v=S.ans[i]; let c=i===cur?'cur':v===null?'skip':v!==undefined?'done':''; if(i&&q.t!==S.qs[i-1].t) c+=' gap'; return '<i class="'+c+'"></i>'; }).join('')+'</div>'; }
@@ -505,7 +498,7 @@ function viewBoard(){
       C.fams.map((F,i)=>'<div class="sr" data-f="'+i+'" style="--c:'+esc(F.c)+'"><span class="rk"></span><span class="nm"><b>'+(lg(F)?mark(F):'')+esc(F.n)+'</b><span class="bar"><span></span><em></em></span></span><span class="pts"></span><span class="tot"></span></div>').join('')+
     '</div><p class="msg" id="msg" aria-live="polite"></p></div></div>'+
     '<div class="bfoot"><span>Абсолютное большинство: '+M+'</span><span>'+
-      (R.party==='one'?'Все места у партии, которая сейчас ближе всего к вашим ответам':R.party==='two'?'Места делят партия, которая сейчас ближе всего к вам, и её главный противник':R.party==='dom'?'В счёт входит гарантированное большинство лидера: '+bonus():!B.k?'В этом блоке нет ответов: места поделены поровну':R.sys==='mixed'?(n-dn)+' по списку и '+dn+' по округам':'По вашим ответам в этой теме')+'</span></div></div>'+
+      (R.party==='one'?'Все места у партии, которая сейчас ближе всего к вашим ответам':R.party==='dom'?'Ещё '+bonus()+' — гарантированное большинство: кому оно достанется, решится в конце теста':!B.k?'В этом блоке нет ответов: места поделены поровну':R.sys==='mixed'?(n-dn)+' по списку и '+dn+' по округам':'По вашим ответам в этой теме')+'</span></div></div>'+
     '<div class="bnav"><span></span><button type="button" class="cta" id="cont">'+(last?(C.year?'Показать мою Думу':'Показать мой парламент'):'Дальше: '+esc(C.topics[S.order[S.bi+1]].n))+'</button></div></section>';
   const rows=$$('.sr',app), bh=$('#bh');
   const rank=(st,tie)=>{ const o=st.map((_,f)=>f).sort((a,b)=>st[b]-st[a]||(tie?tie[a]-tie[b]:0)||a-b), r=[]; o.forEach((f,i)=>r[f]=i); return r; };
@@ -524,10 +517,10 @@ function viewBoard(){
 
 // ══════ 6. Результат ══════
 function viewResult(){
-  S.hl=null; S.pick=[]; window.scrollTo(0,0);
+  S.fin=true; S.hl=null; S.pick=[]; window.scrollTo(0,0);
   const mixed=R.sys==='mixed', answered=S.ans.filter(v=>v!=null).length;
   app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px">'+(C.year?'<span class="pill">Выборы '+C.year+' года</span>':'')+(FIC()?'<span class="pill">Вымышленный сценарий</span>':'')+(thrOn()?'<span class="pill">Барьер '+thrTxt()+'%</span>':'')+'<span class="pill">'+SYSF[R.party]+'</span><span class="pill">'+(mixed?'Смешанная: список и округа':'По партийным спискам')+'</span><span class="pill">'+mest(C.seats)+'</span></div><h2 tabindex="-1" style="outline:none">'+(C.year?'Ваша Дума '+C.year+' года':'Ваш парламент')+'</h2><p class="lead" id="lead" style="margin:0"></p></div>'+
-    '<div class="box main"><div class="hemi" id="rh"></div><div><div class="chips" id="tiers" style="margin:0 0 8px"></div><div class="chips" id="ringrow" style="margin:0 0 8px"></div>'+(mixed?'<div id="dsres" style="margin:0 0 10px"><label class="lbl" for="dshare2">Доля одномандатных округов: <b id="dshv2">'+C.dshare+'%</b></label><input type="range" id="dshare2" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"></div>':'')+'<p class="hint" id="thrline" style="margin:0 0 8px" hidden></p><div class="leg" id="leg"></div><div class="desc" id="desc"></div></div></div>'+
+    '<div class="box main"><div class="hemi" id="rh"></div><div><div class="chips" id="tiers" style="margin:0 0 8px"></div><div class="chips" id="ringrow" style="margin:0 0 8px"></div><div class="chips" id="domrow" style="margin:0 0 10px" hidden></div>'+(mixed?'<div id="dsres" style="margin:0 0 10px"><label class="lbl" for="dshare2">Доля одномандатных округов: <b id="dshv2">'+C.dshare+'%</b></label><input type="range" id="dshare2" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"></div>':'')+'<p class="hint" id="thrline" style="margin:0 0 8px" hidden></p><div class="leg" id="leg"></div><div class="desc" id="desc"></div></div></div>'+
     '<div class="box"><h3>Итоги выборов</h3><p class="hint">Карточка в оформлении Википедии. Её удобно сохранить снимком экрана.</p><div id="wb"></div></div>'+
     '<div id="presbox"></div><div id="mapbox"></div><div id="futbox"></div>'+
     '<div class="box" id="cobox"><h3>Возможные большинства и правительство</h3><p class="hint">Союзы, которые набирают '+maj()+' и больше.'+(C.span?' Объединяться могут только соседи по оси: не дальше трёх шагов друг от друга.':'')+(C.no.length?' Партии, которые отказались работать вместе, в один союз не попадают.':'')+' Выберите союз или соберите свой, чтобы раздать министерские портфели.</p><div class="coal" id="coal"></div><p class="hint" id="cmline" style="margin:12px 0 0"></p><div id="copick"></div></div>'+
@@ -538,7 +531,7 @@ function viewResult(){
     '<div class="acts"><button type="button" class="cta" id="again">Пройти заново</button><button type="button" class="cta ghost" id="edit">Изменить тест</button><button type="button" class="cta ghost" id="shot">Сохранить картинкой</button></div>'+
     '<details class="det box"><summary>Как это считается</summary>'+
       '<p><b>Партии.</b> У каждой партии есть набор идейных черт с силой: слабо, умеренно или сильно. К каждому варианту ответа тоже привязаны черты. Партия стоит на шкале вопроса тем ближе к варианту, чем сильнее её самая выраженная черта из привязанных к нему.</p>'+
-      '<p><b>Политическая система.</b> '+(C.party==='two'&&(C.duo[0]>=0||C.duo[1]>=0)?'Места делят две партии, выбранные в настройках теста.':SYSD[R.party])+(R.party==='dom'?' Гарантированное большинство — это '+bonus()+' из '+C.seats+'.':'')+'</p>'+
+      '<p><b>Политическая система.</b> '+SYSD[R.party]+(R.party==='dom'?' Гарантированное большинство — это '+bonus()+' из '+C.seats+'.':'')+'</p>'+
       C.fams.map(F=>F.cap>=0&&C.fams[F.cap]?'<p><b>Особое условие.</b> «'+esc(F.n)+'» при любом раскладе получает ровно один одномандатный округ. Все остальные места, которые ей причитались бы, переходят партии «'+esc(C.fams[F.cap].n)+'».</p>':'').join('')+
       (lowOn()?'<p><b>Малые партии.</b> У партий, отмеченных как малые ('+esc(C.fams.filter(F=>F.sm).map(F=>F.n).join(', '))+'), приоритет понижен: при одинаковой близости к вашему ответу такая партия получает 40% от доли обычной, а округ выигрывает, только если она заметно ближе остальных.</p>':'')+
       (thrOn()?'<p><b>Проходной барьер.</b> Доля голосов партии — это её средняя близость к вашим ответам по всем темам с учётом их важности. Партия с долей ниже '+thrTxt()+'% не участвует в делении мест по списку, но округа выигрывать может.</p>':'')+
@@ -574,6 +567,9 @@ function updResult(){
   $('#lead').innerHTML='Крупнейшая фракция — <b>'+mark(C.fams[L])+esc(C.fams[L].n)+'</b>: '+mest(st[L])+' из '+C.seats+'. '+(R.party==='one'?'В однопартийной системе ей достаётся весь зал.':solo?'Это абсолютное большинство, союзники не нужны.':'До большинства в '+M+' в одиночку никто не дотягивает, придётся договариваться.')+(gateOut()?' Партия «'+esc(C.fams[C.gate].n)+'» к выборам не допущена: так вы ответили на первый вопрос.':'')+(C.gate>=0&&C.gnote?' '+esc(C.gnote):'');
   { const tl=$('#thrline'), under=C.fams.map((F,f)=>f).filter(f=>X.el[f]&&!X.elL[f]); tl.hidden=!thrOn();
     tl.textContent=thrOn()?'Проходной барьер для списков — '+thrTxt()+'%. '+(under.length?'Не преодолели: '+under.map(f=>C.fams[f].n+' ('+pc(X.vs[f])+')').join(', ')+'.':'Его преодолели все партии.'):''; }
+  { const dr=$('#domrow'); dr.hidden=X.dom<0;
+    dr.innerHTML=X.dom<0?'':'<span class="lbl" style="margin:0;width:100%">Гарантированное большинство получает</span>'+C.fams.map((F,f)=>X.el[f]?'<button type="button" class="chip" data-dom="'+f+'" aria-pressed="'+(f===X.dom)+'">'+mark(F)+esc(F.n)+'</button>':'').join('');
+    $$('[data-dom]',dr).forEach(b=>b.addEventListener('click',()=>{ S.dom=+b.dataset.dom; updResult(); })); }
   const rr=$('#ringrow'); rr.hidden=!sum(di); rr.innerHTML='<button type="button" class="chip" id="ringsw" aria-pressed="'+RINGS+'"><i class="ring" style="border-color:currentColor"></i>Округа кольцами</button>';
   $('#ringsw').addEventListener('click',()=>{ setRings(!RINGS); updResult(); const b=$('#ringsw'); if(b) b.focus({preventScroll:true}); });
   const tr=$('#tiers'), tiers=[['l','<i class="dot" style="background:var(--ink2)"></i>По списку '],['d',(RINGS?'<i class="ring" style="border-color:var(--ink2)"></i>':'<i class="dot" style="background:var(--ink2)"></i>')+'По округам '],['b','<i class="dot" style="background:var(--ink2)"></i>Лидеру сразу ']].filter(x=>KS[x[0]]>0);

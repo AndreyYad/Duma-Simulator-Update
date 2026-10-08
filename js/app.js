@@ -20,7 +20,7 @@ function norm(c){
   if(!c||!Array.isArray(c.topics)||!Array.isArray(c.fams)||!Array.isArray(c.qs)||c.fams.length<2||!c.topics.length) return null;
   c.name=String(c.name||'Untitled').slice(0,60);
   c.seats=Math.max(10,Math.min(1000,Math.round(+c.seats)||350)); c.sys=c.sys==='mixed'?'mixed':'prop';
-  c.party=['auto','one','dom','two','multi'].includes(c.party)?c.party:'multi';
+  c.party=['auto','one','dom','multi'].includes(c.party)?c.party:'multi';
   c.traits=(Array.isArray(c.traits)&&c.traits.length?c.traits:TR.map(([id,n,g])=>({id,n,g}))).filter(x=>x&&x.id).map(x=>({id:String(x.id),n:String(x.n||x.id),g:String(x.g||'Custom')}));
   const ok=new Set(c.traits.map(x=>x.id)), ids=a=>(Array.isArray(a)?a:[]).filter((id,i,arr)=>ok.has(id)&&arr.indexOf(id)===i);
   c.topics=c.topics.map(t=>({n:String(t.n||'Topic'),s:String(t.s||''),c:HEX.test(t.c)?t.c:'#94A8F9',lo:String(t.lo||''),hi:String(t.hi||'')}));
@@ -108,8 +108,6 @@ function chunkTot(t,P,qs){ let n=P.list[t]; qs.forEach((q,i)=>{ if(q.t===t) n+=P
 // Вопрос как маленькое голосование среди допущенных партий (el): доли по колоколу Гаусса от расстояния до ответа
 function shares(i,v,el){ const e=S.pp[i].map((x,f)=>el[f]?(v-x)*(v-x)+pen(f):Infinity), m=Math.min(...e), w=e.map(x=>x===Infinity?0:Math.exp(-(x-m)/(2*SIGMA*SIGMA))), W=sum(w); return w.map(x=>x/W); }
 function nearest(i,v,el,w){ let b=-1; S.pp[i].forEach((x,f)=>{ if(!el[f]) return; if(b<0){ b=f; return; } const d=(v-x)*(v-x)+pen(f), bd=(v-S.pp[i][b])*(v-S.pp[i][b])+pen(b); if(d<bd-1e-9||(Math.abs(d-bd)<=1e-9&&w&&w[f]>w[b])) b=f; }); return b; }
-// Главный противник партии a: та, чьи позиции по вопросам теста дальше всего от её позиций
-function rival(a){ let b=-1, bd=-1; C.fams.forEach((_,f)=>{ if(f===a) return; const d=sum(S.pp.map(p=>Math.abs(p[f]-p[a]))); if(d>bd+1e-9){ bd=d; b=f; } }); return b; }
 // Кто допущен к местам и кто лидер, если считать только темы из scope
 function context(scope){
   const nF=C.fams.length, all=C.fams.map((_,f)=>!(gateOut()&&f===C.gate)), sc=Array(nF).fill(0);
@@ -119,13 +117,11 @@ function context(scope){
   const ord=sc.map((_,f)=>f).sort((a,b)=>sc[b]-sc[a]||a-b);
   let el=all;
   if(R.party==='one') el=all.map((_,f)=>f===ord[0]);
-  else if(R.party==='two'){ // пара задана в конструкторе или подбирается: ближайшая к ответам и её главный противник
-    let [a,b]=C.party==='two'?C.duo:[-1,-1]; if(a<0) a=ord.find(f=>f!==b); if(b<0||b===a) b=rival(a);
-    el=all.map((_,f)=>f===a||f===b); }
   // барьер: партия с долей голосов ниже барьера не получает мест по списку, округа за ней остаются
   const tot=sum(sc.filter((_,f)=>el[f])), vs=sc.map((v,f)=>el[f]&&tot?v/tot:0); let elL=el;
   if(thrOn()&&tot){ elL=el.map((e,f)=>e&&vs[f]*100>=C.thr-1e-9); if(!elL.some(Boolean)) elL=el.map((e,f)=>f===ord[0]); }
-  return {el,elL,vs,dom:R.party==='dom'?ord[0]:-1,sc};
+  // Доминантная партия определяется только в конце теста: ближайшая по всем ответам или та, которую выбрали на экране результатов
+  return {el,elL,vs,dom:R.party==='dom'&&S.fin?(S.dom!=null&&el[S.dom]?S.dom:ord[0]):-1,sc};
 }
 // Итог одной темы: места по списку + округа. Вопрос “без мнения” округ не разыгрывает: мандаты уходят в список темы.
 function block(t,P,X){
@@ -212,9 +208,8 @@ function viewBuild(){
     '<div class="parl-form">'+
       '<div><label class="lbl" for="seats">Number of seats</label><div class="seats"><input type="number" id="seats" min="10" max="1000" value="'+C.seats+'"><input type="range" id="seatsR" min="10" max="1000" value="'+C.seats+'" aria-label="Number of seats"></div><div class="chips" id="presets" style="margin-top:8px"></div></div>'+
       '<div><span class="lbl">Political system</span><fieldset class="sys">'+
-        [['auto','Chosen by the test','Six opening questions decide which system suits the respondent.'],['multi','Multi-party','All parties share the seats.'],['two','Two-party','Two rival parties share the seats: the one closest to the answers and its main opponent.'],['dom','Dominant-party','The closest party gets a majority; the rest is divided by the answers.'],['one','One-party','All seats go to the party closest to the answers.']]
+        [['auto','Chosen by the test','Six opening questions decide which system suits the respondent.'],['multi','Multi-party','All parties share the seats.'],['dom','Dominant-party','The party closest to the answers over the whole test gets the majority; the rest is divided according to the answers.'],['one','One-party','All seats go to the party closest to the answers.']]
           .map(([v,n,d])=>'<label><input type="radio" name="party" id="party-'+v+'" value="'+v+'"'+(C.party===v?' checked':'')+'><b>'+n+'</b><span>'+d+'</span></label>').join('')+'</fieldset></div>'+
-      '<div id="duo" hidden><span class="lbl">Which two parties compete</span><div class="psave">'+[0,1].map(k=>'<select class="in" id="duo-'+k+'" data-duo="'+k+'" aria-label="'+(k?'Second':'First')+' party"><option value="-1">'+(k?'Auto: main opponent of the first':'Auto: closest to the answers')+'</option>'+C.fams.map((F,i)=>'<option value="'+i+'"'+(C.duo[k]===i?' selected':'')+'>'+esc(F.n)+'</option>').join('')+'</select>').join('')+'</div></div>'+
       '<div><span class="lbl">How seats are divided</span><fieldset class="sys">'+
         '<label><input type="radio" name="sys" id="sys-prop" value="prop"'+(C.sys==='prop'?' checked':'')+'><b>By party list</b><span>In proportion to how close the parties are to the answers.</span></label>'+
         '<label><input type="radio" name="sys" id="sys-mixed" value="mixed"'+(C.sys==='mixed'?' checked':'')+'><b>Mixed, as in Russia</b><span>Some seats by party list, some by districts: each question is a district.</span></label>'+
@@ -295,14 +290,13 @@ function refreshAxes(){ $$('[data-ax]').forEach(el=>{ const q=C.qs[+el.dataset.a
 function updParl(){
   const auto=C.party==='auto'; R.party=auto?'multi':C.party; R.sys=auto?'prop':C.sys;
   const B=bonus(), L=listTotal(), D=distTotal(), nq=enabled().length, one=R.party==='one';
-  $$('input[name="sys"]').forEach(r=>{ r.disabled=auto; }); $('#ringchk').hidden=R.sys!=='mixed'; $('#dshrow').hidden=R.sys!=='mixed'&&!auto; $('#dshhint').hidden=!auto; $('#dshv').textContent=C.dshare+'%'; $('#duo').hidden=C.party!=='two';
-  const [da,db]=C.duo, duoTxt=da>=0&&db>=0&&da!==db?'Seats are split between “'+C.fams[da].n+'” and “'+C.fams[db].n+'”. ':da>=0?'Seats are split between “'+C.fams[da].n+'” and its main rival: the party whose traits differ from it the most. ':db>=0?'Seats are split between “'+C.fams[db].n+'” and whichever of the other parties is closest to the answers. ':'Two rival parties are admitted to the seats: the one closest to the answers and the one whose traits differ from it the most. ';
+  $$('input[name="sys"]').forEach(r=>{ r.disabled=auto; }); $('#ringchk').hidden=R.sys!=='mixed'; $('#dshrow').hidden=R.sys!=='mixed'&&!auto; $('#dshhint').hidden=!auto; $('#dshv').textContent=C.dshare+'%';
   drawParl($('#parl-h'),one?[{seats:C.seats,c:'var(--ink)'}]:[{seats:B,c:'var(--ink)'},{seats:L,c:'var(--accent)'},{seats:D,c:'var(--accent2)',k:'d'}],null,C.seats,plural(C.seats,'seat','seats','seats'));
   $('#parl-leg').innerHTML=one?'<span><i class="dot" style="background:var(--ink)"></i>To the winner <b>'+C.seats+'</b></span>':
     (B?'<span><i class="dot" style="background:var(--ink)"></i>To the leader upfront <b>'+B+'</b></span>':'')+'<span><i class="dot" style="background:var(--accent)"></i>By party list <b>'+L+'</b></span>'+(D?'<span>'+(RINGS?'<i class="ring"></i>':'<i class="dot" style="background:var(--accent2)"></i>')+'By districts <b>'+D+'</b></span>':'')+'<span>Majority <b>'+maj()+'</b></span>';
   let note=auto?'Six opening questions will choose the system and the way seats are divided. The diagram shows the multi-party, party-list variant.':
     one?'All '+mest(C.seats)+' go to the party closest to the answers.':
-    (R.party==='dom'?'The closest party immediately gets '+mest(B)+', that is, a majority. The remaining '+pool()+' are divided by the answers among all parties, including it. ':R.party==='two'?duoTxt:'')+
+    (R.party==='dom'?'The party that ends up closest to the answers at the end of the test gets '+mest(B)+', that is, a majority. The remaining '+pool()+' are divided by the answers among all parties, including it. ':'')+
     (!D?'Party-list seats are divided by the largest remainder method.':D===nq?'Exactly one question — one seat: '+nq+' '+plural(nq,'district','districts','districts')+'.':nq?(D>nq?'Districts: '+D+', questions: '+nq+': each question decides on average '+(D/nq).toFixed(1)+' seats, all of which go to the question’s winner.':'Districts: '+D+', questions: '+nq+': only questions on the respondent’s most important topics will get a seat.'):'Enable at least one question.');
   $('#parl-note').textContent=note;
   const pre=[100,350,450]; if(R.sys==='mixed'&&R.party==='multi'&&nq>=5&&!pre.includes(nq*2)) pre.unshift(nq*2);
@@ -336,7 +330,6 @@ function onInput(e){
 function rerender(){ const keep=window.scrollY; save(); viewBuild(); window.scrollTo(0,keep); }
 function onChange(e){
   const el=e.target;
-  if(el.dataset.duo){ C.duo[+el.dataset.duo]=+el.value; save(); updParl(); return; }
   if(el.dataset.pimg&&el.files&&el.files[0]){ const [pi,pj]=el.dataset.pimg.split(',').map(Number), file=el.files[0]; if(!/^image\//.test(file.type)) return;
     const rd=new FileReader(); rd.onload=()=>{ const im=new Image(); im.onload=()=>{ const w=120, hh=150, c=document.createElement('canvas'); c.width=w; c.height=hh; const k=Math.max(w/im.width,hh/im.height);
       c.getContext('2d').drawImage(im,(w-im.width*k)/2,(hh-im.height*k)/2,im.width*k,im.height*k); try{ C.fams[pi].ppl[pj].img=c.toDataURL('image/jpeg',.82); }catch(_){ return; } rerender(); }; im.src=rd.result; }; rd.readAsDataURL(file); return; }
@@ -443,8 +436,8 @@ function viewSys(){
     next:x=>{ S.sa[i]=x; if(i<SYSQ.length-1){ S.si++; viewSys(); } else viewVerdict(); }});
 }
 function viewVerdict(){
-  const sc=[0,0,0,0]; SYSQ.forEach((q,i)=>{ const v=S.sa[i]; if(v==null) return; (v<0?q.a:q.b).forEach((x,k)=>sc[k]+=Math.abs(v)*x); });
-  let best=3; sc.forEach((x,k)=>{ if(x>sc[best]+1e-9) best=k; });
+  const sc=SYSK.map(()=>0); SYSQ.forEach((q,i)=>{ const v=S.sa[i]; if(v==null) return; (v<0?q.a:q.b).forEach((x,k)=>sc[k]+=Math.abs(v)*x); });
+  let best=SYSK.length-1; sc.forEach((x,k)=>{ if(x>sc[best]+1e-9) best=k; });
   R.party=SYSK[best]; R.sys=S.sa[5]>0.08?'mixed':'prop';
   const mx=Math.max(1,...sc); window.scrollTo(0,0);
   app.innerHTML='<section class="narrow"><div class="meta"><b>System chosen</b></div><h2>'+SYSF[R.party]+'</h2><p class="lead">'+SYSD[R.party]+' '+(R.party==='one'?'':R.sys==='mixed'?'Seats are divided under a mixed scheme: some by party list, some by districts, because a specific deputy matters more to you.':'Seats are divided by party lists.')+'</p>'+
@@ -480,7 +473,7 @@ function startQuiz(){
   S.order=C.topics.map((_,t)=>t).filter(t=>S.lv[t]>0).sort((a,b)=>(a===ft)-(b===ft)||S.lv[a]-S.lv[b]||rnd[a]-rnd[b]);
   S.qs=[]; S.order.forEach(t=>shuffle(C.qs.filter(q=>q.on&&q.t===t)).forEach(q=>S.qs.push(q)));
   S.pp=S.qs.map(q=>C.fams.map(F=>pos(q,F)));
-  S.ans=S.qs.map(()=>undefined); S.flip=S.qs.map(()=>Math.random()<.5); S.open={}; S.i=0; S.bi=0; S.P=plan(S.lv,S.qs);
+  S.fin=false; S.dom=null; S.ans=S.qs.map(()=>undefined); S.flip=S.qs.map(()=>Math.random()<.5); S.open={}; S.i=0; S.bi=0; S.P=plan(S.lv,S.qs);
   window.scrollTo(0,0); viewQuiz();
 }
 function progHtml(cur){ return '<div class="prog" aria-hidden="true">'+S.qs.map((q,i)=>{ const v=S.ans[i]; let c=i===cur?'cur':v===null?'skip':v!==undefined?'done':''; if(i&&q.t!==S.qs[i-1].t) c+=' gap'; return '<i class="'+c+'"></i>'; }).join('')+'</div>'; }
@@ -505,7 +498,7 @@ function viewBoard(){
       C.fams.map((F,i)=>'<div class="sr" data-f="'+i+'" style="--c:'+esc(F.c)+'"><span class="rk"></span><span class="nm"><b>'+(lg(F)?mark(F):'')+esc(F.n)+'</b><span class="bar"><span></span><em></em></span></span><span class="pts"></span><span class="tot"></span></div>').join('')+
     '</div><p class="msg" id="msg" aria-live="polite"></p></div></div>'+
     '<div class="bfoot"><span>Absolute majority: '+M+'</span><span>'+
-      (R.party==='one'?'All seats go to the party currently closest to your answers':R.party==='two'?'Seats are split between the party currently closest to you and its main rival':R.party==='dom'?'The count includes the leader’s guaranteed majority: '+bonus():!B.k?'No answers in this block: the seats are split equally':R.sys==='mixed'?(n-dn)+' by party list and '+dn+' by districts':'Based on your answers on this topic')+'</span></div></div>'+
+      (R.party==='one'?'All seats go to the party currently closest to your answers':R.party==='dom'?'Another '+bonus()+' is the guaranteed majority: who gets it is decided at the end of the test':!B.k?'No answers in this block: the seats are split equally':R.sys==='mixed'?(n-dn)+' by party list and '+dn+' by districts':'Based on your answers on this topic')+'</span></div></div>'+
     '<div class="bnav"><span></span><button type="button" class="cta" id="cont">'+(last?(C.year?'Show my Duma':'Show my parliament'):'Next: '+esc(C.topics[S.order[S.bi+1]].n))+'</button></div></section>';
   const rows=$$('.sr',app), bh=$('#bh');
   const rank=(st,tie)=>{ const o=st.map((_,f)=>f).sort((a,b)=>st[b]-st[a]||(tie?tie[a]-tie[b]:0)||a-b), r=[]; o.forEach((f,i)=>r[f]=i); return r; };
@@ -524,10 +517,10 @@ function viewBoard(){
 
 // ══════ 6. Результат ══════
 function viewResult(){
-  S.hl=null; S.pick=[]; window.scrollTo(0,0);
+  S.fin=true; S.hl=null; S.pick=[]; window.scrollTo(0,0);
   const mixed=R.sys==='mixed', answered=S.ans.filter(v=>v!=null).length;
   app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px">'+(C.year?'<span class="pill">Election of '+C.year+' </span>':'')+(FIC()?'<span class="pill">Fictional scenario</span>':'')+(thrOn()?'<span class="pill">Threshold '+thrTxt()+'%</span>':'')+'<span class="pill">'+SYSF[R.party]+'</span><span class="pill">'+(mixed?'Mixed: party list and districts':'By party lists')+'</span><span class="pill">'+mest(C.seats)+'</span></div><h2 tabindex="-1" style="outline:none">'+(C.year?'Your Duma of '+C.year+' ':'Your parliament')+'</h2><p class="lead" id="lead" style="margin:0"></p></div>'+
-    '<div class="box main"><div class="hemi" id="rh"></div><div><div class="chips" id="tiers" style="margin:0 0 8px"></div><div class="chips" id="ringrow" style="margin:0 0 8px"></div>'+(mixed?'<div id="dsres" style="margin:0 0 10px"><label class="lbl" for="dshare2">Share of single-member districts: <b id="dshv2">'+C.dshare+'%</b></label><input type="range" id="dshare2" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"></div>':'')+'<p class="hint" id="thrline" style="margin:0 0 8px" hidden></p><div class="leg" id="leg"></div><div class="desc" id="desc"></div></div></div>'+
+    '<div class="box main"><div class="hemi" id="rh"></div><div><div class="chips" id="tiers" style="margin:0 0 8px"></div><div class="chips" id="ringrow" style="margin:0 0 8px"></div><div class="chips" id="domrow" style="margin:0 0 10px" hidden></div>'+(mixed?'<div id="dsres" style="margin:0 0 10px"><label class="lbl" for="dshare2">Share of single-member districts: <b id="dshv2">'+C.dshare+'%</b></label><input type="range" id="dshare2" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"></div>':'')+'<p class="hint" id="thrline" style="margin:0 0 8px" hidden></p><div class="leg" id="leg"></div><div class="desc" id="desc"></div></div></div>'+
     '<div class="box"><h3>Election results</h3><p class="hint">A card in the style of Wikipedia. It is easy to save as a screenshot.</p><div id="wb"></div></div>'+
     '<div id="presbox"></div><div id="mapbox"></div><div id="futbox"></div>'+
     '<div class="box" id="cobox"><h3>Possible majorities and the government</h3><p class="hint">Alliances that reach '+maj()+' or more.'+(C.span?' Only neighbours on the axis may unite: no more than three steps apart.':'')+(C.no.length?' Parties that refuse to work together never end up in the same alliance.':'')+' Pick an alliance or put together your own to hand out ministerial portfolios.</p><div class="coal" id="coal"></div><p class="hint" id="cmline" style="margin:12px 0 0"></p><div id="copick"></div></div>'+
@@ -538,7 +531,7 @@ function viewResult(){
     '<div class="acts"><button type="button" class="cta" id="again">Take it again</button><button type="button" class="cta ghost" id="edit">Edit the test</button><button type="button" class="cta ghost" id="shot">Save as image</button></div>'+
     '<details class="det box"><summary>How it is calculated</summary>'+
       '<p><b>Parties.</b> Each party has a set of ideological traits with a strength: weak, moderate or strong. Each answer option has traits attached too. A party stands closer to an option on the question scale the stronger its most pronounced trait among those attached to it.</p>'+
-      '<p><b>Political system.</b> '+(C.party==='two'&&(C.duo[0]>=0||C.duo[1]>=0)?'Seats are split between the two parties chosen in the test settings.':SYSD[R.party])+(R.party==='dom'?' The guaranteed majority is '+bonus()+' of '+C.seats+'.':'')+'</p>'+
+      '<p><b>Political system.</b> '+SYSD[R.party]+(R.party==='dom'?' The guaranteed majority is '+bonus()+' of '+C.seats+'.':'')+'</p>'+
       C.fams.map(F=>F.cap>=0&&C.fams[F.cap]?'<p><b>Special rule.</b> “'+esc(F.n)+'” always gets exactly one single-member district, whatever the answers. All other seats it would have won go to “'+esc(C.fams[F.cap].n)+'”.</p>':'').join('')+
       (lowOn()?'<p><b>Minor parties.</b> Parties marked as minor ('+esc(C.fams.filter(F=>F.sm).map(F=>F.n).join(', '))+') have a lowered priority: at the same closeness to your answer such a party gets 40% of an ordinary party’s share, and it wins a district only if it is clearly closer than the others.</p>':'')+
       (thrOn()?'<p><b>Electoral threshold.</b> A party’s vote share is its average closeness to your answers across all topics, weighted by their importance. A party with a share below '+thrTxt()+'% takes no part in the division of party-list seats but can still win districts.</p>':'')+
@@ -574,6 +567,9 @@ function updResult(){
   $('#lead').innerHTML='Largest faction — <b>'+mark(C.fams[L])+esc(C.fams[L].n)+'</b>: '+mest(st[L])+' of '+C.seats+'. '+(R.party==='one'?'In a one-party system it takes the whole chamber.':solo?'That is an absolute majority; no allies are needed.':'No party reaches the majority of '+M+' on its own, so a deal will be needed.')+(gateOut()?' The party “'+esc(C.fams[C.gate].n)+'” was not allowed to stand: that is how you answered the first question.':'')+(C.gate>=0&&C.gnote?' '+esc(C.gnote):'');
   { const tl=$('#thrline'), under=C.fams.map((F,f)=>f).filter(f=>X.el[f]&&!X.elL[f]); tl.hidden=!thrOn();
     tl.textContent=thrOn()?'Electoral threshold for party lists — '+thrTxt()+'%. '+(under.length?'Below the threshold: '+under.map(f=>C.fams[f].n+' ('+pc(X.vs[f])+')').join(', ')+'.':'All parties cleared it.'):''; }
+  { const dr=$('#domrow'); dr.hidden=X.dom<0;
+    dr.innerHTML=X.dom<0?'':'<span class="lbl" style="margin:0;width:100%">The guaranteed majority goes to</span>'+C.fams.map((F,f)=>X.el[f]?'<button type="button" class="chip" data-dom="'+f+'" aria-pressed="'+(f===X.dom)+'">'+mark(F)+esc(F.n)+'</button>':'').join('');
+    $$('[data-dom]',dr).forEach(b=>b.addEventListener('click',()=>{ S.dom=+b.dataset.dom; updResult(); })); }
   const rr=$('#ringrow'); rr.hidden=!sum(di); rr.innerHTML='<button type="button" class="chip" id="ringsw" aria-pressed="'+RINGS+'"><i class="ring" style="border-color:currentColor"></i>Districts as rings</button>';
   $('#ringsw').addEventListener('click',()=>{ setRings(!RINGS); updResult(); const b=$('#ringsw'); if(b) b.focus({preventScroll:true}); });
   const tr=$('#tiers'), tiers=[['l','<i class="dot" style="background:var(--ink2)"></i>By party list '],['d',(RINGS?'<i class="ring" style="border-color:var(--ink2)"></i>':'<i class="dot" style="background:var(--ink2)"></i>')+'By districts '],['b','<i class="dot" style="background:var(--ink2)"></i>To the leader upfront ']].filter(x=>KS[x[0]]>0);
