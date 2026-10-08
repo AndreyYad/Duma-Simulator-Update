@@ -1,7 +1,13 @@
-# Render Blueprint: статический сайт на бесплатном тарифе, без сборки
+# Render Blueprint: статический сайт на бесплатном тарифе, без сборки.
+# Развёртывание: https://render.com/deploy?repo=https://github.com/BolshoiPrikol2/Duma-Simulator
 services:
   - type: web
-    name: svoy-parlament
+    name: duma-simulator
     runtime: static
     buildCommand: ""
     staticPublishPath: .
+    autoDeploy: true
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=300

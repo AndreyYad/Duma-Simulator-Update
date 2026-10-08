@@ -554,7 +554,6 @@ function viewResult(){
   ths.addEventListener('keydown',e=>{ const r=e.target.closest('.tr'); if(r&&e.target===r&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); r.click(); } });
   $('#again').addEventListener('click',()=>{ if(C.party==='auto'){ S.sa=[]; S.si=0; window.scrollTo(0,0); viewSys(); } else { S.gv=undefined; begin(); } });
   { const ds=$('#dshare2'); if(ds) ds.addEventListener('input',()=>{ C.dshare=Math.max(0,Math.min(100,+ds.value||0)); $('#dshv2').textContent=C.dshare+'%'; save(); updResult(); }); }
-  $('#futbox').addEventListener('click',e=>{ if(!e.target.closest('#futall')) return; S.futAll=!S.futAll; $('#futbox').innerHTML=futureBox(S.st); const b=$('#futall'); if(b) b.focus({preventScroll:true}); });
   $('#edit').addEventListener('click',viewBuild); $('#shot').addEventListener('click',exportPng);
   updResult(); $('.res h2').focus({preventScroll:true});
 }
@@ -813,12 +812,11 @@ function futCard(e,st,when){ const col=e.party[1], ph=PH[e.lead]||'', lgo=LG[e.p
     '<div class="fut-body"><div class="fut-info"><div class="fut-lead"><div class="wb-ph'+(ph?' pic':'')+'" style="background:'+esc(col)+'">'+(ph?'<img src="'+esc(ph)+'" alt="">':'<span>'+esc(e.lead.split(' ').map(x=>x[0]).join(''))+'</span>')+'</div><div><small>Leader</small><b>'+esc(e.lead)+'</b></div></div>'+
     '<dl>'+row('Ideology',esc(e.ideo))+row('Form of government',esc(e.form))+row('Ruling party',(lgo?'<img class="logo" src="'+esc(lgo)+'" alt="" style="border-color:'+esc(col)+'">':'<span class="fut-mono" style="background:'+esc(col)+'">'+esc(mono)+'</span>')+esc(e.party[0]))+'</dl></div>'+
     '<div class="fut-vis"><figure>'+futMapSvg(e.map,col)+'<figcaption>Borders</figcaption></figure></div></div></div>'; }
-function futureBox(st){ const r=futRank(st); if(!r) return ''; const all=!!S.futAll;
+function futureBox(st){ const r=futRank(st); if(!r) return '';
   return '<div class="box fut"><h3>Your Beautiful Russia of the Future</h3><p class="hint">'+esc(r.era.intro)+' The ending is chosen from your answers in every topic (the “Future” topic counts double) and from the make-up of your Duma. The scenario is fictional, the politicians are real.</p>'+
     futCard(r.list[0].e,st,r.era.when)+
     '<p class="hint" style="margin-top:10px">It could also have gone this way: '+r.list.slice(1,4).map(x=>esc(x.e.lead)+' — '+esc(x.e.n)+' ('+esc(x.e.ideo)+')').join('; ')+'.</p>'+
-    '<p style="margin:12px 0 0"><button type="button" class="chip" id="futall" aria-pressed="'+all+'">'+(all?'Hide the other futures':'Show all possible futures: '+r.list.length)+'</button></p>'+
-    (all?'<p class="hint" style="margin-top:10px">A temporary preview for checking: every ending of this era, from the closest to your answers to the furthest.</p>'+r.list.slice(1).map((x,i)=>'<div class="fut-num">'+(i+2)+' of '+r.list.length+'</div>'+futCard(x.e,st,r.era.when)).join(''):'')+'</div>'; }
+    '</div>'; }
 
 // ── Законопроекты: фракция голосует “за”, если её черты ближе к закону, чем к возражениям
 function billVote(b,st){ const yes=[], no=[], abs=[]; C.fams.forEach((F,f)=>{ if(!st[f]) return; const p=sv(F.tr,b[2])-sv(F.tr,b[3]); (p>=.2?yes:p<=-.2?no:abs).push(f); }); const cnt=a=>sum(a.map(f=>st[f])); return {yes,no,abs,y:cnt(yes),n:cnt(no),a:cnt(abs)}; }
