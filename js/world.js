@@ -5,25 +5,25 @@
 // ══════ Регионы ══════
 // Типы регионов: [название, что важно региону и как он голосовал, черты с весом (минус — отталкивает), годы действия]
 const REG_T={
-  cap:['Capital metropolis','Press freedom, fair elections, an open economy. Moscow and St Petersburg gave “Yabloko” and the right their best results in the country.',{lib:1,plural:1,mkt:.7,west:.7,prog:.5,privacy:.5},1993,2021],
-  big:['Industrial centre','Wages, factory orders, tariffs. Votes close to the national average.',{labor:.8,gos:.5,welfare:.5,biz:.4,tech:.3},1993,2021],
-  cen:['Central Russia','Jobs, roads, people leaving for Moscow.',{welfare:.5,labor:.5,trad:.3,stab:.3},1993,2021],
+  cap:['Capital metropolis','Press freedom, fair elections, an open economy. Moscow and St Petersburg gave “Yabloko” and the right their best results in the country.',{lib:1,plural:1,mkt:.7,west:.7,prog:.5,privacy:.5},1993,2026],
+  big:['Industrial centre','Wages, factory orders, tariffs. Votes close to the national average.',{labor:.8,gos:.5,welfare:.5,biz:.4,tech:.3},1993,2026],
+  cen:['Central Russia','Jobs, roads, people leaving for Moscow.',{welfare:.5,labor:.5,trad:.3,stab:.3},1993,2026],
   red:['Red Belt','Soviet-era guarantees, the countryside, distrust of reforms. In 1995–1999 the CPRF won here comfortably.',{soviet:1,welfare:.8,gos:.8,agr:.6,nat:.5,antiwest:.4},1993,2003],
-  agr:['Agrarian region','Support for agriculture, grain and fuel prices.',{agr:1,prot:.7,trad:.5,welfare:.4},1993,2021],
-  nat:['National republic','The status of the republic, the native language, deals with the centre. Since the 2000s the party of power has scored far above average here.',{stab:1,pres:.8,multi:.7,fed:.5,lang_min:.6,trad:.5,rel:.4,lang_one:-.8,nation:-.6},1993,2021],
-  cau:['North Caucasus','Security, subsidies, a traditional way of life. Since the 2000s it has had the country’s highest turnout and support for the authorities.',{stab:1,pres:1,trad:.8,rel:.8,unity:.5,lang_one:-.6,nation:-.6},1993,2021],
-  res:['Resource-rich North','Oil and gas, northern pay supplements, the dispute over how much tax stays in the region.',{growth:.8,stab:.6,fed:.5,welfare:.4,tax_lo:.4,nat:.3},1993,2021],
-  far:['Far East','Distance from Moscow, prices, people leaving. The protest vote is strong here: the LDPR won in 1993, and its governors won in 2018–2019.',{pop:1,prot:.6,nation:.5,fed:.5,plural:.4,welfare:.4,stab:-.4},1993,2021],
-  sib:['Siberia','Tariffs, the environment, independence from the centre.',{fed:.6,pop:.5,labor:.5,eco:.4,plural:.3},1993,2021],
-  north:['Russian North and North-West','Timber, ports, people leaving. A noticeable protest vote.',{plural:.5,eco:.5,welfare:.5,pop:.4,west:.2},1993,2021],
-  mil:['Defence-industry region','Defence orders, the army, great-power status.',{mil:1,gos:.5,sov:.5,nation:.4},1993,2021],
-  border:['Southern borderland','Migration, the Cossacks, a demand for order.',{imm_anti:.8,law:.7,nation:.6,trad:.5,agr:.4},1993,2021],
-  loyal:['Stronghold of the party of power','Stability and federal money. Since 2003 “United Russia” has scored noticeably above average here.',{stab:1,pres:.8,cent:.4,growth:.3},2003,2021],
+  agr:['Agrarian region','Support for agriculture, grain and fuel prices.',{agr:1,prot:.7,trad:.5,welfare:.4},1993,2026],
+  nat:['National republic','The status of the republic, the native language, deals with the centre. Since the 2000s the party of power has scored far above average here.',{stab:1,pres:.8,multi:.7,fed:.5,lang_min:.6,trad:.5,rel:.4,lang_one:-.8,nation:-.6},1993,2026],
+  cau:['North Caucasus','Security, subsidies, a traditional way of life. Since the 2000s it has had the country’s highest turnout and support for the authorities.',{stab:1,pres:1,trad:.8,rel:.8,unity:.5,lang_one:-.6,nation:-.6},1993,2026],
+  res:['Resource-rich North','Oil and gas, northern pay supplements, the dispute over how much tax stays in the region.',{growth:.8,stab:.6,fed:.5,welfare:.4,tax_lo:.4,nat:.3},1993,2026],
+  far:['Far East','Distance from Moscow, prices, people leaving. The protest vote is strong here: the LDPR won in 1993, and its governors won in 2018–2019.',{pop:1,prot:.6,nation:.5,fed:.5,plural:.4,welfare:.4,stab:-.4},1993,2026],
+  sib:['Siberia','Tariffs, the environment, independence from the centre.',{fed:.6,pop:.5,labor:.5,eco:.4,plural:.3},1993,2026],
+  north:['Russian North and North-West','Timber, ports, people leaving. A noticeable protest vote.',{plural:.5,eco:.5,welfare:.5,pop:.4,west:.2},1993,2026],
+  mil:['Defence-industry region','Defence orders, the army, great-power status.',{mil:1,gos:.5,sov:.5,nation:.4},1993,2026],
+  border:['Southern borderland','Migration, the Cossacks, a demand for order.',{imm_anti:.8,law:.7,nation:.6,trad:.5,agr:.4},1993,2026],
+  loyal:['Stronghold of the party of power','Stability and federal money. Since 2003 “United Russia” has scored noticeably above average here.',{stab:1,pres:.8,cent:.4,growth:.3},2003,2026],
   lib90:['Region of 1990s reformers','Their own reformist governors, privatisation, investors: Nemtsov’s Nizhny Novgorod, Titov’s Samara, Rossel’s Urals.',{mkt:.8,priv:.6,biz:.6,west:.4,plural:.4},1993,1999],
-  protest:['Protest region of the 2010s','Discontent with Moscow and its appointees. In 2018–2021 CPRF and LDPR candidates won here.',{pop:.7,plural:.6,fed:.5,welfare:.5,stab:-.6},2011,2021],
-  ex:['Exclave','A border with the European Union, trade, the navy.',{west:.6,mkt:.5,biz:.4,mil:.3},1993,2021]
+  protest:['Protest region of the 2010s','Discontent with Moscow and its appointees. In 2018–2021 CPRF and LDPR candidates won here.',{pop:.7,plural:.6,fed:.5,welfare:.5,stab:-.6},2011,2026],
+  ex:['Exclave','A border with the European Union, trade, the navy.',{west:.6,mkt:.5,biz:.4,mil:.3},1993,2026]
 };
-// Регионы: код: [название, типы]. Крым и Севастополь участвуют только в сценариях 2016 и 2021 годов.
+// Регионы: код: [название, типы]. Крым и Севастополь участвуют только в сценариях с 2016 года.
 const REG={
   MOW:['Moscow',['cap']],SPE:['St Petersburg',['cap']],MOS:['Moscow Oblast',['big']],LEN:['Leningrad Oblast',['north']],
   BEL:['Belgorod Oblast',['red','agr','loyal']],BRY:['Bryansk Oblast',['red','agr']],VLA:['Vladimir Oblast',['big','protest']],VOR:['Voronezh Oblast',['red','agr']],
@@ -113,6 +113,20 @@ const BILLS={
     ['Ban on “propaganda of non-traditional relationships”','The ban covers advertising, films, books and the internet for all ages.',['trad','rel','auth'],['lib','privacy','prog'],'law','Adopted unanimously in November 2022.'],
     ['Nationwide electronic voting','Uniform rules for remote voting in elections at all levels.',['tech','stab'],['plural'],'law','Adopted in March 2022.'],
     ['Pension indexation for working pensioners','The return of indexation frozen in 2016.',['welfare','labor'],['self','stab'],'law','Opposition bills were rejected; indexation was brought back by a 2024 law.']
+  ],
+  2026:[
+    ['Amnesty for those convicted on political charges','Release of those convicted for statements, protests and membership of banned organisations.',['lib','plural','rehab'],['auth','law','stab'],'law','There has been no such amnesty. In the prisoner exchange of August 2024 Russia released 16 people.'],
+    ['Repeal of the foreign agent laws','The register of foreign agents is abolished and the restrictions are lifted.',['lib','plural','west'],['sov','auth'],'law','The law has been in force since 2012 and has been tightened many times.'],
+    ['Constitutional amendment: the Duma forms the government','The prime minister and ministers are appointed by the parliamentary majority; presidential powers are reduced.',['parl','plural'],['pres','stab'],'const','Under the 2020 amendments the Duma approves the prime minister and some ministers, but the decisive powers remain with the president.'],
+    ['Ratification of a peace agreement','A treaty ending the fighting in Ukraine, reached through mutual concessions.',['pac','west','cosmo'],['mil','nation','antiwest'],'law','The scenario is fictional: no such vote has taken place in the Duma.'],
+    ['Return of direct mayoral elections and abolition of the municipal filter','City heads are elected by residents; candidates for governor no longer need councillors’ signatures.',['plural','fed','direct'],['cent','stab'],'law','The municipal filter has been in force since 2012; the 2025 law on local self-government allowed regions to abolish the settlement tier.'],
+    ['Cut in military spending','Part of the defence budget is redirected to healthcare, education and roads.',['pac','welfare','pub'],['mil','sov'],'law','The 2025 budget allocates about 13.5 trillion roubles to defence — almost a third of all spending.'],
+    ['Repeal of the “sovereign internet”','Blocks on foreign services are lifted and traffic-filtering equipment is switched off.',['lib','privacy'],['auth','sov'],'law','The “sovereign internet” law has been in force since 2019; YouTube began to be throttled in 2024.'],
+    ['Visa regime with Central Asian countries','Entry for work only with a visa and an employer’s invitation.',['imm_anti','nation','law'],['imm_pro','eurasia','cosmo'],'law','Such bills were introduced but not passed; a register of controlled persons has operated since 2025.'],
+    ['Review of the results of privatisation','Enterprises privatised unlawfully are returned to the state.',['nat','soviet','gos'],['priv','mkt','biz'],'law','There is no general law, but since 2022 courts acting on the Prosecutor General’s claims have handed dozens of large enterprises to the state.'],
+    ['Reversal of the pension age increase','A return to retirement at 55 and 60.',['welfare','labor','pop'],['self','stab'],'law','The pension age has been rising since 2019; bills to reverse it were rejected.'],
+    ['Law on vetting of officials','Judges, security officers and senior officials of the former leadership are vetted and, if they broke the law, barred from holding office.',['plural','lib'],['stab','unity','pres'],'law','No such law has been adopted in Russia.'],
+    ['Special status for combat veterans','Quotas in universities, the civil service and party lists, plus lifelong payments.',['mil','nation','welfare'],['pac','equal'],'law','University quotas for participants and their children have applied since 2022, and the “Time of Heroes” personnel programme since 2024.']
   ]
 };
 
@@ -134,5 +148,7 @@ const PRES={
   2016:{y:2018,c:[['Vladimir Putin','United Russia',null],['Pavel Grudinin','CPRF',null],['Vladimir Zhirinovsky','LDPR',null],['Ksenia Sobchak',null,{lib:3,plural:3,west:3,prog:3,mkt:2,cosmo:2,privacy:2}],['Grigory Yavlinsky','Yabloko',null],['Boris Titov','Party of Growth',null],['Sergei Baburin',null,{nation:3,sov:3,antiwest:3,unity:3,soviet:2,gos:2}]],
     real:'Putin 76.7%, Grudinin 11.8%, Zhirinovsky 5.65%, Sobchak 1.68%, Yavlinsky 1.05%, Titov 0.76%, Baburin 0.65%.'},
   2021:{y:2024,c:[['Vladimir Putin','United Russia',null],['Nikolai Kharitonov','CPRF',null],['Vladislav Davankov','New People',null],['Leonid Slutsky','LDPR',null]],
-    real:'Putin 87.3%, Kharitonov 4.3%, Davankov 3.85%, Slutsky 3.2%.'}
+    real:'Putin 87.3%, Kharitonov 4.3%, Davankov 3.85%, Slutsky 3.2%.'},
+  2026:{y:2026,c:[['Mikhail Mishustin','United Russia',{tech:3,stab:3,growth:3,pres:2,cent:2,gos:2,welfare:2,sov:2,unity:2,mkt:1,antiwest:1,law:1}],['Gennady Zyuganov','CPRF',null],['Yulia Navalnaya','Democratic coalition',null],['Vladislav Davankov','New People',null],['Leonid Slutsky','LDPR',null],['Igor Strelkov','Russian Patriotic Bloc',null],['Grigory Yavlinsky','Yabloko',null],['Sergei Mironov','A Just Russia — For Truth',null]],
+    real:'The scenario is fictional: no such election took place. In the 2024 election Putin won 87.3%, Kharitonov 4.3%, Davankov 3.85%, Slutsky 3.2%.'}
 };

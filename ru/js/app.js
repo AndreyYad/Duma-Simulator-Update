@@ -53,6 +53,7 @@ function saveUser(){ try{ localStorage.setItem(PKEY,JSON.stringify(USER)); retur
 const LV=[{n:'Не важно',w:0},{n:'Мало',w:1},{n:'Средне',w:2},{n:'Важно',w:3.5},{n:'Очень',w:5}];
 const SV=[0,.35,.7,1], SL=['','слабо','умеренно','сильно'], SIGMA=0.2;
 const R={party:'multi',sys:'prop'}; // система, действующая в текущем прохождении
+const FIC=()=>!!(C.year&&typeof DUMA!=='undefined'&&DUMA[C.year]&&DUMA[C.year].fic); // вымышленный сценарий
 const maj=()=>Math.floor(C.seats/2)+1, bonus=()=>R.party==='dom'?maj():0, pool=()=>C.seats-bonus();
 const distTotal=()=>R.sys==='mixed'?Math.round(pool()*C.dshare/100):0, listTotal=()=>pool()-distTotal();
 const enabled=()=>C.qs.filter(q=>q.on);
@@ -189,7 +190,7 @@ const cnt=n=>n+' '+plural(n,'вопрос','вопроса','вопросов');
 function viewBuild(){
   toBuild.hidden=true; window.scrollTo(0,0);
   app.innerHTML='<div class="stack" id="build">'+
-  '<div class="intro"><h1>Соберите свою Государственную думу</h1><p>Выберите выборы, от 1993 до 2021 года: у каждых свои партии, свои вопросы того времени и свои невозможные союзы. Или настройте всё сами. Отвечающий двигает ползунок между двумя вариантами, а его ответы превращаются в состав Думы и правительство.</p></div>'+
+  '<div class="intro"><h1>Соберите свою Государственную думу</h1><p>Выберите выборы, от 1993 до 2021 года, или вымышленный сценарий 2026 года: у каждых свои партии, свои вопросы того времени и свои невозможные союзы. Или настройте всё сами. Отвечающий двигает ползунок между двумя вариантами, а его ответы превращаются в состав Думы и правительство.</p></div>'+
   '<section class="step box"><header><h2>Пресеты</h2><p class="hint">Готовые наборы и ваши сохранённые тесты. Сохранённые пресеты хранятся в этом браузере.</p></header>'+
     '<span class="lbl" style="margin:0">Выборы в Государственную думу</span><div class="presets">'+BUILTIN.map((p,i)=>p.set.year?'<button type="button" class="preset" data-act="pre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>'+esc(p.d)+'</span></button>':'').join('')+'</div>'+
     '<span class="lbl" style="margin:0">Стандартный тест и мои пресеты</span><div class="presets">'+BUILTIN.map((p,i)=>p.set.year||p.h?'':'<button type="button" class="preset" data-act="pre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>'+esc(p.d)+'</span></button>').join('')+
@@ -499,7 +500,7 @@ function viewBoard(){
 function viewResult(){
   S.hl=null; S.pick=[]; window.scrollTo(0,0);
   const mixed=R.sys==='mixed', answered=S.ans.filter(v=>v!=null).length;
-  app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px">'+(C.year?'<span class="pill">Выборы '+C.year+' года</span>':'')+'<span class="pill">'+SYSF[R.party]+'</span><span class="pill">'+(mixed?'Смешанная: список и округа':'По партийным спискам')+'</span><span class="pill">'+mest(C.seats)+'</span></div><h2 tabindex="-1" style="outline:none">'+(C.year?'Ваша Дума '+C.year+' года':'Ваш парламент')+'</h2><p class="lead" id="lead" style="margin:0"></p></div>'+
+  app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px">'+(C.year?'<span class="pill">Выборы '+C.year+' года</span>':'')+(FIC()?'<span class="pill">Вымышленный сценарий</span>':'')+'<span class="pill">'+SYSF[R.party]+'</span><span class="pill">'+(mixed?'Смешанная: список и округа':'По партийным спискам')+'</span><span class="pill">'+mest(C.seats)+'</span></div><h2 tabindex="-1" style="outline:none">'+(C.year?'Ваша Дума '+C.year+' года':'Ваш парламент')+'</h2><p class="lead" id="lead" style="margin:0"></p></div>'+
     '<div class="box main"><div class="hemi" id="rh"></div><div><div class="chips" id="tiers" style="margin:0 0 8px"></div><div class="chips" id="ringrow" style="margin:0 0 8px"></div>'+(mixed?'<div id="dsres" style="margin:0 0 10px"><label class="lbl" for="dshare2">Доля одномандатных округов: <b id="dshv2">'+C.dshare+'%</b></label><input type="range" id="dshare2" min="0" max="100" step="5" value="'+C.dshare+'" style="width:100%;accent-color:var(--accent)"></div>':'')+'<div class="leg" id="leg"></div><div class="desc" id="desc"></div></div></div>'+
     '<div class="box"><h3>Итоги выборов</h3><p class="hint">Карточка в оформлении Википедии. Её удобно сохранить снимком экрана.</p><div id="wb"></div></div>'+
     '<div id="presbox"></div><div id="mapbox"></div>'+
@@ -737,7 +738,7 @@ function presBox(){
       (r.second?row('Второй тур',j=>j===r.second.a?'<b>'+pc(r.second.pa)+'</b>':j===r.second.b?'<b>'+pc(r.second.pb)+'</b>':'—'):'')+
       '<tr><td colspan="4" class="wb-hr"></td></tr>'; }
   const W=r.cands[r.win];
-  return '<div class="box"><h3>Президентские выборы '+r.y+' года</h3><p class="hint">Следующие после этой Думы выборы президента. Кандидаты настоящие, а голоса считаются по вашим ответам, так же как у партий. Если никто не набрал больше половины, назначается второй тур, и голоса выбывших уходят к более близкому финалисту.</p>'+
+  return '<div class="box"><h3>Президентские выборы '+r.y+' года</h3><p class="hint">'+(FIC()?'Досрочные выборы президента сразу после думских: сценарий вымышленный, политики настоящие,':'Следующие после этой Думы выборы президента. Кандидаты настоящие,')+' а голоса считаются по вашим ответам, так же как у партий. Если никто не набрал больше половины, назначается второй тур, и голоса выбывших уходят к более близкому финалисту.</p>'+
     '<table class="wb"><tbody><tr><th colspan="4" class="wb-title">Президентские выборы в России ('+r.y+')<div>по ответам на тест</div></th></tr>'+rows+
     '<tr><th scope="row">Итог</th><td colspan="3" class="wb-left"><b>'+esc(W.n)+'</b> побеждает '+(r.second?'во втором туре':'в первом туре')+'</td></tr>'+
     '<tr><th scope="row">На самом деле</th><td colspan="3" class="wb-left">'+esc(r.real)+'</td></tr></tbody></table></div>';
@@ -754,7 +755,7 @@ function billsBox(st){
       '<div class="vnum"><span>За <b>'+v.y+'</b></span><span>Воздержались <b>'+v.a+'</b></span><span>Против <b>'+v.n+'</b></span><span>Нужно <b>'+need+'</b></span></div>'+
       '<div class="bvs">'+who(v.yes,'За')+who(v.abs,'Воздержались')+who(v.no,'Против')+'</div>'+
       '<p class="hint"><b>Вы:</b> '+(up>=.15?'проголосовали бы за':up<=-.15?'проголосовали бы против':'скорее воздержались бы')+'. <b>На самом деле:</b> '+esc(b[5])+'</p></div>'; }).join('');
-  return '<div class="box"><h3>Законопроекты этого созыва</h3><p class="hint">Реальные инициативы, которые рассматривала Дума, избранная в '+C.year+' году. Фракции голосуют по своим чертам: обычному закону нужно '+maj()+' голосов, конституционному — '+CM()+'. В вашей Думе принято '+passed+' из '+B.length+'.</p>'+items+'</div>';
+  return '<div class="box"><h3>Законопроекты этого созыва</h3><p class="hint">'+(FIC()?'Вымышленная повестка: вопросы, которые пришлось бы решать такой Думе.':'Реальные инициативы, которые рассматривала Дума, избранная в '+C.year+' году.')+' Фракции голосуют по своим чертам: обычному закону нужно '+maj()+' голосов, конституционному — '+CM()+'. В вашей Думе принято '+passed+' из '+B.length+'.</p>'+items+'</div>';
 }
 
 // Заполняет блоки результата, которые есть только в думских сценариях

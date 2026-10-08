@@ -9,7 +9,7 @@ const dict = JSON.parse(fs.readFileSync(path.join(__dirname, 'dict.json'), 'utf8
 // ── имена персонажей и кандидатов: транслитерация
 const ctx0 = {}; vm.createContext(ctx0);
 vm.runInContext(R('js/data.js') + R('js/world.js') + ';this.N=[...new Set(Object.values(DUMA_P).flatMap(y=>Object.values(y).flat().map(p=>p[0])).concat(Object.values(PRES).flatMap(p=>p.c.map(c=>c[0]))))];', ctx0);
-const FIRST = { 'Александр': 'Alexander', 'Алексей': 'Alexei', 'Юрий': 'Yuri', 'Эмилия': 'Emilia', 'Ксения': 'Ksenia', 'Мария': 'Maria', 'Лидия': 'Lidia', 'Пётр': 'Pyotr', 'Виктор': 'Viktor' };
+const FIRST = { 'Александр': 'Alexander', 'Алексей': 'Alexei', 'Юрий': 'Yuri', 'Эмилия': 'Emilia', 'Ксения': 'Ksenia', 'Мария': 'Maria', 'Лидия': 'Lidia', 'Пётр': 'Pyotr', 'Виктор': 'Viktor', 'Юлия': 'Yulia', 'Максим': 'Maxim', 'Кац': 'Katz', 'Гуриев': 'Guriev' };
 const CH = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', ж: 'zh', з: 'z', и: 'i', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'shch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya', ё: 'yo' };
 const VOW = 'аеёиоуыэюяьъ';
 function word(w) {
