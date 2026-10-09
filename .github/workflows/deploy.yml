@@ -22,6 +22,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           personal_token: ${{ secrets.PAGES_DEPLOY_TOKEN }}
-          external_repository: USERNAME/my-website-pages
+          external_repository: AndreyYad/AndreyYad.github.io
           publish_branch: gh-pages
           publish_dir: ./
