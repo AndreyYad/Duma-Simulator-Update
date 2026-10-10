@@ -223,7 +223,7 @@ const face=p=>p?(p.img||PH[p.n]||''):'';
 const mark=F=>lg(F)?'<img class="logo" src="'+esc(lg(F))+'" alt="" style="border-color:'+esc(F.c)+'">':'<i class="dot" style="background:'+esc(F.c)+'"></i>';
 
 // ══════ 1. Конструктор ══════
-const OPEN={}; let PREV=null, PMSG='', CO_VIEW=-1, VETO_VIEW={};
+const OPEN={}; let PREV=null, PMSG='', FMSG='', CO_VIEW=-1, VETO_VIEW={};
 const inp=(k,v,extra)=>'<input class="in" id="f-'+k.replace(/\./g,'-')+'" data-k="'+k+'" value="'+esc(v)+'" '+(extra||'')+'>';
 const tname=id=>(C.traits.find(x=>x.id===id)||{n:id}).n;
 const groups=()=>{ const g=[]; C.traits.forEach(x=>{ if(!g.includes(x.g)) g.push(x.g); }); return g; };
@@ -272,7 +272,8 @@ function viewBuild(){
     '<div class="psave"><input class="in" id="newTrait" maxlength="40" placeholder="Своя черта, например «Монархизм»" aria-label="Название новой черты"><button type="button" class="chip" data-act="addTrait">+ Добавить черту</button></div></div></div></details>'+
   '<details class="step sec" data-o="s3"'+(OPEN.s3?' open':'')+'><summary><span class="num">3</span><h2>Партии</h2><span class="sec-t"><span class="t-open">Открыть</span><span class="t-close">Свернуть</span></span></summary><div class="sec-b"><p class="hint">Раскройте партию, чтобы задать её черты, логотип и персонажей. Нажатие на черту меняет силу: слабо, умеренно, сильно, снять. Порядок сверху вниз — ось слева направо.</p>'+
     '<div class="rows">'+C.fams.map((F,i)=>'<details class="card" data-o="f'+i+'"'+(OPEN['f'+i]?' open':'')+'><summary><span data-fm="'+i+'">'+mark(F)+'</span><span data-fn="'+i+'">'+esc(F.n)+'</span><small data-ft="'+i+'"></small></summary><div class="c-body" data-fb="'+i+'">'+(OPEN['f'+i]?famBody(i):'')+'</div></details>').join('')+
-    (C.fams.length<12?'<button type="button" class="add" data-act="addFam">+ Добавить партию</button>':'')+'</div></div></details>'+
+    (C.fams.length<12?'<button type="button" class="add" data-act="addFam">+ Добавить партию</button>':'')+
+    '<div class="psave"><label class="lbl" for="fam-import">Добавить партию из JSON</label><textarea class="in" id="fam-import" rows="5" spellcheck="false" placeholder="Вставьте скопированные данные партии"></textarea><p class="hint">Импортируются данные партии, её черты и персонажи. Настройки коалиций не переносятся.</p><div class="r"><button type="button" class="chip" data-act="importFam"'+(C.fams.length>=12?' disabled':'')+'>Добавить партию из текста</button><span class="hint" id="fam-import-msg" role="status" aria-live="polite">'+esc(FMSG)+'</span></div></div></div></details>'+
   '<details class="step box sec" data-o="s4"'+(OPEN.s4?' open':'')+'><summary><span class="num">4</span><h2>Коалиции</h2><span class="sec-t"><span class="t-open">Открыть</span><span class="t-close">Свернуть</span></span></summary><div class="sec-b"><p class="hint">Названия союзов показываются в результатах, когда коалиция совпадает по составу. Отказы работать вместе задаются в карточках партий.</p>'+
     '<div class="chips" style="margin-bottom:10px"><button type="button" class="chip" data-act="coalView" data-i="-1" aria-pressed="'+(CO_VIEW<0)+'">Обычные настройки</button>'+C.scenarios.map((s,i)=>'<button type="button" class="chip" data-act="coalView" data-i="'+i+'" data-scenario-tab="'+i+'" aria-pressed="'+(CO_VIEW===i)+'">'+esc(s.n||'Сценарий '+(i+1))+'</button>').join('')+'<button type="button" class="add" data-act="addScenario">+ Добавить сценарий</button></div>'+
     (CO_VIEW<0?'<div class="rows"><div class="note" id="co-veto"></div>'+coalitionEditor(C.coal,'')+
@@ -299,6 +300,47 @@ function updCo(){
   C.coal.forEach((c,i)=>{ const el=$('[data-cw="'+i+'"]'); if(!el) return; const vp=vetoPair(c.m); el.textContent=vp?'Этот союз невозможен: «'+C.fams[vp[0]].n+'» и «'+C.fams[vp[1]].n+'» отказались работать вместе.':''; });
 }
 function vetoList(scope){ return scope>=0&&C.scenarios[scope]?C.scenarios[scope].no:C.no; }
+function partyTransfer(i){
+  const F=C.fams[i], used=new Set(Object.keys(F.tr||{}));
+  return JSON.stringify({type:'duma-party',version:1,traits:C.traits.filter(t=>used.has(t.id)),party:{n:F.n,c:F.c,d:F.d,logo:F.logo,sm:F.sm,capName:F.cap>=0&&C.fams[F.cap]?C.fams[F.cap].n:'',tr:F.tr,ppl:F.ppl}},null,2);
+}
+function copyText(text,done,failed){
+  const fallback=()=>{ const field=document.createElement('textarea'); field.value=text; field.style.position='fixed'; field.style.opacity='0'; document.body.appendChild(field); field.select(); let copied=false;
+    try{ copied=document.execCommand('copy'); }catch(e){ if(window.console) console.error('Не удалось скопировать данные партии:',e); }
+    field.remove(); return copied; };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ try{ navigator.clipboard.writeText(text).then(done,()=>fallback()?done():failed()); }catch(e){ if(window.console) console.error('Не удалось скопировать данные партии:',e); if(fallback()) done(); else failed(); } }
+  else if(fallback()) done(); else failed();
+}
+function importParty(){
+  const fail=message=>{ FMSG=message; const status=$('#fam-import-msg'); if(status) status.textContent=message; };
+  if(C.fams.length>=12){ fail('Достигнут лимит в 12 партий.'); return; }
+  let raw;
+  try{ raw=JSON.parse($('#fam-import').value); }
+  catch(err){ fail('Ошибка разбора JSON: '+err.message); return; }
+  if(!raw||raw.type!=='duma-party'||raw.version!==1||!raw.party||typeof raw.party!=='object'||Array.isArray(raw.party)){
+    fail('Неверный формат данных партии. Скопируйте JSON кнопкой «Скопировать данные партии».'); return;
+  }
+  const src=raw.party, name=typeof src.n==='string'?src.n.trim():'';
+  if(!name||!src.tr||typeof src.tr!=='object'||Array.isArray(src.tr)||!Array.isArray(raw.traits)){
+    fail('В данных не хватает названия, черт партии или их описаний.'); return;
+  }
+  const defs=new Map();
+  raw.traits.forEach(t=>{ if(t&&typeof t.id==='string'&&t.id&&typeof t.n==='string') defs.set(t.id,{id:t.id,n:t.n,g:typeof t.g==='string'&&t.g?t.g:'Свои'}); });
+  if(Object.keys(src.tr).some(id=>!defs.has(id))){ fail('Не найдены описания некоторых черт партии. Проверьте JSON.'); return; }
+  const remap={};
+  Object.keys(src.tr).forEach((id,k)=>{
+    if(!defs.has(id)) return;
+    const trait=defs.get(id), current=C.traits.find(t=>t.id===id);
+    if(!current){ C.traits.push(trait); remap[id]=id; }
+    else if(current.n===trait.n&&current.g===trait.g) remap[id]=id;
+    else { let next; do{ next='p'+Date.now().toString(36)+(k++).toString(36); }while(C.traits.some(t=>t.id===next)); C.traits.push(Object.assign({},trait,{id:next})); remap[id]=next; }
+  });
+  const tr={}; Object.keys(src.tr).forEach(id=>{ const level=Math.round(+src.tr[id]); if(remap[id]&&level>=1&&level<=3) tr[remap[id]]=level; });
+  const cap=typeof src.capName==='string'?C.fams.findIndex(F=>F.n===src.capName):-1;
+  const imported={n:name.slice(0,60),c:HEX.test(src.c)?src.c:'#888888',d:typeof src.d==='string'?src.d:'',logo:okImg(src.logo),sm:!!src.sm,cap:cap>=0?cap:-1,tr,
+    ppl:(Array.isArray(src.ppl)?src.ppl:[]).filter(p=>p&&typeof p.n==='string').slice(0,12).map(p=>({n:p.n.slice(0,60),s:PORT.some(x=>x[0]===p.s)?p.s:'',img:okImg(p.img)}))};
+  C.fams.push(imported); const i=C.fams.length-1; OPEN['f'+i]=true; FMSG=''; rerender();
+}
 function famBody(i){
   const F=C.fams[i];
   const scope=Number.isInteger(VETO_VIEW[i])?VETO_VIEW[i]:-1, no=vetoList(scope), vetoRules={no};
@@ -309,7 +351,8 @@ function famBody(i){
     '<div class="tg"><span>Персонажи</span><div class="ppl">'+F.ppl.map((p,j)=>'<div class="pp">'+(face(p)?'<img class="ava sm" src="'+esc(face(p))+'" alt="">':'<span class="ava sm ph"></span>')+inp('fams.'+i+'.ppl.'+j+'.n',p.n,'aria-label="Имя персонажа" maxlength="60" placeholder="Имя"')+'<select class="in" id="f-fams-'+i+'-ppl-'+j+'-s" data-k="fams.'+i+'.ppl.'+j+'.s" aria-label="Профильный портфель"><option value="">'+(j?'Без профиля':'Лидер, без профиля')+'</option>'+PORT.filter(x=>x[0]!=='pm').map(x=>'<option value="'+x[0]+'"'+(p.s===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><label class="chip up" title="Загрузить своё фото">Фото<input type="file" accept="image/*" id="pimg-'+i+'-'+j+'" data-pimg="'+i+','+j+'" hidden></label><button type="button" class="chip" data-act="pimgUrl" data-i="'+i+'" data-j="'+j+'" title="Указать ссылку на фото">Ссылка</button><button type="button" class="x" data-act="delP" data-i="'+i+'" data-j="'+j+'" aria-label="Удалить персонажа">×</button></div>').join('')+
       (F.ppl.length<12?'<button type="button" class="add" data-act="addP" data-i="'+i+'">+ Добавить персонажа</button>':'')+'<small class="hint">Первый в списке — лидер: он станет премьером, если партия возглавит правительство. Профиль подсказывает, какое министерство человеку ближе. Фото подставляется по имени; своё можно загрузить кнопкой «Фото» или указать кнопкой «Ссылка».</small></div></div>'+
     '<div class="tg"><span>Не войдёт в коалицию с</span><div><select class="in" data-veto-scope data-i="'+i+'" aria-label="Сценарий запретов коалиции"><option value="-1"'+(scope<0?' selected':'')+'>Стандартный сценарий</option>'+C.scenarios.map((s,j)=>'<option value="'+j+'" data-veto-option="'+j+'"'+(scope===j?' selected':'')+'>'+esc(s.n||'Сценарий '+(j+1))+'</option>').join('')+'</select><div class="chips" style="margin-top:6px">'+C.fams.map((G,j)=>j===i?'':'<button type="button" class="chip veto" data-act="veto" data-i="'+i+'" data-j="'+j+'" data-scenario="'+scope+'" aria-pressed="'+vetoed(i,j,vetoRules)+'">'+esc(G.n)+'</button>').join('')+'</div></div></div>'+
-    groups().map(g=>'<div class="tg"><span>'+esc(g)+'</span><div class="chips">'+C.traits.filter(x=>x.g===g).map(x=>{ const l=F.tr[x.id]||0; return '<button type="button" class="tchip" data-act="tr" data-i="'+i+'" data-id="'+esc(x.id)+'" data-l="'+l+'" aria-pressed="'+(l>0)+'">'+esc(x.n)+'<small>'+SL[l]+'</small></button>'; }).join('')+'</div></div>').join('');
+    groups().map(g=>'<div class="tg"><span>'+esc(g)+'</span><div class="chips">'+C.traits.filter(x=>x.g===g).map(x=>{ const l=F.tr[x.id]||0; return '<button type="button" class="tchip" data-act="tr" data-i="'+i+'" data-id="'+esc(x.id)+'" data-l="'+l+'" aria-pressed="'+(l>0)+'">'+esc(x.n)+'<small>'+SL[l]+'</small></button>'; }).join('')+'</div></div>').join('')+
+    '<div class="psave"><button type="button" class="chip" data-act="copyFam" data-i="'+i+'">Скопировать данные партии</button><span class="hint" id="fam-copy-msg-'+i+'" role="status" aria-live="polite"></span></div>';
 }
 function topicBody(t){
   const T=C.topics[t], qs=C.qs.map((q,i)=>({q,i})).filter(x=>x.q.t===t);
@@ -408,6 +451,8 @@ function onAct(e){
   else if(a==='tr'){ const F=C.fams[i], l=((F.tr[id]||0)+1)%4; if(l) F.tr[id]=l; else delete F.tr[id]; b.dataset.l=l; b.setAttribute('aria-pressed',l>0); b.querySelector('small').textContent=SL[l]; save(); updMeta(); refreshAxes(); }
   else if(a==='untr'){ const q=C.qs[i], s=b.dataset.s; q[s]=q[s].filter(x=>x!==id); save(); refreshQ(i); }
   else if(a==='addFam'){ C.fams.push({n:'Новая партия',c:'#8a8f9c',d:'',logo:'',tr:{},ppl:[],cap:-1}); OPEN['f'+(C.fams.length-1)]=true; rerender(); }
+  else if(a==='copyFam'){ copyText(partyTransfer(i),()=>{ const status=$('#fam-copy-msg-'+i); if(status) status.textContent='Данные партии скопированы.'; },()=>{ const status=$('#fam-copy-msg-'+i); if(status) status.textContent='Не удалось скопировать. Разрешите доступ к буферу обмена и попробуйте снова.'; }); }
+  else if(a==='importFam'){ importParty(); }
   else if(a==='delFam'){ C.fams.splice(i,1); C.duo=[-1,-1]; const sh=x=>x>i?x-1:x; C.no=C.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); C.coal.forEach(c=>{ c.m=c.m.filter(x=>x!==i).map(sh); }); C.scenarios.forEach(s=>{ s.when.forEach(m=>{ const k=m.indexOf(i); if(k>=0) m.splice(k,1); m.forEach((x,j)=>{ if(x>i) m[j]--; }); }); s.when=s.when.filter(m=>m.length); s.no=s.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); }); VETO_VIEW={}; C.fams.forEach(F=>{ F.cap=F.cap===i?-1:sh(F.cap); }); Object.keys(OPEN).forEach(k=>{ if(k[0]==='f') delete OPEN[k]; }); rerender(); }
   else if(a==='delLogo'){ C.fams[i].logo=''; rerender(); }
   else if(a==='logoUrl'||a==='pimgUrl'){ const P=a==='pimgUrl'?C.fams[i].ppl[+b.dataset.j]:null, cur=P?P.img:C.fams[i].logo;
