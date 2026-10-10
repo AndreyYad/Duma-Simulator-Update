@@ -32,7 +32,9 @@ function norm(c){
   c.qs=c.qs.filter(q=>q&&q.t>=0&&q.t<c.topics.length).map(q=>({t:+q.t,d:q.d===-1?-1:1,q:String(q.q||''),A:String(q.A||''),B:String(q.B||''),on:q.on!==false,a:ids(q.a),b:ids(q.b)}));
   const nf=c.fams.length, okf=x=>Number.isInteger(x)&&x>=0&&x<nf;
   c.no=(Array.isArray(c.no)?c.no:[]).filter(p=>Array.isArray(p)&&okf(p[0])&&okf(p[1])&&p[0]!==p[1]).map(p=>[p[0],p[1]]);
-  c.coal=(Array.isArray(c.coal)?c.coal:[]).filter(x=>x&&Array.isArray(x.m)).map(x=>({n:String(x.n||'Coalition').slice(0,60),m:x.m.filter(okf)}));
+  c.coal=(Array.isArray(c.coal)?c.coal:[]).filter(x=>x&&Array.isArray(x.m)).map(x=>({n:String(x.n||'Coalition').slice(0,60),m:x.m.filter(okf),mode:x.mode==='logic'?'logic':'exact',
+    when:(Array.isArray(x.when)?x.when:[]).map(m=>Array.isArray(m)?m.filter((f,i,a)=>okf(f)&&a.indexOf(f)===i):[]),
+    variants:(Array.isArray(x.variants)?x.variants:[]).slice(0,1).map(v=>{ const required=Array.isArray(v.required)?v.required.filter((f,i,a)=>okf(f)&&a.indexOf(f)===i):[], optional=Array.isArray(v.optional)?v.optional.filter((f,i,a)=>okf(f)&&a.indexOf(f)===i&&!required.includes(f)):[]; return {required,optional}; })}));
   if(!Array.isArray(c.scenarios)) c.scenarios=[];
   c.scenarios=c.scenarios.filter(x=>x&&typeof x==='object').map(x=>({
     n:String(x.n||'New scenario').slice(0,60),
@@ -155,7 +157,12 @@ function leader(st){ let b=0; st.forEach((v,f)=>{ if(v>st[b]) b=f; }); return b;
 const vetoed=(a,b,rules=C)=>rules.no.some(p=>(p[0]===a&&p[1]===b)||(p[0]===b&&p[1]===a));
 function vetoPair(m,rules=C){ for(let i=0;i<m.length;i++) for(let j=i+1;j<m.length;j++) if(vetoed(m[i],m[j],rules)) return [m[i],m[j]]; return null; }
 const mkey=m=>m.slice().sort((a,b)=>a-b).join(',');
-function coName(m,rules=C){ const k=mkey(m), c=rules.coal.find(x=>x.m.length&&mkey(x.m)===k); return c?c.n:''; }
+function coalitionMatches(c,m){
+  if(c.mode==='logic') return (c.when||[]).some(condition=>condition.length&&condition.every(f=>m.includes(f)));
+  if(c.variants&&c.variants.length) return c.variants.some(v=>v.required.every(f=>m.includes(f))&&m.every(f=>v.required.includes(f)||v.optional.includes(f)));
+  return c.m.length&&mkey(c.m)===mkey(m);
+}
+function coName(m,rules=C){ const c=rules.coal.find(x=>coalitionMatches(x,m)); return c?c.n:''; }
 function coalitionAllowed(m,rules){
   return !(rules.span&&m.length&&Math.max(...m)-Math.min(...m)>3)&&!vetoPair(m,rules);
 }
@@ -191,9 +198,17 @@ function coalitions(st){
     for(let k=start;k<fs.length;k++){ cur.push(fs[k]); rec(k+1,cur); cur.pop(); }
   })(0,[]);
   res.sort((a,b)=>a.m.length-b.m.length||a.sp-b.sp||b.t-a.t);
-  const named=rules.coal.filter(c=>c.m.length&&c.m.every(f=>st[f]>0)&&coalitionAllowed(c.m,rules)&&sum(c.m.map(f=>st[f]))>=M).map(c=>({m:c.m.slice().sort((a,b)=>a-b),t:sum(c.m.map(f=>st[f]))})).sort((a,b)=>a.m.length-b.m.length||b.t-a.t);
+  const named=[];
+  rules.coal.forEach(rule=>{
+    const matches=rule.mode==='logic'||rule.variants&&rule.variants.length?res.filter(c=>coalitionMatches(rule,c.m)):rule.m.length&&rule.m.every(f=>st[f]>0)&&coalitionAllowed(rule.m,rules)&&sum(rule.m.map(f=>st[f]))>=M?[{m:rule.m.slice().sort((a,b)=>a-b),t:sum(rule.m.map(f=>st[f])),sp:rule.m.length?Math.max(...rule.m)-Math.min(...rule.m):0}]:[];
+    matches.forEach(c=>named.push(Object.assign({},c,{name:rule.n})));
+  });
+  named.sort((a,b)=>a.m.length-b.m.length||a.sp-b.sp||b.t-a.t);
   const seen={}, out=[]; named.concat(res.slice(0,4)).forEach(c=>{ const k=mkey(c.m); if(!seen[k]){ seen[k]=1; out.push(c); } });
-  return out.slice(0,6);
+  const namedCount=new Set(named.map(c=>mkey(c.m))).size, shown=out.slice(0,Math.max(6,namedCount)), counts={};
+  shown.forEach(c=>{ c.name=c.name||coName(c.m,rules); if(c.name) counts[c.name]=(counts[c.name]||0)+1; });
+  const indices={}; shown.forEach(c=>{ c.displayName=c.name&&counts[c.name]>1?c.name+' ('+((indices[c.name]=(indices[c.name]||0)+1))+')':c.name; });
+  return shown;
 }
 
 // ══════ Зал: d3-parliament ══════
@@ -230,7 +245,17 @@ const groups=()=>{ const g=[]; C.traits.forEach(x=>{ if(!g.includes(x.g)) g.push
 const cnt=n=>n+' '+plural(n,'question','questions','questions');
 function coalitionEditor(coal,prefix){
   const base=prefix?prefix+'.':'';
-  return '<div class="rows">'+coal.map((c,i)=>'<div class="coed"><div class="f-f" style="grid-template-columns:1fr 30px">'+inp(base+'coal.'+i+'.n',c.n,'aria-label="Coalition name" maxlength="60"')+'<button type="button" class="x" data-act="delCoal" data-i="'+i+'" aria-label="Delete coalition">×</button></div><div class="chips">'+C.fams.map((F,j)=>'<button type="button" class="chip" data-act="coM" data-i="'+i+'" data-j="'+j+'" aria-pressed="'+c.m.includes(j)+'">'+esc(F.n)+'</button>').join('')+'</div></div>').join('')+
+  return '<div class="rows">'+coal.map((c,i)=>{
+    const variant=c.variants&&c.variants.length?c.variants[0]:{required:c.m,optional:[]};
+    const exact='<div class="coed"><div class="chips">'+C.fams.map((F,f)=>{
+      const state=variant.required.includes(f)?'required':variant.optional.includes(f)?'optional':'none';
+      return '<button type="button" class="chip coal-member" data-act="coM" data-i="'+i+'" data-v="0" data-j="'+f+'" data-state="'+state+'" aria-pressed="'+(state!=='none')+'"><span>'+esc(F.n)+'</span>'+(state==='none'?'':'<small>'+(state==='required'?'(required)':'(optional)')+'</small>')+'</button>';
+    }).join('')+'</div></div>';
+    return '<div class="coed"><div class="f-f" style="grid-template-columns:1fr 30px">'+inp(base+'coal.'+i+'.n',c.n,'aria-label="Coalition name" maxlength="60"')+'<button type="button" class="x" data-act="delCoal" data-i="'+i+'" aria-label="Delete coalition">×</button></div>'+
+      '<button type="button" class="chip" data-act="coalMode" data-i="'+i+'">'+(c.mode==='logic'?'Mode: AND/OR conditions':'Mode: exact membership')+'</button>'+
+      (c.mode==='logic'?'<p class="hint">Parties in a row are joined by “AND”; rows are joined by “OR”.</p>'+(c.when||[]).map((condition,j)=>'<div class="coed"><div class="go"><b>“AND” row '+(j+1)+'</b><button type="button" class="x" data-act="delCoWhen" data-i="'+i+'" data-j="'+j+'" aria-label="Delete coalition condition">×</button></div><div class="chips">'+C.fams.map((F,f)=>'<button type="button" class="chip" data-act="coWhenM" data-i="'+i+'" data-j="'+j+'" data-f="'+f+'" aria-pressed="'+condition.includes(f)+'">'+esc(F.n)+'</button>').join('')+'</div></div>').join('')+'<button type="button" class="add" data-act="addCoWhen" data-i="'+i+'">+ Add an “or” condition</button>':
+        '<p class="hint">Click a party to cycle through required, optional, and unselected. Required parties must be in the coalition; optional parties may be included or left out.</p>'+exact)+'</div>';
+  }).join('')+
     '<button type="button" class="add" data-act="addCoal">+ Add a coalition name</button></div>';
 }
 function scenarioEditor(i){
@@ -453,7 +478,7 @@ function onAct(e){
   else if(a==='addFam'){ C.fams.push({n:'New party',c:'#8a8f9c',d:'',logo:'',tr:{},ppl:[],cap:-1}); OPEN['f'+(C.fams.length-1)]=true; rerender(); }
   else if(a==='copyFam'){ copyText(partyTransfer(i),()=>{ const status=$('#fam-copy-msg-'+i); if(status) status.textContent='Party data copied.'; },()=>{ const status=$('#fam-copy-msg-'+i); if(status) status.textContent='Could not copy. Allow clipboard access and try again.'; }); }
   else if(a==='importFam'){ importParty(); }
-  else if(a==='delFam'){ C.fams.splice(i,1); C.duo=[-1,-1]; const sh=x=>x>i?x-1:x; C.no=C.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); C.coal.forEach(c=>{ c.m=c.m.filter(x=>x!==i).map(sh); }); C.scenarios.forEach(s=>{ s.when.forEach(m=>{ const k=m.indexOf(i); if(k>=0) m.splice(k,1); m.forEach((x,j)=>{ if(x>i) m[j]--; }); }); s.when=s.when.filter(m=>m.length); s.no=s.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); }); VETO_VIEW={}; C.fams.forEach(F=>{ F.cap=F.cap===i?-1:sh(F.cap); }); Object.keys(OPEN).forEach(k=>{ if(k[0]==='f') delete OPEN[k]; }); rerender(); }
+  else if(a==='delFam'){ C.fams.splice(i,1); C.duo=[-1,-1]; const sh=x=>x>i?x-1:x, remap=m=>m.filter(x=>x!==i).map(sh); C.no=C.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); C.coal.forEach(c=>{ c.m=remap(c.m); c.when=(c.when||[]).map(remap).filter(m=>m.length); (c.variants||[]).forEach(v=>{ v.required=remap(v.required); v.optional=remap(v.optional); }); }); C.scenarios.forEach(s=>{ s.when.forEach(m=>{ const k=m.indexOf(i); if(k>=0) m.splice(k,1); m.forEach((x,j)=>{ if(x>i) m[j]--; }); }); s.when=s.when.filter(m=>m.length); s.no=s.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); }); VETO_VIEW={}; C.fams.forEach(F=>{ F.cap=F.cap===i?-1:sh(F.cap); }); Object.keys(OPEN).forEach(k=>{ if(k[0]==='f') delete OPEN[k]; }); rerender(); }
   else if(a==='delLogo'){ C.fams[i].logo=''; rerender(); }
   else if(a==='logoUrl'||a==='pimgUrl'){ const P=a==='pimgUrl'?C.fams[i].ppl[+b.dataset.j]:null, cur=P?P.img:C.fams[i].logo;
     const u=window.prompt('Ссылка на картинку (начинается с https://). Пустая строка убирает картинку.',isUrl(cur)?cur:''); if(u===null) return; const v=u.trim();
@@ -463,8 +488,12 @@ function onAct(e){
   else if(a==='delP'){ C.fams[i].ppl.splice(+b.dataset.j,1); rerender(); }
   else if(a==='veto'){ const j=+b.dataset.j, scope=+b.dataset.scenario, no=vetoList(scope), k=no.findIndex(p=>(p[0]===i&&p[1]===j)||(p[0]===j&&p[1]===i)); if(k>=0) no.splice(k,1); else no.push([i,j]); save();
     $$('[data-act="veto"]').forEach(x=>{ const xi=+x.dataset.i, xj=+x.dataset.j; if(+x.dataset.scenario===scope&&((xi===i&&xj===j)||(xi===j&&xj===i))) x.setAttribute('aria-pressed',k<0); }); updCo(); }
-  else if(a==='coM'){ const c=C.coal[i], j=+b.dataset.j, k=c.m.indexOf(j); if(k>=0) c.m.splice(k,1); else c.m.push(j); b.setAttribute('aria-pressed',k<0); save(); updCo(); }
-  else if(a==='addCoal'){ C.coal.push({n:'New coalition',m:[]}); rerender(); }
+  else if(a==='coM'){ const c=C.coal[i], v=+b.dataset.v, f=+b.dataset.j; if(!c.variants.length) c.variants=[{required:c.m.slice(),optional:[]}]; const variant=c.variants[v], state=b.dataset.state, next=state==='none'?'required':state==='required'?'optional':'none'; variant.required=variant.required.filter(x=>x!==f); variant.optional=variant.optional.filter(x=>x!==f); if(next==='required') variant.required.push(f); if(next==='optional') variant.optional.push(f); b.dataset.state=next; b.setAttribute('aria-pressed',next!=='none'); b.innerHTML='<span>'+esc(C.fams[f].n)+'</span>'+(next==='none'?'':'<small>'+(next==='required'?'(required)':'(optional)')+'</small>'); save(); updCo(); }
+  else if(a==='coalMode'){ const c=C.coal[i]; if(c.mode==='logic'){ c.mode='exact'; } else { c.mode='logic'; if(!c.when||!c.when.length) c.when=[c.m.slice()]; } rerender(); }
+  else if(a==='coWhenM'){ const condition=C.coal[i].when[+b.dataset.j], f=+b.dataset.f, k=condition.indexOf(f); if(k>=0) condition.splice(k,1); else condition.push(f); b.setAttribute('aria-pressed',k<0); save(); }
+  else if(a==='addCoWhen'){ C.coal[i].when.push([]); rerender(); }
+  else if(a==='delCoWhen'){ C.coal[i].when.splice(+b.dataset.j,1); if(!C.coal[i].when.length) C.coal[i].when.push([]); rerender(); }
+  else if(a==='addCoal'){ C.coal.push({n:'New coalition',m:[],mode:'exact',when:[],variants:[{required:[],optional:[]}]}); rerender(); }
   else if(a==='delCoal'){ C.coal.splice(i,1); rerender(); }
   else if(a==='coalView'){ CO_VIEW=i; rerender(); }
   else if(a==='addScenario'){ C.scenarios.push({n:'New scenario',when:[[]],no:C.no.map(p=>p.slice())}); CO_VIEW=C.scenarios.length-1; rerender(); }
@@ -707,7 +736,7 @@ function updResult(){
   const co=coalitions(st), bar=m=>'<div class="bar">'+m.map(f=>'<span style="width:'+(st[f]/C.seats*100)+'%;background:'+esc(C.fams[f].c)+'"></span>').join('')+'<em style="left:'+(M/C.seats*100)+'%"></em><em class="cm" style="left:'+(CM()/C.seats*100)+'%"></em></div><button type="button" class="chip" data-co="'+m.join(',')+'" style="margin-top:9px">Form a government</button>';
   $('#cobox').querySelector('h3').textContent=mode.scenario>=0?'Possible majorities and government · '+C.scenarios[mode.scenario].n:'Possible majorities and the government';
   $('#coal').innerHTML=solo&&mode.scenario<0?'<div class="co"><div class="t"><span>'+esc(C.fams[L].n)+' alone</span><em>'+st[L]+'</em></div>'+bar([L])+'</div>':
-    co.length?co.map(c=>{ const nm=coName(c.m,rules), ps=c.m.map(f=>esc(C.fams[f].n)).join(' + '); return '<div class="co"><div class="t"><span>'+(nm?esc(nm)+'<small>'+ps+'</small>':ps)+'</span><em>'+c.t+'</em></div>'+bar(c.m)+'</div>'; }).join(''):'<p class="hint">With this result, no permitted alliance reaches '+M+'.</p>';
+    co.length?co.map(c=>{ const nm=c.displayName, ps=c.m.map(f=>esc(C.fams[f].n)).join(' + '); return '<div class="co"><div class="t"><span>'+(nm?esc(nm)+'<small>'+ps+'</small>':ps)+'</span><em>'+c.t+'</em></div>'+bar(c.m)+'</div>'; }).join(''):'<p class="hint">With this result, no permitted alliance reaches '+M+'.</p>';
   wikibox(st,li,di,bo); try{ worldBoxes(st,scope,co); }catch(e){ if(window.console) console.error(e); }
   try{ const fb=$('#futbox'); if(fb) fb.innerHTML=futureBox(st); }catch(e){ if(window.console) console.error(e); }
   S.st=st; S.pick=S.pick.filter(f=>st[f]>0); const pick=Array.from(new Set(S.pick)), pt=sum(pick.map(f=>st[f])), vp=vetoPair(pick,rules), pn=coName(pick,rules);
@@ -760,7 +789,7 @@ function staff(asg,ord){
   return min;
 }
 function viewCabinet(m){
-  const st=S.st, M=maj(), mode=coalitionMode(st), rules=mode.rules; m=m.filter(f=>st[f]>0).sort((a,b)=>st[b]-st[a]||a-b); if(!m.length||!coalitionAllowed(m,rules)) return; const cn=coName(m,rules);
+  const st=S.st, M=maj(), mode=coalitionMode(st), rules=mode.rules; m=m.filter(f=>st[f]>0).sort((a,b)=>st[b]-st[a]||a-b); if(!m.length||!coalitionAllowed(m,rules)) return; const listed=coalitions(st).find(c=>mkey(c.m)===mkey(m)), cn=listed?listed.displayName:coName(m,rules);
   const auto=draft(m,st), asg=Object.assign({},auto.asg), amin=staff(auto.asg,auto.ord), min=Object.assign({},amin), tot=sum(m.map(f=>st[f])), n=PORT.length;
   const anyP=m.some(f=>C.fams[f].ppl.length);
   window.scrollTo(0,0);
