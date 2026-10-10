@@ -10,7 +10,7 @@ const mest=n=>n+' '+plural(n,'seat','seats','seats');
 
 function defaults(set,raw){ raw=raw||{T:DEF_T,F:DEF_F,Q:DEF_Q}; const ix=n=>raw.F.findIndex(f=>f[0]===n);
   return Object.assign({name:'Standard',seats:350,sys:'prop',party:'auto',duo:[-1,-1],year:0,span:true,dshare:50,lowpri:false,thr:0,thron:false,key:'',gate:raw.gate?ix(raw.gate[0]):-1,gnote:raw.gate?raw.gate[1]:'',
-  no:(raw.no||[]).map(p=>p.map(ix)),coal:(raw.co||[]).map(x=>({n:x[0],m:x[1].map(ix)})),
+  no:(raw.no||[]).map(p=>p.map(ix)),coal:(raw.co||[]).map(x=>({n:x[0],m:x[1].map(ix)})),scenarios:[],
   traits:TR.map(([id,n,g])=>({id,n,g})),
   topics:raw.T.map(([n,s,c,lo,hi])=>({n,s,c,lo,hi})),
   fams:raw.F.map(([n,c,d,tr,sm])=>({n,c,d,logo:'',sm:sm!=null?!!sm:(()=>{ const x=/Party-list vote: ([\d.]+)%/.exec(d); return !!x&&parseFloat(x[1].replace(',','.'))<5; })(),tr:Object.assign({},tr),ppl:((raw.P||{})[n]||[]).map(p=>({n:p[0],s:p[1]})),cap:(()=>{ const c=(raw.cap||[]).find(x=>x[0]===n); return c?ix(c[1]):-1; })()})),
@@ -33,6 +33,12 @@ function norm(c){
   const nf=c.fams.length, okf=x=>Number.isInteger(x)&&x>=0&&x<nf;
   c.no=(Array.isArray(c.no)?c.no:[]).filter(p=>Array.isArray(p)&&okf(p[0])&&okf(p[1])&&p[0]!==p[1]).map(p=>[p[0],p[1]]);
   c.coal=(Array.isArray(c.coal)?c.coal:[]).filter(x=>x&&Array.isArray(x.m)).map(x=>({n:String(x.n||'Coalition').slice(0,60),m:x.m.filter(okf)}));
+  if(!Array.isArray(c.scenarios)) c.scenarios=[];
+  c.scenarios=c.scenarios.filter(x=>x&&typeof x==='object').map(x=>({
+    n:String(x.n||'New scenario').slice(0,60),
+    when:(Array.isArray(x.when)?x.when:[]).map(m=>Array.isArray(m)?m.filter((f,i,a)=>okf(f)&&a.indexOf(f)===i):[]),
+    no:(Array.isArray(x.no)?x.no:c.no).filter(p=>Array.isArray(p)&&okf(p[0])&&okf(p[1])&&p[0]!==p[1]).map(p=>[p[0],p[1]])
+  }));
   c.span=c.span!==false; c.year=Math.round(+c.year)||0;
   c.dshare=Number.isFinite(+c.dshare)&&c.dshare!==null&&c.dshare!==undefined?Math.max(0,Math.min(100,Math.round(+c.dshare))):50;
   c.thr=Math.max(0,Math.min(20,Math.round((+c.thr||0)*2)/2)); c.thron=!!c.thron; c.key=typeof c.key==='string'?c.key.slice(0,12):'';
@@ -146,21 +152,46 @@ function totals(scope,P){ const B=blocks(scope,P), st=Array(C.fams.length).fill(
 function themePos(t){ let s=0,n=0; S.qs.forEach((q,i)=>{ const v=S.ans[i]; if(q.t===t&&v!=null){ s+=q.d*v; n++; } }); return n?s/n:null; }
 function famPos(f,t){ let s=0,n=0; S.qs.forEach((q,i)=>{ if(q.t===t){ s+=q.d*S.pp[i][f]; n++; } }); return n?s/n:0; }
 function leader(st){ let b=0; st.forEach((v,f)=>{ if(v>st[b]) b=f; }); return b; }
-const vetoed=(a,b)=>C.no.some(p=>(p[0]===a&&p[1]===b)||(p[0]===b&&p[1]===a));
-function vetoPair(m){ for(let i=0;i<m.length;i++) for(let j=i+1;j<m.length;j++) if(vetoed(m[i],m[j])) return [m[i],m[j]]; return null; }
+const vetoed=(a,b,rules=C)=>rules.no.some(p=>(p[0]===a&&p[1]===b)||(p[0]===b&&p[1]===a));
+function vetoPair(m,rules=C){ for(let i=0;i<m.length;i++) for(let j=i+1;j<m.length;j++) if(vetoed(m[i],m[j],rules)) return [m[i],m[j]]; return null; }
 const mkey=m=>m.slice().sort((a,b)=>a-b).join(',');
-function coName(m){ const k=mkey(m), c=C.coal.find(x=>x.m.length&&mkey(x.m)===k); return c?c.n:''; }
+function coName(m,rules=C){ const k=mkey(m), c=rules.coal.find(x=>x.m.length&&mkey(x.m)===k); return c?c.n:''; }
+function coalitionAllowed(m,rules){
+  return !(rules.span&&m.length&&Math.max(...m)-Math.min(...m)>3)&&!vetoPair(m,rules);
+}
+function coalitionExists(st,rules,excluded){
+  const M=maj(), fs=st.map((v,i)=>i).filter(i=>v>0&&!excluded.includes(i));
+  let found=false;
+  (function rec(start,cur){
+    if(found) return;
+    if(cur.length){ if(!coalitionAllowed(cur,rules)) return;
+      if(sum(cur.map(i=>st[i]))>=M){ found=true; return; } }
+    for(let k=start;k<fs.length&&!found;k++){ cur.push(fs[k]); rec(k+1,cur); cur.pop(); }
+  })(0,[]);
+  return found;
+}
+function coalitionMode(st){
+  const ranked=st.map((v,i)=>({v,i})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+  for(let s=0;s<C.scenarios.length;s++){ const scenario=C.scenarios[s];
+    for(const condition of scenario.when){ if(!condition.length) continue;
+      const cutoff=ranked[Math.min(condition.length-1,ranked.length-1)];
+      if(!cutoff||!condition.every(f=>st[f]>0&&st[f]>=cutoff.v)) continue;
+      if(!coalitionExists(st,C,condition)) return {rules:Object.assign({},C,{no:scenario.no}),required:condition,scenario:s};
+    }
+  }
+  return {rules:C,required:[],scenario:-1};
+}
 // Порядок партий в конструкторе — ось слева направо. Союз невозможен, если в нём есть пара, отказавшаяся работать вместе,
 // а при включённом правиле соседей — если он шире трёх шагов по оси. Союзы с названием показываются первыми.
 function coalitions(st){
-  const M=maj(), fs=st.map((v,i)=>i).filter(i=>st[i]>0), res=[];
+  const mode=coalitionMode(st), rules=mode.rules, required=mode.required, M=maj(), fs=st.map((v,i)=>i).filter(i=>st[i]>0), res=[];
   (function rec(start,cur){
-    if(cur.length){ const sp=cur[cur.length-1]-cur[0]; if((C.span&&sp>3)||vetoPair(cur)) return; const tot=sum(cur.map(i=>st[i]));
-      if(tot>=M){ if(cur.every(i=>tot-st[i]<M)) res.push({m:cur.slice(),t:tot,sp}); return; } }
+    if(cur.length){ const sp=cur[cur.length-1]-cur[0]; if(!coalitionAllowed(cur,rules)) return; const tot=sum(cur.map(i=>st[i]));
+      if(tot>=M){ if(required.every(f=>cur.includes(f))&&cur.every(i=>required.includes(i)||tot-st[i]<M)) res.push({m:cur.slice(),t:tot,sp}); if(required.every(f=>cur.includes(f))) return; } }
     for(let k=start;k<fs.length;k++){ cur.push(fs[k]); rec(k+1,cur); cur.pop(); }
   })(0,[]);
   res.sort((a,b)=>a.m.length-b.m.length||a.sp-b.sp||b.t-a.t);
-  const named=C.coal.filter(c=>c.m.length&&c.m.every(f=>st[f]>0)&&!vetoPair(c.m)&&sum(c.m.map(f=>st[f]))>=M).map(c=>({m:c.m.slice().sort((a,b)=>a-b),t:sum(c.m.map(f=>st[f]))})).sort((a,b)=>a.m.length-b.m.length||b.t-a.t);
+  const named=rules.coal.filter(c=>c.m.length&&required.every(f=>c.m.includes(f))&&c.m.every(f=>st[f]>0)&&coalitionAllowed(c.m,rules)&&sum(c.m.map(f=>st[f]))>=M).map(c=>({m:c.m.slice().sort((a,b)=>a-b),t:sum(c.m.map(f=>st[f]))})).sort((a,b)=>a.m.length-b.m.length||b.t-a.t);
   const seen={}, out=[]; named.concat(res.slice(0,4)).forEach(c=>{ const k=mkey(c.m); if(!seen[k]){ seen[k]=1; out.push(c); } });
   return out.slice(0,6);
 }
@@ -192,11 +223,24 @@ const face=p=>p?(p.img||PH[p.n]||''):'';
 const mark=F=>lg(F)?'<img class="logo" src="'+esc(lg(F))+'" alt="" style="border-color:'+esc(F.c)+'">':'<i class="dot" style="background:'+esc(F.c)+'"></i>';
 
 // ══════ 1. Конструктор ══════
-const OPEN={}; let PREV=null, PMSG='';
+const OPEN={}; let PREV=null, PMSG='', CO_VIEW=-1, VETO_VIEW={};
 const inp=(k,v,extra)=>'<input class="in" id="f-'+k.replace(/\./g,'-')+'" data-k="'+k+'" value="'+esc(v)+'" '+(extra||'')+'>';
 const tname=id=>(C.traits.find(x=>x.id===id)||{n:id}).n;
 const groups=()=>{ const g=[]; C.traits.forEach(x=>{ if(!g.includes(x.g)) g.push(x.g); }); return g; };
 const cnt=n=>n+' '+plural(n,'question','questions','questions');
+function coalitionEditor(coal,prefix){
+  const base=prefix?prefix+'.':'';
+  return '<div class="rows">'+coal.map((c,i)=>'<div class="coed"><div class="f-f" style="grid-template-columns:1fr 30px">'+inp(base+'coal.'+i+'.n',c.n,'aria-label="Coalition name" maxlength="60"')+'<button type="button" class="x" data-act="delCoal" data-i="'+i+'" aria-label="Delete coalition">×</button></div><div class="chips">'+C.fams.map((F,j)=>'<button type="button" class="chip" data-act="coM" data-i="'+i+'" data-j="'+j+'" aria-pressed="'+c.m.includes(j)+'">'+esc(F.n)+'</button>').join('')+'</div></div>').join('')+
+    '<button type="button" class="add" data-act="addCoal">+ Add a coalition name</button></div>';
+}
+function scenarioEditor(i){
+  const s=C.scenarios[i], path='scenarios.'+i;
+  return '<div class="rows">'+
+    '<div class="f-f" style="grid-template-columns:1fr 30px">'+inp(path+'.n',s.n,'aria-label="Scenario name" maxlength="60"')+'<button type="button" class="x" data-act="delScenario" data-i="'+i+'" aria-label="Delete scenario">×</button></div>'+
+    '<p class="hint">A scenario applies when the parties in one condition lead and a majority cannot be formed without them under the standard vetoes. Conditions are joined by “or”. Set this scenario’s vetoes in the party cards.</p>'+
+    '<span class="lbl">Trigger conditions</span>'+s.when.map((condition,j)=>'<div class="coed"><div class="go"><b>Condition '+(j+1)+'</b><button type="button" class="x" data-act="delWhen" data-i="'+i+'" data-j="'+j+'" aria-label="Delete condition">×</button></div><div class="chips">'+C.fams.map((F,f)=>'<button type="button" class="chip" data-act="conditionM" data-i="'+i+'" data-j="'+j+'" data-f="'+f+'" aria-pressed="'+condition.includes(f)+'">'+esc(F.n)+'</button>').join('')+'</div><small class="hint">Selected parties must be among the leaders.</small></div>').join('')+
+    '<button type="button" class="add" data-act="addWhen" data-i="'+i+'">+ Add an “or” condition</button></div>';
+}
 function viewBuild(){
   toBuild.hidden=true; window.scrollTo(0,0);
   app.innerHTML='<div class="stack" id="build">'+
@@ -230,14 +274,15 @@ function viewBuild(){
     '<div class="rows">'+C.fams.map((F,i)=>'<details class="card" data-o="f'+i+'"'+(OPEN['f'+i]?' open':'')+'><summary><span data-fm="'+i+'">'+mark(F)+'</span><span data-fn="'+i+'">'+esc(F.n)+'</span><small data-ft="'+i+'"></small></summary><div class="c-body" data-fb="'+i+'">'+(OPEN['f'+i]?famBody(i):'')+'</div></details>').join('')+
     (C.fams.length<12?'<button type="button" class="add" data-act="addFam">+ Add party</button>':'')+'</div></div></details>'+
   '<details class="step box sec" data-o="s4"'+(OPEN.s4?' open':'')+'><summary><span class="num">4</span><h2>Coalitions</h2><span class="sec-t"><span class="t-open">Open</span><span class="t-close">Collapse</span></span></summary><div class="sec-b"><p class="hint">Alliance names appear in the results when a coalition has exactly that membership. Refusals to work together are set in the party cards.</p>'+
-    '<div class="rows"><div class="note" id="co-veto"></div>'+C.coal.map((c,i)=>'<div class="coed"><div class="f-f" style="grid-template-columns:1fr 30px">'+inp('coal.'+i+'.n',c.n,'aria-label="Coalition name" maxlength="60"')+'<button type="button" class="x" data-act="delCoal" data-i="'+i+'" aria-label="Delete coalition">×</button></div><div class="chips">'+C.fams.map((F,j)=>'<button type="button" class="chip" data-act="coM" data-i="'+i+'" data-j="'+j+'" aria-pressed="'+c.m.includes(j)+'">'+esc(F.n)+'</button>').join('')+'</div><small class="hint" data-cw="'+i+'"></small></div>').join('')+
-    '<button type="button" class="add" data-act="addCoal">+ Add a coalition name</button>'+
-    '<label class="chk"><input type="checkbox" id="f-span" data-k="span"'+(C.span?' checked':'')+'> Only neighbours on the axis may unite: no more than three steps apart</label></div></div></details>'+
+    '<div class="chips" style="margin-bottom:10px"><button type="button" class="chip" data-act="coalView" data-i="-1" aria-pressed="'+(CO_VIEW<0)+'">Standard settings</button>'+C.scenarios.map((s,i)=>'<button type="button" class="chip" data-act="coalView" data-i="'+i+'" data-scenario-tab="'+i+'" aria-pressed="'+(CO_VIEW===i)+'">'+esc(s.n||'Scenario '+(i+1))+'</button>').join('')+'<button type="button" class="add" data-act="addScenario">+ Add scenario</button></div>'+
+    (CO_VIEW<0?'<div class="rows"><div class="note" id="co-veto"></div>'+coalitionEditor(C.coal,'')+
+    '<label class="chk"><input type="checkbox" id="f-span" data-k="span"'+(C.span?' checked':'')+'> Only neighbours on the axis may unite: no more than three steps apart</label></div>':scenarioEditor(CO_VIEW))+
+    '</div></div></details>'+
   '<details class="step sec" data-o="s5"'+(OPEN.s5?' open':'')+'><summary><span class="num">5</span><h2>Topics and questions</h2><span class="sec-t"><span class="t-open">Open</span><span class="t-close">Collapse</span></span></summary><div class="sec-b"><p class="hint">Each answer option has its own traits: parties with those traits are drawn to it. The dots under a question show where the parties end up.</p>'+
     '<div class="rows">'+C.topics.map((T,t)=>'<details class="card" data-o="t'+t+'"'+(OPEN['t'+t]?' open':'')+'><summary><i class="dot" data-tc="'+t+'" style="background:'+esc(T.c)+'"></i><span data-tn="'+t+'">'+esc(T.n)+'</span><small data-tq="'+t+'"></small></summary><div class="c-body" data-tb="'+t+'">'+(OPEN['t'+t]?topicBody(t):'')+'</div></details>').join('')+
     '<button type="button" class="add" data-act="addTopic">+ Add topic</button></div></div></details>'+
   '<details class="io box" data-o="io"'+(OPEN.io?' open':'')+'><summary>Move the test to another device</summary><p class="hint">Copy the text below and paste it into the test on another device.</p>'+
-    '<textarea class="in" id="io" spellcheck="false" aria-label="The test as text"></textarea><div class="r"><button type="button" class="chip" data-act="exp">Show the current test</button><button type="button" class="chip" data-act="copy">Copy</button><button type="button" class="chip" data-act="imp">Load from text</button><span class="hint" id="io-msg"></span></div></details>'+
+    '<textarea class="in" id="io" spellcheck="false" aria-label="The test as text"></textarea><div class="r"><button type="button" class="chip" data-act="exp">Show the current test</button><button type="button" class="chip" data-act="copy">Copy</button><button type="button" class="chip" data-act="imp">Load from text</button><span class="hint" id="io-msg" role="status" aria-live="polite"></span></div></details>'+
   '<div class="launch"><button type="button" class="cta" data-act="run" id="run">Start the test</button><span id="run-info"></span></div>'+
   '</div>';
   const root=$('#build');
@@ -253,15 +298,17 @@ function updCo(){
   v.textContent=C.no.length?'Won’t work together: '+C.no.map(p=>C.fams[p[0]].n+' and '+C.fams[p[1]].n).join('; ')+'.':'No refusals: any parties can join the same coalition.';
   C.coal.forEach((c,i)=>{ const el=$('[data-cw="'+i+'"]'); if(!el) return; const vp=vetoPair(c.m); el.textContent=vp?'This alliance is impossible: “'+C.fams[vp[0]].n+'” and “'+C.fams[vp[1]].n+'” refuse to work together.':''; });
 }
+function vetoList(scope){ return scope>=0&&C.scenarios[scope]?C.scenarios[scope].no:C.no; }
 function famBody(i){
   const F=C.fams[i];
+  const scope=Number.isInteger(VETO_VIEW[i])?VETO_VIEW[i]:-1, no=vetoList(scope), vetoRules={no};
   return '<div class="f-f"><input type="color" id="f-fams-'+i+'-c" data-k="fams.'+i+'.c" value="'+esc(F.c)+'" aria-label="Colour">'+inp('fams.'+i+'.n',F.n,'aria-label="Party name"')+'<span class="fd">'+inp('fams.'+i+'.d',F.d,'aria-label="Description" placeholder="Short description"')+'</span><button type="button" class="x" data-act="delFam" data-i="'+i+'" aria-label="Delete party"'+(C.fams.length<=2?' disabled':'')+'>×</button></div>'+
     '<div class="f-logo">'+(lg(F)?'<img class="logo" src="'+esc(lg(F))+'" alt="Logo" style="border-color:'+esc(F.c)+'">':'<span class="ph">logo</span>')+'<label for="logo-'+i+'">Logo</label><input type="file" id="logo-'+i+'" data-logo="'+i+'" accept="image/*"><button type="button" class="chip" data-act="logoUrl" data-i="'+i+'">Set by link</button>'+(F.logo?'<button type="button" class="link" data-act="delLogo" data-i="'+i+'">Remove logo</button>':'')+'</div>'+
     '<div class="tg"><span>Size</span><div><label class="chk"><input type="checkbox" id="sm-'+i+'" data-sm="'+i+'"'+(F.sm?' checked':'')+'> Minor party: its priority is lowered if this is switched on in the parliament settings</label></div></div>'+
     '<div class="tg"><span>Special rule</span><div><select class="in" id="f-fams-'+i+'-cap" data-k="fams.'+i+'.cap" data-int="1" aria-label="Special rule for the party"><option value="-1">None: seats are counted as for everyone else</option>'+C.fams.map((G,j)=>j===i?'':'<option value="'+j+'"'+(F.cap===j?' selected':'')+'>Only one single-member district; all other seats go to “'+esc(G.n)+'”</option>').join('')+'</select></div></div>'+
     '<div class="tg"><span>Characters</span><div class="ppl">'+F.ppl.map((p,j)=>'<div class="pp">'+(face(p)?'<img class="ava sm" src="'+esc(face(p))+'" alt="">':'<span class="ava sm ph"></span>')+inp('fams.'+i+'.ppl.'+j+'.n',p.n,'aria-label="Character name" maxlength="60" placeholder="Name"')+'<select class="in" id="f-fams-'+i+'-ppl-'+j+'-s" data-k="fams.'+i+'.ppl.'+j+'.s" aria-label="Preferred portfolio"><option value="">'+(j?'No specialty':'Leader, no specialty')+'</option>'+PORT.filter(x=>x[0]!=='pm').map(x=>'<option value="'+x[0]+'"'+(p.s===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><label class="chip up" title="Upload your own photo">Photo<input type="file" accept="image/*" id="pimg-'+i+'-'+j+'" data-pimg="'+i+','+j+'" hidden></label><button type="button" class="chip" data-act="pimgUrl" data-i="'+i+'" data-j="'+j+'" title="Set a photo by link">Link</button><button type="button" class="x" data-act="delP" data-i="'+i+'" data-j="'+j+'" aria-label="Delete character">×</button></div>').join('')+
       (F.ppl.length<12?'<button type="button" class="add" data-act="addP" data-i="'+i+'">+ Add character</button>':'')+'<small class="hint">The first on the list is the leader: they become prime minister if the party heads the government. The specialty hints at which ministry suits the person. The photo is matched by name; you can upload your own with the “Photo” button or set one with the “Link” button.</small></div></div>'+
-    '<div class="tg"><span>Will not join a coalition with</span><div class="chips">'+C.fams.map((G,j)=>j===i?'':'<button type="button" class="chip veto" data-act="veto" data-i="'+i+'" data-j="'+j+'" aria-pressed="'+vetoed(i,j)+'">'+esc(G.n)+'</button>').join('')+'</div></div>'+
+    '<div class="tg"><span>Will not join a coalition with</span><div><select class="in" data-veto-scope data-i="'+i+'" aria-label="Coalition veto scenario"><option value="-1"'+(scope<0?' selected':'')+'>Standard scenario</option>'+C.scenarios.map((s,j)=>'<option value="'+j+'" data-veto-option="'+j+'"'+(scope===j?' selected':'')+'>'+esc(s.n||'Scenario '+(j+1))+'</option>').join('')+'</select><div class="chips" style="margin-top:6px">'+C.fams.map((G,j)=>j===i?'':'<button type="button" class="chip veto" data-act="veto" data-i="'+i+'" data-j="'+j+'" data-scenario="'+scope+'" aria-pressed="'+vetoed(i,j,vetoRules)+'">'+esc(G.n)+'</button>').join('')+'</div></div></div>'+
     groups().map(g=>'<div class="tg"><span>'+esc(g)+'</span><div class="chips">'+C.traits.filter(x=>x.g===g).map(x=>{ const l=F.tr[x.id]||0; return '<button type="button" class="tchip" data-act="tr" data-i="'+i+'" data-id="'+esc(x.id)+'" data-l="'+l+'" aria-pressed="'+(l>0)+'">'+esc(x.n)+'<small>'+SL[l]+'</small></button>'; }).join('')+'</div></div>').join('');
 }
 function topicBody(t){
@@ -326,6 +373,7 @@ function onInput(e){
   const k=el.dataset.k; if(!k) return;
   const v=el.type==='checkbox'?el.checked:el.dataset.int?+el.value:el.value;
   const ps=k.split('.'); let o=C; for(let i=0;i<ps.length-1;i++) o=o[ps[i]]; o[ps[ps.length-1]]=v; save();
+  if(ps[0]==='scenarios'&&ps[2]==='n'){ const name=v||'Scenario '+(+ps[1]+1), tab=$('[data-scenario-tab="'+ps[1]+'"]'); if(tab) tab.textContent=name; $$('[data-veto-option="'+ps[1]+'"]').forEach(option=>option.textContent=name); }
   if(el.type==='checkbox'){ const qe=el.closest('.q'); if(qe){ qe.classList.toggle('off',!v); updParl(); updMeta(); } }
   if(ps[0]==='topics'){ const t=ps[1]; if(ps[2]==='n') $('[data-tn="'+t+'"]').textContent=v; if(ps[2]==='c') $('[data-tc="'+t+'"]').style.background=v; }
   if(ps[0]==='fams'){ const i=ps[1]; if(ps[2]==='n') $('[data-fn="'+i+'"]').textContent=v; if(ps[2]==='c'){ $('[data-fm="'+i+'"]').innerHTML=mark(C.fams[i]); refreshAxes(); } }
@@ -333,6 +381,7 @@ function onInput(e){
 function rerender(){ const keep=window.scrollY; save(); viewBuild(); window.scrollTo(0,keep); }
 function onChange(e){
   const el=e.target;
+  if(el.dataset.vetoScope!==undefined){ VETO_VIEW[+el.dataset.i]=+el.value; rerender(); return; }
   if(el.dataset.pimg&&el.files&&el.files[0]){ const [pi,pj]=el.dataset.pimg.split(',').map(Number), file=el.files[0]; if(!/^image\//.test(file.type)) return;
     const rd=new FileReader(); rd.onload=()=>{ const im=new Image(); im.onload=()=>{ const w=120, hh=150, c=document.createElement('canvas'); c.width=w; c.height=hh; const k=Math.max(w/im.width,hh/im.height);
       c.getContext('2d').drawImage(im,(w-im.width*k)/2,(hh-im.height*k)/2,im.width*k,im.height*k); try{ C.fams[pi].ppl[pj].img=c.toDataURL('image/jpeg',.82); }catch(_){ return; } rerender(); }; im.src=rd.result; }; rd.readAsDataURL(file); return; }
@@ -341,7 +390,7 @@ function onChange(e){
     const rd=new FileReader(); rd.onload=()=>{ const im=new Image(); im.onload=()=>{ const s=96, c=document.createElement('canvas'); c.width=c.height=s; const k=Math.min(s/im.width,s/im.height), w=im.width*k, h=im.height*k;
       c.getContext('2d').drawImage(im,(s-w)/2,(s-h)/2,w,h); try{ C.fams[i].logo=c.toDataURL('image/png'); }catch(_){ return; } rerender(); }; im.src=rd.result; }; rd.readAsDataURL(file); }
 }
-function loadCfg(c,msg){ PREV=JSON.stringify(C); C=c; PMSG=msg; Object.keys(OPEN).forEach(k=>delete OPEN[k]); save(); viewBuild(); }
+function loadCfg(c,msg){ PREV=JSON.stringify(C); C=c; CO_VIEW=-1; VETO_VIEW={}; PMSG=msg; Object.keys(OPEN).forEach(k=>delete OPEN[k]); save(); viewBuild(); }
 function onAct(e){
   const b=e.target.closest('[data-act]'); if(!b) return; const a=b.dataset.act, i=+b.dataset.i, id=b.dataset.id;
   const clearQ=()=>Object.keys(OPEN).forEach(k=>{ if(k[0]==='q') delete OPEN[k]; });
@@ -359,7 +408,7 @@ function onAct(e){
   else if(a==='tr'){ const F=C.fams[i], l=((F.tr[id]||0)+1)%4; if(l) F.tr[id]=l; else delete F.tr[id]; b.dataset.l=l; b.setAttribute('aria-pressed',l>0); b.querySelector('small').textContent=SL[l]; save(); updMeta(); refreshAxes(); }
   else if(a==='untr'){ const q=C.qs[i], s=b.dataset.s; q[s]=q[s].filter(x=>x!==id); save(); refreshQ(i); }
   else if(a==='addFam'){ C.fams.push({n:'New party',c:'#8a8f9c',d:'',logo:'',tr:{},ppl:[],cap:-1}); OPEN['f'+(C.fams.length-1)]=true; rerender(); }
-  else if(a==='delFam'){ C.fams.splice(i,1); C.duo=[-1,-1]; const sh=x=>x>i?x-1:x; C.no=C.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); C.coal.forEach(c=>{ c.m=c.m.filter(x=>x!==i).map(sh); }); C.fams.forEach(F=>{ F.cap=F.cap===i?-1:sh(F.cap); }); Object.keys(OPEN).forEach(k=>{ if(k[0]==='f') delete OPEN[k]; }); rerender(); }
+  else if(a==='delFam'){ C.fams.splice(i,1); C.duo=[-1,-1]; const sh=x=>x>i?x-1:x; C.no=C.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); C.coal.forEach(c=>{ c.m=c.m.filter(x=>x!==i).map(sh); }); C.scenarios.forEach(s=>{ s.when.forEach(m=>{ const k=m.indexOf(i); if(k>=0) m.splice(k,1); m.forEach((x,j)=>{ if(x>i) m[j]--; }); }); s.when=s.when.filter(m=>m.length); s.no=s.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); }); VETO_VIEW={}; C.fams.forEach(F=>{ F.cap=F.cap===i?-1:sh(F.cap); }); Object.keys(OPEN).forEach(k=>{ if(k[0]==='f') delete OPEN[k]; }); rerender(); }
   else if(a==='delLogo'){ C.fams[i].logo=''; rerender(); }
   else if(a==='logoUrl'||a==='pimgUrl'){ const P=a==='pimgUrl'?C.fams[i].ppl[+b.dataset.j]:null, cur=P?P.img:C.fams[i].logo;
     const u=window.prompt('Ссылка на картинку (начинается с https://). Пустая строка убирает картинку.',isUrl(cur)?cur:''); if(u===null) return; const v=u.trim();
@@ -367,11 +416,17 @@ function onAct(e){
     if(P) P.img=v; else C.fams[i].logo=v; rerender(); }
   else if(a==='addP'){ C.fams[i].ppl.push({n:'New character',s:'',img:''}); rerender(); }
   else if(a==='delP'){ C.fams[i].ppl.splice(+b.dataset.j,1); rerender(); }
-  else if(a==='veto'){ const j=+b.dataset.j, k=C.no.findIndex(p=>(p[0]===i&&p[1]===j)||(p[0]===j&&p[1]===i)); if(k>=0) C.no.splice(k,1); else C.no.push([i,j]); save();
-    $$('[data-act="veto"]').forEach(x=>{ const xi=+x.dataset.i, xj=+x.dataset.j; if((xi===i&&xj===j)||(xi===j&&xj===i)) x.setAttribute('aria-pressed',k<0); }); updCo(); }
+  else if(a==='veto'){ const j=+b.dataset.j, scope=+b.dataset.scenario, no=vetoList(scope), k=no.findIndex(p=>(p[0]===i&&p[1]===j)||(p[0]===j&&p[1]===i)); if(k>=0) no.splice(k,1); else no.push([i,j]); save();
+    $$('[data-act="veto"]').forEach(x=>{ const xi=+x.dataset.i, xj=+x.dataset.j; if(+x.dataset.scenario===scope&&((xi===i&&xj===j)||(xi===j&&xj===i))) x.setAttribute('aria-pressed',k<0); }); updCo(); }
   else if(a==='coM'){ const c=C.coal[i], j=+b.dataset.j, k=c.m.indexOf(j); if(k>=0) c.m.splice(k,1); else c.m.push(j); b.setAttribute('aria-pressed',k<0); save(); updCo(); }
   else if(a==='addCoal'){ C.coal.push({n:'New coalition',m:[]}); rerender(); }
   else if(a==='delCoal'){ C.coal.splice(i,1); rerender(); }
+  else if(a==='coalView'){ CO_VIEW=i; rerender(); }
+  else if(a==='addScenario'){ C.scenarios.push({n:'New scenario',when:[[]],no:C.no.map(p=>p.slice())}); CO_VIEW=C.scenarios.length-1; rerender(); }
+  else if(a==='delScenario'){ C.scenarios.splice(i,1); VETO_VIEW=Object.keys(VETO_VIEW).reduce((out,f)=>{ const s=VETO_VIEW[f]; out[f]=s===i?-1:s>i?s-1:s; return out; },{}); CO_VIEW=-1; rerender(); }
+  else if(a==='addWhen'){ C.scenarios[i].when.push([]); rerender(); }
+  else if(a==='delWhen'){ C.scenarios[i].when.splice(+b.dataset.j,1); rerender(); }
+  else if(a==='conditionM'){ const m=C.scenarios[i].when[+b.dataset.j], f=+b.dataset.f, k=m.indexOf(f); if(k>=0) m.splice(k,1); else m.push(f); b.setAttribute('aria-pressed',k<0); save(); }
   else if(a==='addTopic'){ C.topics.push({n:'New topic',s:'',c:'#b7a3e8',lo:'Left pole',hi:'Right pole'}); OPEN['t'+(C.topics.length-1)]=true; rerender(); }
   else if(a==='delTopic'){ C.topics.splice(i,1); C.qs=C.qs.filter(q=>q.t!==i); C.qs.forEach(q=>{ if(q.t>i) q.t--; }); Object.keys(OPEN).forEach(k=>{ if(k[0]==='t') delete OPEN[k]; }); rerender(); }
   else if(a==='addQ'){ let at=C.qs.length; for(let k=C.qs.length-1;k>=0;k--) if(C.qs[k].t===i){ at=k+1; break; }
@@ -380,9 +435,21 @@ function onAct(e){
   else if(a==='exp'){ $('#io').value=JSON.stringify(C); $('#io-msg').textContent='The current test is shown in the field.'; }
   else if(a==='copy'){ const ta=$('#io'); if(!ta.value) ta.value=JSON.stringify(C); const sel=()=>{ ta.select(); $('#io-msg').textContent='The text is selected: copy it manually.'; };
     try{ navigator.clipboard.writeText(ta.value).then(()=>{ $('#io-msg').textContent='Copied.'; },sel); }catch(_){ sel(); } }
-  else if(a==='imp'){ let c=null; try{ c=norm(JSON.parse($('#io').value)); }catch(_){}
-    if(!c){ $('#io-msg').textContent='Could not read the text. Paste it in full, from the first curly brace to the last.'; return; }
-    OPEN.io=true; const io=OPEN.io; loadCfg(c,'Test loaded from text.'); OPEN.io=io; }
+  else if(a==='imp'){
+    const msg=$('#io-msg'); let raw;
+    try{ raw=JSON.parse($('#io').value); }
+    catch(err){ msg.textContent='JSON parsing error: '+err.message; return; }
+    if(!raw||typeof raw!=='object'||Array.isArray(raw)){ msg.textContent='Format error: the JSON root must be a settings object.'; return; }
+    const missing=[];
+    if(!Array.isArray(raw.topics)||!raw.topics.length) missing.push('topics (a non-empty array of topics)');
+    if(!Array.isArray(raw.fams)||raw.fams.length<2) missing.push('fams (an array with at least two parties)');
+    if(!Array.isArray(raw.qs)) missing.push('qs (an array of questions)');
+    if(missing.length){ msg.textContent='Could not load settings: missing or invalid '+missing.join(', ')+'.'; return; }
+    let c;
+    try{ c=norm(raw); }
+    catch(err){ if(window.console) console.error('Error processing configuration JSON:',err); msg.textContent='Configuration processing error: '+err.message; return; }
+    if(!c){ msg.textContent='Could not load settings: the configuration did not pass format validation.'; return; }
+    OPEN.io=true; const io=OPEN.io, imported=JSON.stringify(c); loadCfg(c,'Test loaded from text.'); OPEN.io=io; $('#io').value=imported; $('#io-msg').textContent='Test loaded from text.'; }
   else if(a==='run'){ S.lv=C.topics.map((_,t)=>C.qs.some(q=>q.on&&q.t===t)?2:0); toBuild.hidden=false;
     if(C.party==='auto'){ S.sa=[]; S.si=0; window.scrollTo(0,0); viewSys(); } else { R.party=C.party; R.sys=C.sys; S.gv=undefined; begin(); } }
 }
@@ -564,7 +631,7 @@ function updResult(){
   const bl=C.topics.map((_,t)=>BB.bl[t]||null);
   const li=Array(nF).fill(0), di=Array(nF).fill(0), bo=Array(nF).fill(0); if(X.dom>=0) bo[X.dom]=bonus();
   bl.forEach(b=>{ if(b) b.list.forEach((v,f)=>{ li[f]+=v; di[f]+=b.dist[f]; }); });
-  const st=li.map((v,f)=>v+di[f]+bo[f]), L=leader(st), hl=S.hl, solo=st[L]>=M;
+  const st=li.map((v,f)=>v+di[f]+bo[f]), L=leader(st), hl=S.hl, mode=coalitionMode(st), rules=mode.rules, required=mode.required, solo=st[L]>=M&&required.every(f=>f===L);
   const gr=[]; C.fams.forEach((F,f)=>{ gr.push({seats:bo[f],c:F.c,f,t:-1,k:'b'}); ['l','d'].forEach(k=>bl.forEach((b,t)=>{ if(b) gr.push({seats:k==='l'?b.list[f]:b.dist[f],c:F.c,f,t,k}); })); });
   const hf=hl&&hl[0]==='f'?+hl.slice(1):null, ht=hl&&hl[0]==='t'?+hl.slice(1):null, hk=hl&&hl[0]==='k'?hl[1]:null;
   const dim=hf!==null?o=>o.f!==hf:ht!==null?o=>o.t!==ht:hk?o=>o.k!==hk:null;
@@ -593,13 +660,14 @@ function updResult(){
   else if(hk) d.textContent=hk==='l'?'Party-list seats are shown as filled circles: they are divided in proportion to how close the parties are to your answers.':hk==='d'?(RINGS?'District seats are shown as rings: each question goes entirely to the closest party.':'District seats: each question goes entirely to the closest party.'):'The leading party gets these seats straight away, as a guaranteed majority.';
   else d.textContent='Click a party or a seat in the chamber to read about the party and highlight its seats.';
   const co=coalitions(st), bar=m=>'<div class="bar">'+m.map(f=>'<span style="width:'+(st[f]/C.seats*100)+'%;background:'+esc(C.fams[f].c)+'"></span>').join('')+'<em style="left:'+(M/C.seats*100)+'%"></em><em class="cm" style="left:'+(CM()/C.seats*100)+'%"></em></div><button type="button" class="chip" data-co="'+m.join(',')+'" style="margin-top:9px">Form a government</button>';
+  $('#cobox').querySelector('h3').textContent=mode.scenario>=0?'Possible majorities and government · '+rules.n:'Possible majorities and the government';
   $('#coal').innerHTML=solo?'<div class="co"><div class="t"><span>'+esc(C.fams[L].n)+' alone</span><em>'+st[L]+'</em></div>'+bar([L])+'</div>':
-    co.length?co.map(c=>{ const nm=coName(c.m), ps=c.m.map(f=>esc(C.fams[f].n)).join(' + '); return '<div class="co"><div class="t"><span>'+(nm?esc(nm)+'<small>'+ps+'</small>':ps)+'</span><em>'+c.t+'</em></div>'+bar(c.m)+'</div>'; }).join(''):'<p class="hint">With this result, no permitted alliance reaches '+M+'.</p>';
+    co.length?co.map(c=>{ const nm=coName(c.m,rules), ps=c.m.map(f=>esc(C.fams[f].n)).join(' + '); return '<div class="co"><div class="t"><span>'+(nm?esc(nm)+'<small>'+ps+'</small>':ps)+'</span><em>'+c.t+'</em></div>'+bar(c.m)+'</div>'; }).join(''):'<p class="hint">With this result, no permitted alliance reaches '+M+'.</p>';
   wikibox(st,li,di,bo); try{ worldBoxes(st,scope,co); }catch(e){ if(window.console) console.error(e); }
   try{ const fb=$('#futbox'); if(fb) fb.innerHTML=futureBox(st); }catch(e){ if(window.console) console.error(e); }
-  S.st=st; S.pick=S.pick.filter(f=>st[f]>0); const pt=sum(S.pick.map(f=>st[f])), vp=vetoPair(S.pick), pn=coName(S.pick);
-  $('#copick').innerHTML='<span class="lbl" style="margin:14px 0 6px">Your own coalition</span><div class="chips">'+C.fams.map((F,f)=>st[f]?'<button type="button" class="chip" data-pk="'+f+'" aria-pressed="'+S.pick.includes(f)+'">'+mark(F)+esc(F.n)+' · '+st[f]+'</button>':'').join('')+'</div>'+
-    '<div class="go" style="margin-top:10px"><button type="button" class="chip" data-co="'+S.pick.join(',')+'"'+(S.pick.length&&!vp?'':' disabled')+'>Form a government</button><span>'+(vp?'“'+esc(C.fams[vp[0]].n)+'” and “'+esc(C.fams[vp[1]].n)+'” refuse to sit in the same coalition':S.pick.length?(pn?'“'+esc(pn)+'”: ':'')+pt+' of '+C.seats+(pt>=M?': a majority':': a minority government, short of a majority by '+(M-pt)):'Tick the parties that will join the government')+'</span></div>';
+  S.st=st; S.pick=S.pick.filter(f=>st[f]>0); const pick=Array.from(new Set(S.pick.concat(required))), pt=sum(pick.map(f=>st[f])), vp=vetoPair(pick,rules), pn=coName(pick,rules);
+  $('#copick').innerHTML='<span class="lbl" style="margin:14px 0 6px">Your own coalition</span><div class="chips">'+C.fams.map((F,f)=>st[f]?'<button type="button" class="chip" data-pk="'+f+'" aria-pressed="'+pick.includes(f)+'"'+(required.includes(f)?' disabled':'')+'>'+mark(F)+esc(F.n)+' · '+st[f]+'</button>':'').join('')+'</div>'+
+    '<div class="go" style="margin-top:10px"><button type="button" class="chip" data-co="'+pick.join(',')+'"'+(pick.length&&required.every(f=>pick.includes(f))&&!vp?'':' disabled')+'>Form a government</button><span>'+(mode.scenario>=0?'Scenario “'+esc(rules.n)+'”: required parties — '+required.map(f=>esc(C.fams[f].n)).join(' + ')+'. ': '')+(vp?'“'+esc(C.fams[vp[0]].n)+'” and “'+esc(C.fams[vp[1]].n)+'” refuse to sit in the same coalition':pick.length?(pn?'“'+esc(pn)+'”: ':'')+pt+' of '+C.seats+(pt>=M?': a majority':': a minority government, short of a majority by '+(M-pt)):'Tick the parties that will join the government')+'</span></div>';
   $('#ths').innerHTML=C.topics.map((T,t)=>{ const na=!S.order.includes(t), b=bl[t];
     return '<div class="tr'+(na?' na':'')+'" data-t="'+t+'"'+(na?'':' role="button" tabindex="0" aria-pressed="'+(ht===t)+'"')+'><span class="nm"><i class="dot" style="background:'+esc(T.c)+'"></i>'+esc(T.n)+(na?' <small style="font-weight:500;color:var(--ink3)">· no answers</small>':'')+'</span><span class="n">'+ch(t)+'</span>'+
       '<span class="tb">'+(b?C.fams.map((F,f)=>b.tot[f]?'<i style="width:'+(b.tot[f]/Math.max(1,ch(t))*100)+'%;background:'+esc(F.c)+'" title="'+esc(F.n)+': '+b.tot[f]+'"></i>':'').join(''):'')+'</span>'+(na?'':segHtml(t,S.lv[t]))+'</div>'; }).join('');
@@ -647,7 +715,7 @@ function staff(asg,ord){
   return min;
 }
 function viewCabinet(m){
-  const st=S.st, M=maj(); m=m.filter(f=>st[f]>0).sort((a,b)=>st[b]-st[a]||a-b); if(!m.length||vetoPair(m)) return; const cn=coName(m);
+  const st=S.st, M=maj(), mode=coalitionMode(st), rules=mode.rules; m=m.filter(f=>st[f]>0).sort((a,b)=>st[b]-st[a]||a-b); if(!m.length||mode.required.some(f=>!m.includes(f))||vetoPair(m,rules)) return; const cn=coName(m,rules);
   const auto=draft(m,st), asg=Object.assign({},auto.asg), amin=staff(auto.asg,auto.ord), min=Object.assign({},amin), tot=sum(m.map(f=>st[f])), n=PORT.length;
   const anyP=m.some(f=>C.fams[f].ppl.length);
   window.scrollTo(0,0);
@@ -839,9 +907,9 @@ function billsBox(st){
 
 // Заполняет блоки результата, которые есть только в думских сценариях
 function worldBoxes(st,scope,co){
-  const pb=$('#presbox'), mb=$('#mapbox'), bb=$('#billbox'), cl=$('#cmline'), cm=CM();
+  const pb=$('#presbox'), mb=$('#mapbox'), bb=$('#billbox'), cl=$('#cmline'), cm=CM(), rules=coalitionMode(st).rules;
   if(cl){ const solo=st.map((v,f)=>f).filter(f=>st[f]>=cm), cs=co.filter(c=>c.t>=cm);
-    cl.textContent='Constitutional majority — '+cm+' '+plural(cm,'seat','seats','seats'), cl.textContent+=solo.length?': “'+C.fams[solo[0]].n+'” reaches it alone and can amend the Constitution without allies.':cs.length?'. These alliances reach it: '+cs.map(c=>coName(c.m)||c.m.map(f=>C.fams[f].n).join(' + ')).join('; ')+'.':'. None of the alliances shown reaches it: amending the Constitution will require a deal with the opposition.'; }
+    cl.textContent='Constitutional majority — '+cm+' '+plural(cm,'seat','seats','seats'), cl.textContent+=solo.length?': “'+C.fams[solo[0]].n+'” reaches it alone and can amend the Constitution without allies.':cs.length?'. These alliances reach it: '+cs.map(c=>coName(c.m,rules)||c.m.map(f=>C.fams[f].n).join(' + ')).join('; ')+'.':'. None of the alliances shown reaches it: amending the Constitution will require a deal with the opposition.'; }
   if(pb) pb.innerHTML=presBox();
   if(mb){ mb.innerHTML=mapBox(natShare(scope)); showReg();
     if(!mb._b){ mb._b=1; mb.addEventListener('click',e=>{ const r=e.target.closest('[data-r]'); if(r){ S.reg=r.dataset.r; showReg(); } }); mb.addEventListener('change',e=>{ if(e.target.id==='regsel'){ S.reg=e.target.value; showReg(); } }); } }
