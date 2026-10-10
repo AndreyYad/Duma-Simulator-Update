@@ -90,7 +90,7 @@
  "Файл партии скачан.": "Party file downloaded.",
  "Не удалось скачать файл партии.": "Could not download the party file.",
  "Не удалось скачать данные партии:": "Could not download party data:",
- "Достигнут лимит в 12 партий.": "The limit of 12 parties has been reached.",
+ "Достигнут лимит в 30 партий.": "The limit of 30 parties has been reached.",
  "Неверный формат данных партии. Загрузите JSON, скачанный кнопкой «Скачать данные партии».": "Invalid party data format. Load the JSON downloaded with the “Download party data” button.",
  "В данных не хватает названия, черт партии или их описаний.": "The data is missing the party name, traits, or their definitions.",
  "Не найдены описания некоторых черт партии. Проверьте JSON.": "Some party trait definitions are missing. Check the JSON.",
