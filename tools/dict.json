@@ -79,6 +79,8 @@
  "Название новой черты": "Name of the new trait",
  "+ Добавить черту": "+ Add trait",
  "Партии": "Parties",
+ "Переместить партию вверх": "Move party up",
+ "Переместить партию вниз": "Move party down",
  "Раскройте партию, чтобы задать её черты, логотип и персонажей. Нажатие на черту меняет силу: слабо, умеренно, сильно, снять. Порядок сверху вниз — ось слева направо.": "Open a party to set its traits, logo and characters. Clicking a trait changes its strength: weak, moderate, strong, off. The order from top to bottom is the left-to-right axis.",
  "+ Добавить партию": "+ Add party",
  "Данные партии в формате JSON": "Party data in JSON format",

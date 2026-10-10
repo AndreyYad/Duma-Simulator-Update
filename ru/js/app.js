@@ -296,7 +296,7 @@ function viewBuild(){
     '<div class="rows">'+groups().map(g=>'<div class="tg"><span>'+esc(g)+'</span><div class="chips">'+C.traits.filter(x=>x.g===g).map(x=>'<span class="tchip">'+esc(x.n)+(g==='Свои'?'<button type="button" class="rm" data-act="delTrait" data-id="'+esc(x.id)+'" aria-label="Удалить черту">×</button>':'')+'</span>').join('')+'</div></div>').join('')+
     '<div class="psave"><input class="in" id="newTrait" maxlength="40" placeholder="Своя черта, например «Монархизм»" aria-label="Название новой черты"><button type="button" class="chip" data-act="addTrait">+ Добавить черту</button></div></div></div></details>'+
   '<details class="step sec" data-o="s3"'+(OPEN.s3?' open':'')+'><summary><span class="num">3</span><h2>Партии</h2><span class="sec-t"><span class="t-open">Открыть</span><span class="t-close">Свернуть</span></span></summary><div class="sec-b"><p class="hint">Раскройте партию, чтобы задать её черты, логотип и персонажей. Нажатие на черту меняет силу: слабо, умеренно, сильно, снять. Порядок сверху вниз — ось слева направо.</p>'+
-    '<div class="rows">'+C.fams.map((F,i)=>'<details class="card" data-o="f'+i+'"'+(OPEN['f'+i]?' open':'')+'><summary><span data-fm="'+i+'">'+mark(F)+'</span><span data-fn="'+i+'">'+esc(F.n)+'</span><small data-ft="'+i+'"></small></summary><div class="c-body" data-fb="'+i+'">'+(OPEN['f'+i]?famBody(i):'')+'</div></details>').join('')+
+    '<div class="rows">'+C.fams.map((F,i)=>'<details class="card" data-o="f'+i+'"'+(OPEN['f'+i]?' open':'')+'><summary><span data-fm="'+i+'">'+mark(F)+'</span><span data-fn="'+i+'">'+esc(F.n)+'</span><small data-ft="'+i+'"></small><span class="fam-order">'+(i>0?'<button type="button" class="fam-move" data-act="moveFam" data-i="'+i+'" data-dir="-1" aria-label="Переместить партию вверх">↑</button>':'')+(i<C.fams.length-1?'<button type="button" class="fam-move" data-act="moveFam" data-i="'+i+'" data-dir="1" aria-label="Переместить партию вниз">↓</button>':'')+'</span></summary><div class="c-body" data-fb="'+i+'">'+(OPEN['f'+i]?famBody(i):'')+'</div></details>').join('')+
     (C.fams.length<12?'<button type="button" class="add" data-act="addFam">+ Добавить партию</button>':'')+
     '<div class="psave" style="display:block"><textarea class="in" id="fam-import" rows="5" spellcheck="false" aria-label="Данные партии в формате JSON" placeholder="Вставьте скопированные данные партии" style="display:block;width:100%;max-width:none;box-sizing:border-box"></textarea><div style="margin-top:8px"><button type="button" class="chip" data-act="importFam"'+(C.fams.length>=12?' disabled':'')+'>Добавить партию из текста</button><span class="hint" id="fam-import-msg" role="status" aria-live="polite" style="margin-left:10px">'+esc(FMSG)+'</span></div></div></div></details>'+
   '<details class="step box sec" data-o="s4"'+(OPEN.s4?' open':'')+'><summary><span class="num">4</span><h2>Коалиции</h2><span class="sec-t"><span class="t-open">Открыть</span><span class="t-close">Свернуть</span></span></summary><div class="sec-b"><p class="hint">Названия союзов показываются в результатах, когда коалиция совпадает по составу. Отказы работать вместе задаются в карточках партий.</p>'+
@@ -462,7 +462,22 @@ function loadCfg(c,msg){ PREV=JSON.stringify(C); C=c; CO_VIEW=-1; VETO_VIEW={}; 
 function onAct(e){
   const b=e.target.closest('[data-act]'); if(!b) return; const a=b.dataset.act, i=+b.dataset.i, id=b.dataset.id;
   const clearQ=()=>Object.keys(OPEN).forEach(k=>{ if(k[0]==='q') delete OPEN[k]; });
-  if(a==='pre'){ const p=BUILTIN[i]; loadCfg(presetCfg(p),'Загружен пресет «'+p.n+'».'); }
+  if(a==='moveFam'){
+    e.preventDefault();
+    const j=i+Number(b.dataset.dir);
+    if(j<0||j>=C.fams.length) return;
+    const swapIndex=x=>x===i?j:x===j?i:x, swapList=a=>{ for(let k=0;k<a.length;k++) a[k]=swapIndex(a[k]); }, swapPairs=a=>a.forEach(p=>swapList(p));
+    [C.fams[i],C.fams[j]]=[C.fams[j],C.fams[i]];
+    C.duo=C.duo.map(swapIndex); C.gate=swapIndex(C.gate);
+    C.fams.forEach(F=>{ if(F.cap>=0) F.cap=swapIndex(F.cap); });
+    swapPairs(C.no);
+    C.coal.forEach(c=>{ swapList(c.m); (c.when||[]).forEach(swapList); (c.variants||[]).forEach(v=>{ swapList(v.required); swapList(v.optional); }); });
+    C.scenarios.forEach(s=>{ s.when.forEach(swapList); swapPairs(s.no); });
+    [OPEN['f'+i],OPEN['f'+j]]=[OPEN['f'+j],OPEN['f'+i]];
+    [VETO_VIEW[i],VETO_VIEW[j]]=[VETO_VIEW[j],VETO_VIEW[i]];
+    save(); rerender();
+  }
+  else if(a==='pre'){ const p=BUILTIN[i]; loadCfg(presetCfg(p),'Загружен пресет «'+p.n+'».'); }
   else if(a==='upre'){ const p=USER[i]; loadCfg(norm(JSON.parse(JSON.stringify(p.c))),'Загружен пресет «'+p.n+'».'); C.name=p.n; save(); }
   else if(a==='delPre'){ if(b.dataset.arm){ USER.splice(i,1); saveUser(); PMSG='Пресет удалён.'; rerender(); } else { b.dataset.arm=1; b.textContent='✓'; b.title='Нажмите ещё раз, чтобы удалить'; $('#pmsg').textContent='Нажмите ещё раз, чтобы удалить пресет.'; } }
   else if(a==='savePre'){ const n=$('#pname').value.trim(); if(!n){ $('#pmsg').textContent='Введите название пресета.'; return; }

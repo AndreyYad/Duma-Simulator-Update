@@ -113,6 +113,9 @@ input[type=color]{width:34px;height:32px;padding:2px;border:1px solid var(--line
 .card{border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 .card>summary{cursor:pointer;padding:11px 14px;display:flex;align-items:center;gap:6px;font-weight:700}
 .card>summary small{margin-left:auto;font-weight:500;color:var(--ink2);font-size:12.5px;white-space:nowrap}
+.fam-order{display:grid;gap:2px;margin-left:6px;flex-shrink:0}
+.fam-move{width:26px;height:20px;padding:0;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--ink2);font-size:13px;line-height:1;cursor:pointer}
+.fam-move:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .c-body{padding:4px 14px 14px;display:grid;gap:12px}
 .c-body:empty{display:none}
 .f-f{display:grid;grid-template-columns:34px minmax(120px,1fr) 2fr 30px;gap:8px;align-items:center}
