@@ -113,6 +113,9 @@ input[type=color]{width:34px;height:32px;padding:2px;border:1px solid var(--line
 .card{border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 .card>summary{cursor:pointer;padding:11px 14px;display:flex;align-items:center;gap:6px;font-weight:700}
 .card>summary small{margin-left:auto;font-weight:500;color:var(--ink2);font-size:12.5px;white-space:nowrap}
+.fam-order{display:grid;gap:2px;margin-left:6px;flex-shrink:0}
+.fam-move{width:26px;height:20px;padding:0;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--ink2);font-size:13px;line-height:1;cursor:pointer}
+.fam-move:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .c-body{padding:4px 14px 14px;display:grid;gap:12px}
 .c-body:empty{display:none}
 .f-f{display:grid;grid-template-columns:34px minmax(120px,1fr) 2fr 30px;gap:8px;align-items:center}
@@ -320,6 +323,10 @@ span.tchip{cursor:default}
 .cmp .lb.you{font-weight:700}
 .chip:disabled{opacity:.4;cursor:default}
 .chip.veto[aria-pressed="true"]{border-color:var(--down);color:var(--down);background:color-mix(in srgb,var(--down) 12%,var(--surface))}
+.coal-member{display:grid;gap:1px;text-align:left;line-height:1.15}
+.coal-member small{font-size:10px;font-weight:500;color:var(--ink2)}
+.coal-member[data-state="optional"]{background:color-mix(in srgb,#67bfff 18%,var(--surface));border-color:color-mix(in srgb,#67bfff 48%,var(--line2));color:color-mix(in srgb,#267cad 85%,var(--ink))}
+.coal-member[data-state="optional"] small{color:inherit;opacity:.8}
 .coed{display:grid;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
 .chk{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;margin-top:6px}
 .chk input{width:18px;height:18px;accent-color:var(--accent);flex-shrink:0}

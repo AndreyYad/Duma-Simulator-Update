@@ -32,7 +32,9 @@ function norm(c){
   c.qs=c.qs.filter(q=>q&&q.t>=0&&q.t<c.topics.length).map(q=>({t:+q.t,d:q.d===-1?-1:1,q:String(q.q||''),A:String(q.A||''),B:String(q.B||''),on:q.on!==false,a:ids(q.a),b:ids(q.b)}));
   const nf=c.fams.length, okf=x=>Number.isInteger(x)&&x>=0&&x<nf;
   c.no=(Array.isArray(c.no)?c.no:[]).filter(p=>Array.isArray(p)&&okf(p[0])&&okf(p[1])&&p[0]!==p[1]).map(p=>[p[0],p[1]]);
-  c.coal=(Array.isArray(c.coal)?c.coal:[]).filter(x=>x&&Array.isArray(x.m)).map(x=>({n:String(x.n||'Коалиция').slice(0,60),m:x.m.filter(okf)}));
+  c.coal=(Array.isArray(c.coal)?c.coal:[]).filter(x=>x&&Array.isArray(x.m)).map(x=>({n:String(x.n||'Коалиция').slice(0,60),m:x.m.filter(okf),mode:x.mode==='logic'?'logic':'exact',
+    when:(Array.isArray(x.when)?x.when:[]).map(m=>Array.isArray(m)?m.filter((f,i,a)=>okf(f)&&a.indexOf(f)===i):[]),
+    variants:(Array.isArray(x.variants)?x.variants:[]).slice(0,1).map(v=>{ const required=Array.isArray(v.required)?v.required.filter((f,i,a)=>okf(f)&&a.indexOf(f)===i):[], optional=Array.isArray(v.optional)?v.optional.filter((f,i,a)=>okf(f)&&a.indexOf(f)===i&&!required.includes(f)):[]; return {required,optional}; })}));
   if(!Array.isArray(c.scenarios)) c.scenarios=[];
   c.scenarios=c.scenarios.filter(x=>x&&typeof x==='object').map(x=>({
     n:String(x.n||'Новый сценарий').slice(0,60),
@@ -155,7 +157,12 @@ function leader(st){ let b=0; st.forEach((v,f)=>{ if(v>st[b]) b=f; }); return b;
 const vetoed=(a,b,rules=C)=>rules.no.some(p=>(p[0]===a&&p[1]===b)||(p[0]===b&&p[1]===a));
 function vetoPair(m,rules=C){ for(let i=0;i<m.length;i++) for(let j=i+1;j<m.length;j++) if(vetoed(m[i],m[j],rules)) return [m[i],m[j]]; return null; }
 const mkey=m=>m.slice().sort((a,b)=>a-b).join(',');
-function coName(m,rules=C){ const k=mkey(m), c=rules.coal.find(x=>x.m.length&&mkey(x.m)===k); return c?c.n:''; }
+function coalitionMatches(c,m){
+  if(c.mode==='logic') return (c.when||[]).some(condition=>condition.length&&condition.every(f=>m.includes(f)));
+  if(c.variants&&c.variants.length) return c.variants.some(v=>v.required.every(f=>m.includes(f))&&m.every(f=>v.required.includes(f)||v.optional.includes(f)));
+  return c.m.length&&mkey(c.m)===mkey(m);
+}
+function coName(m,rules=C){ const c=rules.coal.find(x=>coalitionMatches(x,m)); return c?c.n:''; }
 function coalitionAllowed(m,rules){
   return !(rules.span&&m.length&&Math.max(...m)-Math.min(...m)>3)&&!vetoPair(m,rules);
 }
@@ -191,9 +198,17 @@ function coalitions(st){
     for(let k=start;k<fs.length;k++){ cur.push(fs[k]); rec(k+1,cur); cur.pop(); }
   })(0,[]);
   res.sort((a,b)=>a.m.length-b.m.length||a.sp-b.sp||b.t-a.t);
-  const named=rules.coal.filter(c=>c.m.length&&c.m.every(f=>st[f]>0)&&coalitionAllowed(c.m,rules)&&sum(c.m.map(f=>st[f]))>=M).map(c=>({m:c.m.slice().sort((a,b)=>a-b),t:sum(c.m.map(f=>st[f]))})).sort((a,b)=>a.m.length-b.m.length||b.t-a.t);
+  const named=[];
+  rules.coal.forEach(rule=>{
+    const matches=rule.mode==='logic'||rule.variants&&rule.variants.length?res.filter(c=>coalitionMatches(rule,c.m)):rule.m.length&&rule.m.every(f=>st[f]>0)&&coalitionAllowed(rule.m,rules)&&sum(rule.m.map(f=>st[f]))>=M?[{m:rule.m.slice().sort((a,b)=>a-b),t:sum(rule.m.map(f=>st[f])),sp:rule.m.length?Math.max(...rule.m)-Math.min(...rule.m):0}]:[];
+    matches.forEach(c=>named.push(Object.assign({},c,{name:rule.n})));
+  });
+  named.sort((a,b)=>a.m.length-b.m.length||a.sp-b.sp||b.t-a.t);
   const seen={}, out=[]; named.concat(res.slice(0,4)).forEach(c=>{ const k=mkey(c.m); if(!seen[k]){ seen[k]=1; out.push(c); } });
-  return out.slice(0,6);
+  const namedCount=new Set(named.map(c=>mkey(c.m))).size, shown=out.slice(0,Math.max(6,namedCount)), counts={};
+  shown.forEach(c=>{ c.name=c.name||coName(c.m,rules); if(c.name) counts[c.name]=(counts[c.name]||0)+1; });
+  const indices={}; shown.forEach(c=>{ c.displayName=c.name&&counts[c.name]>1?c.name+' ('+((indices[c.name]=(indices[c.name]||0)+1))+')':c.name; });
+  return shown;
 }
 
 // ══════ Зал: d3-parliament ══════
@@ -223,14 +238,24 @@ const face=p=>p?(p.img||PH[p.n]||''):'';
 const mark=F=>lg(F)?'<img class="logo" src="'+esc(lg(F))+'" alt="" style="border-color:'+esc(F.c)+'">':'<i class="dot" style="background:'+esc(F.c)+'"></i>';
 
 // ══════ 1. Конструктор ══════
-const OPEN={}; let PREV=null, PMSG='', CO_VIEW=-1, VETO_VIEW={};
+const OPEN={}; let PREV=null, PMSG='', FMSG='', CO_VIEW=-1, VETO_VIEW={};
 const inp=(k,v,extra)=>'<input class="in" id="f-'+k.replace(/\./g,'-')+'" data-k="'+k+'" value="'+esc(v)+'" '+(extra||'')+'>';
 const tname=id=>(C.traits.find(x=>x.id===id)||{n:id}).n;
 const groups=()=>{ const g=[]; C.traits.forEach(x=>{ if(!g.includes(x.g)) g.push(x.g); }); return g; };
 const cnt=n=>n+' '+plural(n,'вопрос','вопроса','вопросов');
 function coalitionEditor(coal,prefix){
   const base=prefix?prefix+'.':'';
-  return '<div class="rows">'+coal.map((c,i)=>'<div class="coed"><div class="f-f" style="grid-template-columns:1fr 30px">'+inp(base+'coal.'+i+'.n',c.n,'aria-label="Название коалиции" maxlength="60"')+'<button type="button" class="x" data-act="delCoal" data-i="'+i+'" aria-label="Удалить коалицию">×</button></div><div class="chips">'+C.fams.map((F,j)=>'<button type="button" class="chip" data-act="coM" data-i="'+i+'" data-j="'+j+'" aria-pressed="'+c.m.includes(j)+'">'+esc(F.n)+'</button>').join('')+'</div></div>').join('')+
+  return '<div class="rows">'+coal.map((c,i)=>{
+    const variant=c.variants&&c.variants.length?c.variants[0]:{required:c.m,optional:[]};
+    const exact='<div class="coed"><div class="chips">'+C.fams.map((F,f)=>{
+      const state=variant.required.includes(f)?'required':variant.optional.includes(f)?'optional':'none';
+      return '<button type="button" class="chip coal-member" data-act="coM" data-i="'+i+'" data-v="0" data-j="'+f+'" data-state="'+state+'" aria-pressed="'+(state!=='none')+'"><span>'+esc(F.n)+'</span>'+(state==='none'?'':'<small>'+(state==='required'?'(обязательно)':'(опционально)')+'</small>')+'</button>';
+    }).join('')+'</div></div>';
+    return '<div class="coed"><div class="f-f" style="grid-template-columns:1fr 30px">'+inp(base+'coal.'+i+'.n',c.n,'aria-label="Название коалиции" maxlength="60"')+'<button type="button" class="x" data-act="delCoal" data-i="'+i+'" aria-label="Удалить коалицию">×</button></div>'+
+      '<button type="button" class="chip" data-act="coalMode" data-i="'+i+'">'+(c.mode==='logic'?'Режим: условия И/ИЛИ':'Режим: точный состав')+'</button>'+
+      (c.mode==='logic'?'<p class="hint">Партии внутри строки соединены через «И», строки между собой — через «ИЛИ».</p>'+(c.when||[]).map((condition,j)=>'<div class="coed"><div class="go"><b>Строка «И» '+(j+1)+'</b><button type="button" class="x" data-act="delCoWhen" data-i="'+i+'" data-j="'+j+'" aria-label="Удалить условие коалиции">×</button></div><div class="chips">'+C.fams.map((F,f)=>'<button type="button" class="chip" data-act="coWhenM" data-i="'+i+'" data-j="'+j+'" data-f="'+f+'" aria-pressed="'+condition.includes(f)+'">'+esc(F.n)+'</button>').join('')+'</div></div>').join('')+'<button type="button" class="add" data-act="addCoWhen" data-i="'+i+'">+ Добавить условие «или»</button>':
+        '<p class="hint">Нажмите на партию, чтобы переключать состояния: обязательная, опциональная, не выбрана. Обязательные партии должны входить в коалицию, опциональные могут входить или отсутствовать.</p>'+exact)+'</div>';
+  }).join('')+
     '<button type="button" class="add" data-act="addCoal">+ Добавить название коалиции</button></div>';
 }
 function scenarioEditor(i){
@@ -271,8 +296,9 @@ function viewBuild(){
     '<div class="rows">'+groups().map(g=>'<div class="tg"><span>'+esc(g)+'</span><div class="chips">'+C.traits.filter(x=>x.g===g).map(x=>'<span class="tchip">'+esc(x.n)+(g==='Свои'?'<button type="button" class="rm" data-act="delTrait" data-id="'+esc(x.id)+'" aria-label="Удалить черту">×</button>':'')+'</span>').join('')+'</div></div>').join('')+
     '<div class="psave"><input class="in" id="newTrait" maxlength="40" placeholder="Своя черта, например «Монархизм»" aria-label="Название новой черты"><button type="button" class="chip" data-act="addTrait">+ Добавить черту</button></div></div></div></details>'+
   '<details class="step sec" data-o="s3"'+(OPEN.s3?' open':'')+'><summary><span class="num">3</span><h2>Партии</h2><span class="sec-t"><span class="t-open">Открыть</span><span class="t-close">Свернуть</span></span></summary><div class="sec-b"><p class="hint">Раскройте партию, чтобы задать её черты, логотип и персонажей. Нажатие на черту меняет силу: слабо, умеренно, сильно, снять. Порядок сверху вниз — ось слева направо.</p>'+
-    '<div class="rows">'+C.fams.map((F,i)=>'<details class="card" data-o="f'+i+'"'+(OPEN['f'+i]?' open':'')+'><summary><span data-fm="'+i+'">'+mark(F)+'</span><span data-fn="'+i+'">'+esc(F.n)+'</span><small data-ft="'+i+'"></small></summary><div class="c-body" data-fb="'+i+'">'+(OPEN['f'+i]?famBody(i):'')+'</div></details>').join('')+
-    (C.fams.length<12?'<button type="button" class="add" data-act="addFam">+ Добавить партию</button>':'')+'</div></div></details>'+
+    '<div class="rows">'+C.fams.map((F,i)=>'<details class="card" data-o="f'+i+'"'+(OPEN['f'+i]?' open':'')+'><summary><span data-fm="'+i+'">'+mark(F)+'</span><span data-fn="'+i+'">'+esc(F.n)+'</span><small data-ft="'+i+'"></small><span class="fam-order">'+(i>0?'<button type="button" class="fam-move" data-act="moveFam" data-i="'+i+'" data-dir="-1" aria-label="Переместить партию вверх">↑</button>':'')+(i<C.fams.length-1?'<button type="button" class="fam-move" data-act="moveFam" data-i="'+i+'" data-dir="1" aria-label="Переместить партию вниз">↓</button>':'')+'</span></summary><div class="c-body" data-fb="'+i+'">'+(OPEN['f'+i]?famBody(i):'')+'</div></details>').join('')+
+    (C.fams.length<12?'<button type="button" class="add" data-act="addFam">+ Добавить партию</button>':'')+
+    '<div class="psave" style="display:block"><textarea class="in" id="fam-import" rows="5" spellcheck="false" aria-label="Данные партии в формате JSON" placeholder="Вставьте скопированные данные партии" style="display:block;width:100%;max-width:none;box-sizing:border-box"></textarea><div style="margin-top:8px"><button type="button" class="chip" data-act="importFam"'+(C.fams.length>=12?' disabled':'')+'>Добавить партию из текста</button><span class="hint" id="fam-import-msg" role="status" aria-live="polite" style="margin-left:10px">'+esc(FMSG)+'</span></div></div></div></details>'+
   '<details class="step box sec" data-o="s4"'+(OPEN.s4?' open':'')+'><summary><span class="num">4</span><h2>Коалиции</h2><span class="sec-t"><span class="t-open">Открыть</span><span class="t-close">Свернуть</span></span></summary><div class="sec-b"><p class="hint">Названия союзов показываются в результатах, когда коалиция совпадает по составу. Отказы работать вместе задаются в карточках партий.</p>'+
     '<div class="chips" style="margin-bottom:10px"><button type="button" class="chip" data-act="coalView" data-i="-1" aria-pressed="'+(CO_VIEW<0)+'">Обычные настройки</button>'+C.scenarios.map((s,i)=>'<button type="button" class="chip" data-act="coalView" data-i="'+i+'" data-scenario-tab="'+i+'" aria-pressed="'+(CO_VIEW===i)+'">'+esc(s.n||'Сценарий '+(i+1))+'</button>').join('')+'<button type="button" class="add" data-act="addScenario">+ Добавить сценарий</button></div>'+
     (CO_VIEW<0?'<div class="rows"><div class="note" id="co-veto"></div>'+coalitionEditor(C.coal,'')+
@@ -299,6 +325,47 @@ function updCo(){
   C.coal.forEach((c,i)=>{ const el=$('[data-cw="'+i+'"]'); if(!el) return; const vp=vetoPair(c.m); el.textContent=vp?'Этот союз невозможен: «'+C.fams[vp[0]].n+'» и «'+C.fams[vp[1]].n+'» отказались работать вместе.':''; });
 }
 function vetoList(scope){ return scope>=0&&C.scenarios[scope]?C.scenarios[scope].no:C.no; }
+function partyTransfer(i){
+  const F=C.fams[i], used=new Set(Object.keys(F.tr||{}));
+  return JSON.stringify({type:'duma-party',version:1,traits:C.traits.filter(t=>used.has(t.id)),party:{n:F.n,c:F.c,d:F.d,logo:F.logo,sm:F.sm,capName:F.cap>=0&&C.fams[F.cap]?C.fams[F.cap].n:'',tr:F.tr,ppl:F.ppl}},null,2);
+}
+function copyText(text,done,failed){
+  const fallback=()=>{ const field=document.createElement('textarea'); field.value=text; field.style.position='fixed'; field.style.opacity='0'; document.body.appendChild(field); field.select(); let copied=false;
+    try{ copied=document.execCommand('copy'); }catch(e){ if(window.console) console.error('Не удалось скопировать данные партии:',e); }
+    field.remove(); return copied; };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ try{ navigator.clipboard.writeText(text).then(done,()=>fallback()?done():failed()); }catch(e){ if(window.console) console.error('Не удалось скопировать данные партии:',e); if(fallback()) done(); else failed(); } }
+  else if(fallback()) done(); else failed();
+}
+function importParty(){
+  const fail=message=>{ FMSG=message; const status=$('#fam-import-msg'); if(status) status.textContent=message; };
+  if(C.fams.length>=12){ fail('Достигнут лимит в 12 партий.'); return; }
+  let raw;
+  try{ raw=JSON.parse($('#fam-import').value); }
+  catch(err){ fail('Ошибка разбора JSON: '+err.message); return; }
+  if(!raw||raw.type!=='duma-party'||raw.version!==1||!raw.party||typeof raw.party!=='object'||Array.isArray(raw.party)){
+    fail('Неверный формат данных партии. Скопируйте JSON кнопкой «Скопировать данные партии».'); return;
+  }
+  const src=raw.party, name=typeof src.n==='string'?src.n.trim():'';
+  if(!name||!src.tr||typeof src.tr!=='object'||Array.isArray(src.tr)||!Array.isArray(raw.traits)){
+    fail('В данных не хватает названия, черт партии или их описаний.'); return;
+  }
+  const defs=new Map();
+  raw.traits.forEach(t=>{ if(t&&typeof t.id==='string'&&t.id&&typeof t.n==='string') defs.set(t.id,{id:t.id,n:t.n,g:typeof t.g==='string'&&t.g?t.g:'Свои'}); });
+  if(Object.keys(src.tr).some(id=>!defs.has(id))){ fail('Не найдены описания некоторых черт партии. Проверьте JSON.'); return; }
+  const remap={};
+  Object.keys(src.tr).forEach((id,k)=>{
+    if(!defs.has(id)) return;
+    const trait=defs.get(id), current=C.traits.find(t=>t.id===id);
+    if(!current){ C.traits.push(trait); remap[id]=id; }
+    else if(current.n===trait.n&&current.g===trait.g) remap[id]=id;
+    else { let next; do{ next='p'+Date.now().toString(36)+(k++).toString(36); }while(C.traits.some(t=>t.id===next)); C.traits.push(Object.assign({},trait,{id:next})); remap[id]=next; }
+  });
+  const tr={}; Object.keys(src.tr).forEach(id=>{ const level=Math.round(+src.tr[id]); if(remap[id]&&level>=1&&level<=3) tr[remap[id]]=level; });
+  const cap=typeof src.capName==='string'?C.fams.findIndex(F=>F.n===src.capName):-1;
+  const imported={n:name.slice(0,60),c:HEX.test(src.c)?src.c:'#888888',d:typeof src.d==='string'?src.d:'',logo:okImg(src.logo),sm:!!src.sm,cap:cap>=0?cap:-1,tr,
+    ppl:(Array.isArray(src.ppl)?src.ppl:[]).filter(p=>p&&typeof p.n==='string').slice(0,12).map(p=>({n:p.n.slice(0,60),s:PORT.some(x=>x[0]===p.s)?p.s:'',img:okImg(p.img)}))};
+  C.fams.push(imported); const i=C.fams.length-1; OPEN['f'+i]=true; FMSG=''; rerender();
+}
 function famBody(i){
   const F=C.fams[i];
   const scope=Number.isInteger(VETO_VIEW[i])?VETO_VIEW[i]:-1, no=vetoList(scope), vetoRules={no};
@@ -309,7 +376,8 @@ function famBody(i){
     '<div class="tg"><span>Персонажи</span><div class="ppl">'+F.ppl.map((p,j)=>'<div class="pp">'+(face(p)?'<img class="ava sm" src="'+esc(face(p))+'" alt="">':'<span class="ava sm ph"></span>')+inp('fams.'+i+'.ppl.'+j+'.n',p.n,'aria-label="Имя персонажа" maxlength="60" placeholder="Имя"')+'<select class="in" id="f-fams-'+i+'-ppl-'+j+'-s" data-k="fams.'+i+'.ppl.'+j+'.s" aria-label="Профильный портфель"><option value="">'+(j?'Без профиля':'Лидер, без профиля')+'</option>'+PORT.filter(x=>x[0]!=='pm').map(x=>'<option value="'+x[0]+'"'+(p.s===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><label class="chip up" title="Загрузить своё фото">Фото<input type="file" accept="image/*" id="pimg-'+i+'-'+j+'" data-pimg="'+i+','+j+'" hidden></label><button type="button" class="chip" data-act="pimgUrl" data-i="'+i+'" data-j="'+j+'" title="Указать ссылку на фото">Ссылка</button><button type="button" class="x" data-act="delP" data-i="'+i+'" data-j="'+j+'" aria-label="Удалить персонажа">×</button></div>').join('')+
       (F.ppl.length<12?'<button type="button" class="add" data-act="addP" data-i="'+i+'">+ Добавить персонажа</button>':'')+'<small class="hint">Первый в списке — лидер: он станет премьером, если партия возглавит правительство. Профиль подсказывает, какое министерство человеку ближе. Фото подставляется по имени; своё можно загрузить кнопкой «Фото» или указать кнопкой «Ссылка».</small></div></div>'+
     '<div class="tg"><span>Не войдёт в коалицию с</span><div><select class="in" data-veto-scope data-i="'+i+'" aria-label="Сценарий запретов коалиции"><option value="-1"'+(scope<0?' selected':'')+'>Стандартный сценарий</option>'+C.scenarios.map((s,j)=>'<option value="'+j+'" data-veto-option="'+j+'"'+(scope===j?' selected':'')+'>'+esc(s.n||'Сценарий '+(j+1))+'</option>').join('')+'</select><div class="chips" style="margin-top:6px">'+C.fams.map((G,j)=>j===i?'':'<button type="button" class="chip veto" data-act="veto" data-i="'+i+'" data-j="'+j+'" data-scenario="'+scope+'" aria-pressed="'+vetoed(i,j,vetoRules)+'">'+esc(G.n)+'</button>').join('')+'</div></div></div>'+
-    groups().map(g=>'<div class="tg"><span>'+esc(g)+'</span><div class="chips">'+C.traits.filter(x=>x.g===g).map(x=>{ const l=F.tr[x.id]||0; return '<button type="button" class="tchip" data-act="tr" data-i="'+i+'" data-id="'+esc(x.id)+'" data-l="'+l+'" aria-pressed="'+(l>0)+'">'+esc(x.n)+'<small>'+SL[l]+'</small></button>'; }).join('')+'</div></div>').join('');
+    groups().map(g=>'<div class="tg"><span>'+esc(g)+'</span><div class="chips">'+C.traits.filter(x=>x.g===g).map(x=>{ const l=F.tr[x.id]||0; return '<button type="button" class="tchip" data-act="tr" data-i="'+i+'" data-id="'+esc(x.id)+'" data-l="'+l+'" aria-pressed="'+(l>0)+'">'+esc(x.n)+'<small>'+SL[l]+'</small></button>'; }).join('')+'</div></div>').join('')+
+    '<div class="psave"><button type="button" class="chip" data-act="copyFam" data-i="'+i+'">Скопировать данные партии</button><span class="hint" id="fam-copy-msg-'+i+'" role="status" aria-live="polite"></span></div>';
 }
 function topicBody(t){
   const T=C.topics[t], qs=C.qs.map((q,i)=>({q,i})).filter(x=>x.q.t===t);
@@ -394,7 +462,22 @@ function loadCfg(c,msg){ PREV=JSON.stringify(C); C=c; CO_VIEW=-1; VETO_VIEW={}; 
 function onAct(e){
   const b=e.target.closest('[data-act]'); if(!b) return; const a=b.dataset.act, i=+b.dataset.i, id=b.dataset.id;
   const clearQ=()=>Object.keys(OPEN).forEach(k=>{ if(k[0]==='q') delete OPEN[k]; });
-  if(a==='pre'){ const p=BUILTIN[i]; loadCfg(presetCfg(p),'Загружен пресет «'+p.n+'».'); }
+  if(a==='moveFam'){
+    e.preventDefault();
+    const j=i+Number(b.dataset.dir);
+    if(j<0||j>=C.fams.length) return;
+    const swapIndex=x=>x===i?j:x===j?i:x, swapList=a=>{ for(let k=0;k<a.length;k++) a[k]=swapIndex(a[k]); }, swapPairs=a=>a.forEach(p=>swapList(p));
+    [C.fams[i],C.fams[j]]=[C.fams[j],C.fams[i]];
+    C.duo=C.duo.map(swapIndex); C.gate=swapIndex(C.gate);
+    C.fams.forEach(F=>{ if(F.cap>=0) F.cap=swapIndex(F.cap); });
+    swapPairs(C.no);
+    C.coal.forEach(c=>{ swapList(c.m); (c.when||[]).forEach(swapList); (c.variants||[]).forEach(v=>{ swapList(v.required); swapList(v.optional); }); });
+    C.scenarios.forEach(s=>{ s.when.forEach(swapList); swapPairs(s.no); });
+    [OPEN['f'+i],OPEN['f'+j]]=[OPEN['f'+j],OPEN['f'+i]];
+    [VETO_VIEW[i],VETO_VIEW[j]]=[VETO_VIEW[j],VETO_VIEW[i]];
+    save(); rerender();
+  }
+  else if(a==='pre'){ const p=BUILTIN[i]; loadCfg(presetCfg(p),'Загружен пресет «'+p.n+'».'); }
   else if(a==='upre'){ const p=USER[i]; loadCfg(norm(JSON.parse(JSON.stringify(p.c))),'Загружен пресет «'+p.n+'».'); C.name=p.n; save(); }
   else if(a==='delPre'){ if(b.dataset.arm){ USER.splice(i,1); saveUser(); PMSG='Пресет удалён.'; rerender(); } else { b.dataset.arm=1; b.textContent='✓'; b.title='Нажмите ещё раз, чтобы удалить'; $('#pmsg').textContent='Нажмите ещё раз, чтобы удалить пресет.'; } }
   else if(a==='savePre'){ const n=$('#pname').value.trim(); if(!n){ $('#pmsg').textContent='Введите название пресета.'; return; }
@@ -408,7 +491,9 @@ function onAct(e){
   else if(a==='tr'){ const F=C.fams[i], l=((F.tr[id]||0)+1)%4; if(l) F.tr[id]=l; else delete F.tr[id]; b.dataset.l=l; b.setAttribute('aria-pressed',l>0); b.querySelector('small').textContent=SL[l]; save(); updMeta(); refreshAxes(); }
   else if(a==='untr'){ const q=C.qs[i], s=b.dataset.s; q[s]=q[s].filter(x=>x!==id); save(); refreshQ(i); }
   else if(a==='addFam'){ C.fams.push({n:'Новая партия',c:'#8a8f9c',d:'',logo:'',tr:{},ppl:[],cap:-1}); OPEN['f'+(C.fams.length-1)]=true; rerender(); }
-  else if(a==='delFam'){ C.fams.splice(i,1); C.duo=[-1,-1]; const sh=x=>x>i?x-1:x; C.no=C.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); C.coal.forEach(c=>{ c.m=c.m.filter(x=>x!==i).map(sh); }); C.scenarios.forEach(s=>{ s.when.forEach(m=>{ const k=m.indexOf(i); if(k>=0) m.splice(k,1); m.forEach((x,j)=>{ if(x>i) m[j]--; }); }); s.when=s.when.filter(m=>m.length); s.no=s.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); }); VETO_VIEW={}; C.fams.forEach(F=>{ F.cap=F.cap===i?-1:sh(F.cap); }); Object.keys(OPEN).forEach(k=>{ if(k[0]==='f') delete OPEN[k]; }); rerender(); }
+  else if(a==='copyFam'){ copyText(partyTransfer(i),()=>{ const status=$('#fam-copy-msg-'+i); if(status) status.textContent='Данные партии скопированы.'; },()=>{ const status=$('#fam-copy-msg-'+i); if(status) status.textContent='Не удалось скопировать. Разрешите доступ к буферу обмена и попробуйте снова.'; }); }
+  else if(a==='importFam'){ importParty(); }
+  else if(a==='delFam'){ C.fams.splice(i,1); C.duo=[-1,-1]; const sh=x=>x>i?x-1:x, remap=m=>m.filter(x=>x!==i).map(sh); C.no=C.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); C.coal.forEach(c=>{ c.m=remap(c.m); c.when=(c.when||[]).map(remap).filter(m=>m.length); (c.variants||[]).forEach(v=>{ v.required=remap(v.required); v.optional=remap(v.optional); }); }); C.scenarios.forEach(s=>{ s.when.forEach(m=>{ const k=m.indexOf(i); if(k>=0) m.splice(k,1); m.forEach((x,j)=>{ if(x>i) m[j]--; }); }); s.when=s.when.filter(m=>m.length); s.no=s.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); }); VETO_VIEW={}; C.fams.forEach(F=>{ F.cap=F.cap===i?-1:sh(F.cap); }); Object.keys(OPEN).forEach(k=>{ if(k[0]==='f') delete OPEN[k]; }); rerender(); }
   else if(a==='delLogo'){ C.fams[i].logo=''; rerender(); }
   else if(a==='logoUrl'||a==='pimgUrl'){ const P=a==='pimgUrl'?C.fams[i].ppl[+b.dataset.j]:null, cur=P?P.img:C.fams[i].logo;
     const u=window.prompt('Ссылка на картинку (начинается с https://). Пустая строка убирает картинку.',isUrl(cur)?cur:''); if(u===null) return; const v=u.trim();
@@ -418,8 +503,12 @@ function onAct(e){
   else if(a==='delP'){ C.fams[i].ppl.splice(+b.dataset.j,1); rerender(); }
   else if(a==='veto'){ const j=+b.dataset.j, scope=+b.dataset.scenario, no=vetoList(scope), k=no.findIndex(p=>(p[0]===i&&p[1]===j)||(p[0]===j&&p[1]===i)); if(k>=0) no.splice(k,1); else no.push([i,j]); save();
     $$('[data-act="veto"]').forEach(x=>{ const xi=+x.dataset.i, xj=+x.dataset.j; if(+x.dataset.scenario===scope&&((xi===i&&xj===j)||(xi===j&&xj===i))) x.setAttribute('aria-pressed',k<0); }); updCo(); }
-  else if(a==='coM'){ const c=C.coal[i], j=+b.dataset.j, k=c.m.indexOf(j); if(k>=0) c.m.splice(k,1); else c.m.push(j); b.setAttribute('aria-pressed',k<0); save(); updCo(); }
-  else if(a==='addCoal'){ C.coal.push({n:'Новая коалиция',m:[]}); rerender(); }
+  else if(a==='coM'){ const c=C.coal[i], v=+b.dataset.v, f=+b.dataset.j; if(!c.variants.length) c.variants=[{required:c.m.slice(),optional:[]}]; const variant=c.variants[v], state=b.dataset.state, next=state==='none'?'required':state==='required'?'optional':'none'; variant.required=variant.required.filter(x=>x!==f); variant.optional=variant.optional.filter(x=>x!==f); if(next==='required') variant.required.push(f); if(next==='optional') variant.optional.push(f); b.dataset.state=next; b.setAttribute('aria-pressed',next!=='none'); b.innerHTML='<span>'+esc(C.fams[f].n)+'</span>'+(next==='none'?'':'<small>'+(next==='required'?'(обязательно)':'(опционально)')+'</small>'); save(); updCo(); }
+  else if(a==='coalMode'){ const c=C.coal[i]; if(c.mode==='logic'){ c.mode='exact'; } else { c.mode='logic'; if(!c.when||!c.when.length) c.when=[c.m.slice()]; } rerender(); }
+  else if(a==='coWhenM'){ const condition=C.coal[i].when[+b.dataset.j], f=+b.dataset.f, k=condition.indexOf(f); if(k>=0) condition.splice(k,1); else condition.push(f); b.setAttribute('aria-pressed',k<0); save(); }
+  else if(a==='addCoWhen'){ C.coal[i].when.push([]); rerender(); }
+  else if(a==='delCoWhen'){ C.coal[i].when.splice(+b.dataset.j,1); if(!C.coal[i].when.length) C.coal[i].when.push([]); rerender(); }
+  else if(a==='addCoal'){ C.coal.push({n:'Новая коалиция',m:[],mode:'exact',when:[],variants:[{required:[],optional:[]}]}); rerender(); }
   else if(a==='delCoal'){ C.coal.splice(i,1); rerender(); }
   else if(a==='coalView'){ CO_VIEW=i; rerender(); }
   else if(a==='addScenario'){ C.scenarios.push({n:'Новый сценарий',when:[[]],no:C.no.map(p=>p.slice())}); CO_VIEW=C.scenarios.length-1; rerender(); }
@@ -662,7 +751,7 @@ function updResult(){
   const co=coalitions(st), bar=m=>'<div class="bar">'+m.map(f=>'<span style="width:'+(st[f]/C.seats*100)+'%;background:'+esc(C.fams[f].c)+'"></span>').join('')+'<em style="left:'+(M/C.seats*100)+'%"></em><em class="cm" style="left:'+(CM()/C.seats*100)+'%"></em></div><button type="button" class="chip" data-co="'+m.join(',')+'" style="margin-top:9px">Собрать правительство</button>';
   $('#cobox').querySelector('h3').textContent=mode.scenario>=0?'Возможные большинства и правительство · '+C.scenarios[mode.scenario].n:'Возможные большинства и правительство';
   $('#coal').innerHTML=solo&&mode.scenario<0?'<div class="co"><div class="t"><span>'+esc(C.fams[L].n)+' в одиночку</span><em>'+st[L]+'</em></div>'+bar([L])+'</div>':
-    co.length?co.map(c=>{ const nm=coName(c.m,rules), ps=c.m.map(f=>esc(C.fams[f].n)).join(' + '); return '<div class="co"><div class="t"><span>'+(nm?esc(nm)+'<small>'+ps+'</small>':ps)+'</span><em>'+c.t+'</em></div>'+bar(c.m)+'</div>'; }).join(''):'<p class="hint">При таком раскладе ни один допустимый союз не набирает '+M+'.</p>';
+    co.length?co.map(c=>{ const nm=c.displayName, ps=c.m.map(f=>esc(C.fams[f].n)).join(' + '); return '<div class="co"><div class="t"><span>'+(nm?esc(nm)+'<small>'+ps+'</small>':ps)+'</span><em>'+c.t+'</em></div>'+bar(c.m)+'</div>'; }).join(''):'<p class="hint">При таком раскладе ни один допустимый союз не набирает '+M+'.</p>';
   wikibox(st,li,di,bo); try{ worldBoxes(st,scope,co); }catch(e){ if(window.console) console.error(e); }
   try{ const fb=$('#futbox'); if(fb) fb.innerHTML=futureBox(st); }catch(e){ if(window.console) console.error(e); }
   S.st=st; S.pick=S.pick.filter(f=>st[f]>0); const pick=Array.from(new Set(S.pick)), pt=sum(pick.map(f=>st[f])), vp=vetoPair(pick,rules), pn=coName(pick,rules);
@@ -715,7 +804,7 @@ function staff(asg,ord){
   return min;
 }
 function viewCabinet(m){
-  const st=S.st, M=maj(), mode=coalitionMode(st), rules=mode.rules; m=m.filter(f=>st[f]>0).sort((a,b)=>st[b]-st[a]||a-b); if(!m.length||!coalitionAllowed(m,rules)) return; const cn=coName(m,rules);
+  const st=S.st, M=maj(), mode=coalitionMode(st), rules=mode.rules; m=m.filter(f=>st[f]>0).sort((a,b)=>st[b]-st[a]||a-b); if(!m.length||!coalitionAllowed(m,rules)) return; const listed=coalitions(st).find(c=>mkey(c.m)===mkey(m)), cn=listed?listed.displayName:coName(m,rules);
   const auto=draft(m,st), asg=Object.assign({},auto.asg), amin=staff(auto.asg,auto.ord), min=Object.assign({},amin), tot=sum(m.map(f=>st[f])), n=PORT.length;
   const anyP=m.some(f=>C.fams[f].ppl.length);
   window.scrollTo(0,0);
