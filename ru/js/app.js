@@ -160,7 +160,7 @@ function coalitionAllowed(m,rules){
   return !(rules.span&&m.length&&Math.max(...m)-Math.min(...m)>3)&&!vetoPair(m,rules);
 }
 function coalitionExists(st,rules,excluded){
-  const M=maj(), fs=st.map((v,i)=>i).filter(i=>v>0&&!excluded.includes(i));
+  const M=maj(), fs=st.map((v,i)=>i).filter(i=>st[i]>0&&!excluded.includes(i));
   let found=false;
   (function rec(start,cur){
     if(found) return;
@@ -176,22 +176,22 @@ function coalitionMode(st){
     for(const condition of scenario.when){ if(!condition.length) continue;
       const cutoff=ranked[Math.min(condition.length-1,ranked.length-1)];
       if(!cutoff||!condition.every(f=>st[f]>0&&st[f]>=cutoff.v)) continue;
-      if(!coalitionExists(st,C,condition)) return {rules:Object.assign({},C,{no:scenario.no}),required:condition,scenario:s};
+      if(!coalitionExists(st,C,condition)) return {rules:Object.assign({},C,{no:scenario.no}),scenario:s};
     }
   }
-  return {rules:C,required:[],scenario:-1};
+  return {rules:C,scenario:-1};
 }
 // Порядок партий в конструкторе — ось слева направо. Союз невозможен, если в нём есть пара, отказавшаяся работать вместе,
 // а при включённом правиле соседей — если он шире трёх шагов по оси. Союзы с названием показываются первыми.
 function coalitions(st){
-  const mode=coalitionMode(st), rules=mode.rules, required=mode.required, M=maj(), fs=st.map((v,i)=>i).filter(i=>st[i]>0), res=[];
+  const mode=coalitionMode(st), rules=mode.rules, M=maj(), fs=st.map((v,i)=>i).filter(i=>st[i]>0), res=[];
   (function rec(start,cur){
     if(cur.length){ const sp=cur[cur.length-1]-cur[0]; if(!coalitionAllowed(cur,rules)) return; const tot=sum(cur.map(i=>st[i]));
-      if(tot>=M){ if(required.every(f=>cur.includes(f))&&cur.every(i=>required.includes(i)||tot-st[i]<M)) res.push({m:cur.slice(),t:tot,sp}); if(required.every(f=>cur.includes(f))) return; } }
+      if(tot>=M){ if(cur.every(i=>tot-st[i]<M)) res.push({m:cur.slice(),t:tot,sp}); return; } }
     for(let k=start;k<fs.length;k++){ cur.push(fs[k]); rec(k+1,cur); cur.pop(); }
   })(0,[]);
   res.sort((a,b)=>a.m.length-b.m.length||a.sp-b.sp||b.t-a.t);
-  const named=rules.coal.filter(c=>c.m.length&&required.every(f=>c.m.includes(f))&&c.m.every(f=>st[f]>0)&&coalitionAllowed(c.m,rules)&&sum(c.m.map(f=>st[f]))>=M).map(c=>({m:c.m.slice().sort((a,b)=>a-b),t:sum(c.m.map(f=>st[f]))})).sort((a,b)=>a.m.length-b.m.length||b.t-a.t);
+  const named=rules.coal.filter(c=>c.m.length&&c.m.every(f=>st[f]>0)&&coalitionAllowed(c.m,rules)&&sum(c.m.map(f=>st[f]))>=M).map(c=>({m:c.m.slice().sort((a,b)=>a-b),t:sum(c.m.map(f=>st[f]))})).sort((a,b)=>a.m.length-b.m.length||b.t-a.t);
   const seen={}, out=[]; named.concat(res.slice(0,4)).forEach(c=>{ const k=mkey(c.m); if(!seen[k]){ seen[k]=1; out.push(c); } });
   return out.slice(0,6);
 }
@@ -237,7 +237,7 @@ function scenarioEditor(i){
   const s=C.scenarios[i], path='scenarios.'+i;
   return '<div class="rows">'+
     '<div class="f-f" style="grid-template-columns:1fr 30px">'+inp(path+'.n',s.n,'aria-label="Название сценария" maxlength="60"')+'<button type="button" class="x" data-act="delScenario" data-i="'+i+'" aria-label="Удалить сценарий">×</button></div>'+
-    '<p class="hint">Сценарий сработает, если партии из одного условия лидируют и по стандартным запретам нельзя собрать большинство без них. Условия соединяются через «или». Запреты для этого сценария задаются в карточках партий.</p>'+
+    '<p class="hint">Сценарий сработает, если партии из одного условия лидируют и по стандартным запретам нельзя собрать большинство без них. Условия соединяются через «или». После срабатывания показываются все коалиции по новым настройкам; партии из условия не обязаны в них входить. Запреты для этого сценария задаются в карточках партий.</p>'+
     '<span class="lbl">Условия срабатывания</span>'+s.when.map((condition,j)=>'<div class="coed"><div class="go"><b>Условие '+(j+1)+'</b><button type="button" class="x" data-act="delWhen" data-i="'+i+'" data-j="'+j+'" aria-label="Удалить условие">×</button></div><div class="chips">'+C.fams.map((F,f)=>'<button type="button" class="chip" data-act="conditionM" data-i="'+i+'" data-j="'+j+'" data-f="'+f+'" aria-pressed="'+condition.includes(f)+'">'+esc(F.n)+'</button>').join('')+'</div><small class="hint">Выбранные партии должны входить в число лидирующих.</small></div>').join('')+
     '<button type="button" class="add" data-act="addWhen" data-i="'+i+'">+ Добавить условие «или»</button></div>';
 }
@@ -277,7 +277,7 @@ function viewBuild(){
     '<div class="chips" style="margin-bottom:10px"><button type="button" class="chip" data-act="coalView" data-i="-1" aria-pressed="'+(CO_VIEW<0)+'">Обычные настройки</button>'+C.scenarios.map((s,i)=>'<button type="button" class="chip" data-act="coalView" data-i="'+i+'" data-scenario-tab="'+i+'" aria-pressed="'+(CO_VIEW===i)+'">'+esc(s.n||'Сценарий '+(i+1))+'</button>').join('')+'<button type="button" class="add" data-act="addScenario">+ Добавить сценарий</button></div>'+
     (CO_VIEW<0?'<div class="rows"><div class="note" id="co-veto"></div>'+coalitionEditor(C.coal,'')+
     '<label class="chk"><input type="checkbox" id="f-span" data-k="span"'+(C.span?' checked':'')+'> Объединяться могут только соседи по оси: не дальше трёх шагов друг от друга</label></div>':scenarioEditor(CO_VIEW))+
-    '</div></div></details>'+
+    '</div></details>'+
   '<details class="step sec" data-o="s5"'+(OPEN.s5?' open':'')+'><summary><span class="num">5</span><h2>Темы и вопросы</h2><span class="sec-t"><span class="t-open">Открыть</span><span class="t-close">Свернуть</span></span></summary><div class="sec-b"><p class="hint">У каждого варианта ответа свои черты: партии с этими чертами тянутся к нему. Точки под вопросом показывают, где в итоге стоят партии.</p>'+
     '<div class="rows">'+C.topics.map((T,t)=>'<details class="card" data-o="t'+t+'"'+(OPEN['t'+t]?' open':'')+'><summary><i class="dot" data-tc="'+t+'" style="background:'+esc(T.c)+'"></i><span data-tn="'+t+'">'+esc(T.n)+'</span><small data-tq="'+t+'"></small></summary><div class="c-body" data-tb="'+t+'">'+(OPEN['t'+t]?topicBody(t):'')+'</div></details>').join('')+
     '<button type="button" class="add" data-act="addTopic">+ Добавить тему</button></div></div></details>'+
@@ -631,7 +631,7 @@ function updResult(){
   const bl=C.topics.map((_,t)=>BB.bl[t]||null);
   const li=Array(nF).fill(0), di=Array(nF).fill(0), bo=Array(nF).fill(0); if(X.dom>=0) bo[X.dom]=bonus();
   bl.forEach(b=>{ if(b) b.list.forEach((v,f)=>{ li[f]+=v; di[f]+=b.dist[f]; }); });
-  const st=li.map((v,f)=>v+di[f]+bo[f]), L=leader(st), hl=S.hl, mode=coalitionMode(st), rules=mode.rules, required=mode.required, solo=st[L]>=M&&required.every(f=>f===L);
+  const st=li.map((v,f)=>v+di[f]+bo[f]), L=leader(st), hl=S.hl, mode=coalitionMode(st), rules=mode.rules, solo=st[L]>=M;
   const gr=[]; C.fams.forEach((F,f)=>{ gr.push({seats:bo[f],c:F.c,f,t:-1,k:'b'}); ['l','d'].forEach(k=>bl.forEach((b,t)=>{ if(b) gr.push({seats:k==='l'?b.list[f]:b.dist[f],c:F.c,f,t,k}); })); });
   const hf=hl&&hl[0]==='f'?+hl.slice(1):null, ht=hl&&hl[0]==='t'?+hl.slice(1):null, hk=hl&&hl[0]==='k'?hl[1]:null;
   const dim=hf!==null?o=>o.f!==hf:ht!==null?o=>o.t!==ht:hk?o=>o.k!==hk:null;
@@ -660,14 +660,14 @@ function updResult(){
   else if(hk) d.textContent=hk==='l'?'Места по списку показаны закрашенными кружками: они делятся пропорционально близости партий к вашим ответам.':hk==='d'?(RINGS?'Места по округам показаны кольцами: каждый вопрос целиком достаётся ближайшей партии.':'Места по округам: каждый вопрос целиком достаётся ближайшей партии.'):'Эти места партия-лидер получает сразу, как гарантированное большинство.';
   else d.textContent='Нажмите на партию или на место в зале, чтобы прочитать о партии и подсветить её места.';
   const co=coalitions(st), bar=m=>'<div class="bar">'+m.map(f=>'<span style="width:'+(st[f]/C.seats*100)+'%;background:'+esc(C.fams[f].c)+'"></span>').join('')+'<em style="left:'+(M/C.seats*100)+'%"></em><em class="cm" style="left:'+(CM()/C.seats*100)+'%"></em></div><button type="button" class="chip" data-co="'+m.join(',')+'" style="margin-top:9px">Собрать правительство</button>';
-  $('#cobox').querySelector('h3').textContent=mode.scenario>=0?'Возможные большинства и правительство · '+rules.n:'Возможные большинства и правительство';
-  $('#coal').innerHTML=solo?'<div class="co"><div class="t"><span>'+esc(C.fams[L].n)+' в одиночку</span><em>'+st[L]+'</em></div>'+bar([L])+'</div>':
+  $('#cobox').querySelector('h3').textContent=mode.scenario>=0?'Возможные большинства и правительство · '+C.scenarios[mode.scenario].n:'Возможные большинства и правительство';
+  $('#coal').innerHTML=solo&&mode.scenario<0?'<div class="co"><div class="t"><span>'+esc(C.fams[L].n)+' в одиночку</span><em>'+st[L]+'</em></div>'+bar([L])+'</div>':
     co.length?co.map(c=>{ const nm=coName(c.m,rules), ps=c.m.map(f=>esc(C.fams[f].n)).join(' + '); return '<div class="co"><div class="t"><span>'+(nm?esc(nm)+'<small>'+ps+'</small>':ps)+'</span><em>'+c.t+'</em></div>'+bar(c.m)+'</div>'; }).join(''):'<p class="hint">При таком раскладе ни один допустимый союз не набирает '+M+'.</p>';
   wikibox(st,li,di,bo); try{ worldBoxes(st,scope,co); }catch(e){ if(window.console) console.error(e); }
   try{ const fb=$('#futbox'); if(fb) fb.innerHTML=futureBox(st); }catch(e){ if(window.console) console.error(e); }
-  S.st=st; S.pick=S.pick.filter(f=>st[f]>0); const pick=Array.from(new Set(S.pick.concat(required))), pt=sum(pick.map(f=>st[f])), vp=vetoPair(pick,rules), pn=coName(pick,rules);
-  $('#copick').innerHTML='<span class="lbl" style="margin:14px 0 6px">Своя коалиция</span><div class="chips">'+C.fams.map((F,f)=>st[f]?'<button type="button" class="chip" data-pk="'+f+'" aria-pressed="'+pick.includes(f)+'"'+(required.includes(f)?' disabled':'')+'>'+mark(F)+esc(F.n)+' · '+st[f]+'</button>':'').join('')+'</div>'+
-    '<div class="go" style="margin-top:10px"><button type="button" class="chip" data-co="'+pick.join(',')+'"'+(pick.length&&required.every(f=>pick.includes(f))&&!vp?'':' disabled')+'>Собрать правительство</button><span>'+(mode.scenario>=0?'Сценарий «'+esc(rules.n)+'»: обязательные партии — '+required.map(f=>esc(C.fams[f].n)).join(' + ')+'. ': '')+(vp?'«'+esc(C.fams[vp[0]].n)+'» и «'+esc(C.fams[vp[1]].n)+'» отказались работать в одной коалиции':pick.length?(pn?'«'+esc(pn)+'»: ':'')+pt+' из '+C.seats+(pt>=M?': большинство есть':': правительство меньшинства, до большинства не хватает '+(M-pt)):'Отметьте партии, которые войдут в правительство')+'</span></div>';
+  S.st=st; S.pick=S.pick.filter(f=>st[f]>0); const pick=Array.from(new Set(S.pick)), pt=sum(pick.map(f=>st[f])), vp=vetoPair(pick,rules), pn=coName(pick,rules);
+  $('#copick').innerHTML='<span class="lbl" style="margin:14px 0 6px">Своя коалиция</span><div class="chips">'+C.fams.map((F,f)=>st[f]?'<button type="button" class="chip" data-pk="'+f+'" aria-pressed="'+pick.includes(f)+'">'+mark(F)+esc(F.n)+' · '+st[f]+'</button>':'').join('')+'</div>'+
+    '<div class="go" style="margin-top:10px"><button type="button" class="chip" data-co="'+pick.join(',')+'"'+(pick.length&&coalitionAllowed(pick,rules)?'':' disabled')+'>Собрать правительство</button><span>'+(mode.scenario>=0?'Сценарий «'+esc(C.scenarios[mode.scenario].n)+'»: действуют его правила коалиций. ': '')+(vp?'«'+esc(C.fams[vp[0]].n)+'» и «'+esc(C.fams[vp[1]].n)+'» отказались работать в одной коалиции':pick.length?(pn?'«'+esc(pn)+'»: ':'')+pt+' из '+C.seats+(pt>=M?': большинство есть':': правительство меньшинства, до большинства не хватает '+(M-pt)):'Отметьте партии, которые войдут в правительство')+'</span></div>';
   $('#ths').innerHTML=C.topics.map((T,t)=>{ const na=!S.order.includes(t), b=bl[t];
     return '<div class="tr'+(na?' na':'')+'" data-t="'+t+'"'+(na?'':' role="button" tabindex="0" aria-pressed="'+(ht===t)+'"')+'><span class="nm"><i class="dot" style="background:'+esc(T.c)+'"></i>'+esc(T.n)+(na?' <small style="font-weight:500;color:var(--ink3)">· без ответов</small>':'')+'</span><span class="n">'+ch(t)+'</span>'+
       '<span class="tb">'+(b?C.fams.map((F,f)=>b.tot[f]?'<i style="width:'+(b.tot[f]/Math.max(1,ch(t))*100)+'%;background:'+esc(F.c)+'" title="'+esc(F.n)+': '+b.tot[f]+'"></i>':'').join(''):'')+'</span>'+(na?'':segHtml(t,S.lv[t]))+'</div>'; }).join('');
@@ -715,7 +715,7 @@ function staff(asg,ord){
   return min;
 }
 function viewCabinet(m){
-  const st=S.st, M=maj(), mode=coalitionMode(st), rules=mode.rules; m=m.filter(f=>st[f]>0).sort((a,b)=>st[b]-st[a]||a-b); if(!m.length||mode.required.some(f=>!m.includes(f))||vetoPair(m,rules)) return; const cn=coName(m,rules);
+  const st=S.st, M=maj(), mode=coalitionMode(st), rules=mode.rules; m=m.filter(f=>st[f]>0).sort((a,b)=>st[b]-st[a]||a-b); if(!m.length||!coalitionAllowed(m,rules)) return; const cn=coName(m,rules);
   const auto=draft(m,st), asg=Object.assign({},auto.asg), amin=staff(auto.asg,auto.ord), min=Object.assign({},amin), tot=sum(m.map(f=>st[f])), n=PORT.length;
   const anyP=m.some(f=>C.fams[f].ppl.length);
   window.scrollTo(0,0);
