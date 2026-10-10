@@ -298,7 +298,7 @@ function viewBuild(){
   '<details class="step sec" data-o="s3"'+(OPEN.s3?' open':'')+'><summary><span class="num">3</span><h2>Партии</h2><span class="sec-t"><span class="t-open">Открыть</span><span class="t-close">Свернуть</span></span></summary><div class="sec-b"><p class="hint">Раскройте партию, чтобы задать её черты, логотип и персонажей. Нажатие на черту меняет силу: слабо, умеренно, сильно, снять. Порядок сверху вниз — ось слева направо.</p>'+
     '<div class="rows">'+C.fams.map((F,i)=>'<details class="card" data-o="f'+i+'"'+(OPEN['f'+i]?' open':'')+'><summary><span data-fm="'+i+'">'+mark(F)+'</span><span data-fn="'+i+'">'+esc(F.n)+'</span><small data-ft="'+i+'"></small><span class="fam-order">'+(i>0?'<button type="button" class="fam-move" data-act="moveFam" data-i="'+i+'" data-dir="-1" aria-label="Переместить партию вверх">↑</button>':'')+(i<C.fams.length-1?'<button type="button" class="fam-move" data-act="moveFam" data-i="'+i+'" data-dir="1" aria-label="Переместить партию вниз">↓</button>':'')+'</span></summary><div class="c-body" data-fb="'+i+'">'+(OPEN['f'+i]?famBody(i):'')+'</div></details>').join('')+
     (C.fams.length<12?'<button type="button" class="add" data-act="addFam">+ Добавить партию</button>':'')+
-    '<div class="psave" style="display:block"><textarea class="in" id="fam-import" rows="5" spellcheck="false" aria-label="Данные партии в формате JSON" placeholder="Вставьте скопированные данные партии" style="display:block;width:100%;max-width:none;box-sizing:border-box"></textarea><div style="margin-top:8px"><button type="button" class="chip" data-act="importFam"'+(C.fams.length>=12?' disabled':'')+'>Добавить партию из текста</button><span class="hint" id="fam-import-msg" role="status" aria-live="polite" style="margin-left:10px">'+esc(FMSG)+'</span></div></div></div></details>'+
+    '<div class="psave" style="display:block"><textarea class="in" id="fam-import" rows="5" spellcheck="false" aria-label="Данные партии в формате JSON" placeholder="Вставьте JSON партии" style="display:block;width:100%;max-width:none;box-sizing:border-box"></textarea><div style="margin-top:8px"><button type="button" class="chip" data-act="importFam"'+(C.fams.length>=12?' disabled':'')+'>Добавить партию из текста</button><span class="hint" id="fam-import-msg" role="status" aria-live="polite" style="margin-left:10px">'+esc(FMSG)+'</span></div></div></div></details>'+
   '<details class="step box sec" data-o="s4"'+(OPEN.s4?' open':'')+'><summary><span class="num">4</span><h2>Коалиции</h2><span class="sec-t"><span class="t-open">Открыть</span><span class="t-close">Свернуть</span></span></summary><div class="sec-b"><p class="hint">Названия союзов показываются в результатах, когда коалиция совпадает по составу. Отказы работать вместе задаются в карточках партий.</p>'+
     '<div class="chips" style="margin-bottom:10px"><button type="button" class="chip" data-act="coalView" data-i="-1" aria-pressed="'+(CO_VIEW<0)+'">Обычные настройки</button>'+C.scenarios.map((s,i)=>'<button type="button" class="chip" data-act="coalView" data-i="'+i+'" data-scenario-tab="'+i+'" aria-pressed="'+(CO_VIEW===i)+'">'+esc(s.n||'Сценарий '+(i+1))+'</button>').join('')+'<button type="button" class="add" data-act="addScenario">+ Добавить сценарий</button></div>'+
     (CO_VIEW<0?'<div class="rows"><div class="note" id="co-veto"></div>'+coalitionEditor(C.coal,'')+
@@ -329,12 +329,12 @@ function partyTransfer(i){
   const F=C.fams[i], used=new Set(Object.keys(F.tr||{}));
   return JSON.stringify({type:'duma-party',version:1,traits:C.traits.filter(t=>used.has(t.id)),party:{n:F.n,c:F.c,d:F.d,logo:F.logo,sm:F.sm,capName:F.cap>=0&&C.fams[F.cap]?C.fams[F.cap].n:'',tr:F.tr,ppl:F.ppl}},null,2);
 }
-function copyText(text,done,failed){
-  const fallback=()=>{ const field=document.createElement('textarea'); field.value=text; field.style.position='fixed'; field.style.opacity='0'; document.body.appendChild(field); field.select(); let copied=false;
-    try{ copied=document.execCommand('copy'); }catch(e){ if(window.console) console.error('Не удалось скопировать данные партии:',e); }
-    field.remove(); return copied; };
-  if(navigator.clipboard&&navigator.clipboard.writeText){ try{ navigator.clipboard.writeText(text).then(done,()=>fallback()?done():failed()); }catch(e){ if(window.console) console.error('Не удалось скопировать данные партии:',e); if(fallback()) done(); else failed(); } }
-  else if(fallback()) done(); else failed();
+function downloadParty(i){
+  const name=C.fams[i].n.replace(/[<>:"/\\|?*\u0000-\u001f]/g,'_').replace(/[. ]+$/,'')||'party';
+  const safeName=/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(name)?'_'+name:name;
+  const blob=new Blob([partyTransfer(i)],{type:'application/json;charset=utf-8'}), url=URL.createObjectURL(blob), link=document.createElement('a');
+  link.href=url; link.download=safeName+'.json'; document.body.appendChild(link); link.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); link.remove(); },800);
 }
 function importParty(){
   const fail=message=>{ FMSG=message; const status=$('#fam-import-msg'); if(status) status.textContent=message; };
@@ -343,7 +343,7 @@ function importParty(){
   try{ raw=JSON.parse($('#fam-import').value); }
   catch(err){ fail('Ошибка разбора JSON: '+err.message); return; }
   if(!raw||raw.type!=='duma-party'||raw.version!==1||!raw.party||typeof raw.party!=='object'||Array.isArray(raw.party)){
-    fail('Неверный формат данных партии. Скопируйте JSON кнопкой «Скопировать данные партии».'); return;
+    fail('Неверный формат данных партии. Загрузите JSON, скачанный кнопкой «Скачать данные партии».'); return;
   }
   const src=raw.party, name=typeof src.n==='string'?src.n.trim():'';
   if(!name||!src.tr||typeof src.tr!=='object'||Array.isArray(src.tr)||!Array.isArray(raw.traits)){
@@ -377,7 +377,7 @@ function famBody(i){
       (F.ppl.length<12?'<button type="button" class="add" data-act="addP" data-i="'+i+'">+ Добавить персонажа</button>':'')+'<small class="hint">Первый в списке — лидер: он станет премьером, если партия возглавит правительство. Профиль подсказывает, какое министерство человеку ближе. Фото подставляется по имени; своё можно загрузить кнопкой «Фото» или указать кнопкой «Ссылка».</small></div></div>'+
     '<div class="tg"><span>Не войдёт в коалицию с</span><div><select class="in" data-veto-scope data-i="'+i+'" aria-label="Сценарий запретов коалиции"><option value="-1"'+(scope<0?' selected':'')+'>Стандартный сценарий</option>'+C.scenarios.map((s,j)=>'<option value="'+j+'" data-veto-option="'+j+'"'+(scope===j?' selected':'')+'>'+esc(s.n||'Сценарий '+(j+1))+'</option>').join('')+'</select><div class="chips" style="margin-top:6px">'+C.fams.map((G,j)=>j===i?'':'<button type="button" class="chip veto" data-act="veto" data-i="'+i+'" data-j="'+j+'" data-scenario="'+scope+'" aria-pressed="'+vetoed(i,j,vetoRules)+'">'+esc(G.n)+'</button>').join('')+'</div></div></div>'+
     groups().map(g=>'<div class="tg"><span>'+esc(g)+'</span><div class="chips">'+C.traits.filter(x=>x.g===g).map(x=>{ const l=F.tr[x.id]||0; return '<button type="button" class="tchip" data-act="tr" data-i="'+i+'" data-id="'+esc(x.id)+'" data-l="'+l+'" aria-pressed="'+(l>0)+'">'+esc(x.n)+'<small>'+SL[l]+'</small></button>'; }).join('')+'</div></div>').join('')+
-    '<div class="psave"><button type="button" class="chip" data-act="copyFam" data-i="'+i+'">Скопировать данные партии</button><span class="hint" id="fam-copy-msg-'+i+'" role="status" aria-live="polite"></span></div>';
+    '<div class="psave"><button type="button" class="chip" data-act="downloadFam" data-i="'+i+'">Скачать данные партии</button><span class="hint" id="fam-download-msg-'+i+'" role="status" aria-live="polite"></span></div>';
 }
 function topicBody(t){
   const T=C.topics[t], qs=C.qs.map((q,i)=>({q,i})).filter(x=>x.q.t===t);
@@ -491,7 +491,7 @@ function onAct(e){
   else if(a==='tr'){ const F=C.fams[i], l=((F.tr[id]||0)+1)%4; if(l) F.tr[id]=l; else delete F.tr[id]; b.dataset.l=l; b.setAttribute('aria-pressed',l>0); b.querySelector('small').textContent=SL[l]; save(); updMeta(); refreshAxes(); }
   else if(a==='untr'){ const q=C.qs[i], s=b.dataset.s; q[s]=q[s].filter(x=>x!==id); save(); refreshQ(i); }
   else if(a==='addFam'){ C.fams.push({n:'Новая партия',c:'#8a8f9c',d:'',logo:'',tr:{},ppl:[],cap:-1}); OPEN['f'+(C.fams.length-1)]=true; rerender(); }
-  else if(a==='copyFam'){ copyText(partyTransfer(i),()=>{ const status=$('#fam-copy-msg-'+i); if(status) status.textContent='Данные партии скопированы.'; },()=>{ const status=$('#fam-copy-msg-'+i); if(status) status.textContent='Не удалось скопировать. Разрешите доступ к буферу обмена и попробуйте снова.'; }); }
+  else if(a==='downloadFam'){ try{ downloadParty(i); const status=$('#fam-download-msg-'+i); if(status) status.textContent='Файл партии скачан.'; }catch(err){ if(window.console) console.error('Не удалось скачать данные партии:',err); const status=$('#fam-download-msg-'+i); if(status) status.textContent='Не удалось скачать файл партии.'; } }
   else if(a==='importFam'){ importParty(); }
   else if(a==='delFam'){ C.fams.splice(i,1); C.duo=[-1,-1]; const sh=x=>x>i?x-1:x, remap=m=>m.filter(x=>x!==i).map(sh); C.no=C.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); C.coal.forEach(c=>{ c.m=remap(c.m); c.when=(c.when||[]).map(remap).filter(m=>m.length); (c.variants||[]).forEach(v=>{ v.required=remap(v.required); v.optional=remap(v.optional); }); }); C.scenarios.forEach(s=>{ s.when.forEach(m=>{ const k=m.indexOf(i); if(k>=0) m.splice(k,1); m.forEach((x,j)=>{ if(x>i) m[j]--; }); }); s.when=s.when.filter(m=>m.length); s.no=s.no.filter(p=>!p.includes(i)).map(p=>p.map(sh)); }); VETO_VIEW={}; C.fams.forEach(F=>{ F.cap=F.cap===i?-1:sh(F.cap); }); Object.keys(OPEN).forEach(k=>{ if(k[0]==='f') delete OPEN[k]; }); rerender(); }
   else if(a==='delLogo'){ C.fams[i].logo=''; rerender(); }
