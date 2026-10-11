@@ -4,7 +4,7 @@ services:
   - type: web
     name: duma-simulator
     runtime: static
-    buildCommand: ""
+    buildCommand: node tools/build-presets.js
     staticPublishPath: .
     autoDeploy: true
     headers:

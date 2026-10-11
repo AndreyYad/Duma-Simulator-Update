@@ -55,6 +55,7 @@ let C=null, USER=[];
 try{ C=norm(JSON.parse(localStorage.getItem(KEY))); }catch(e){}
 try{ USER=(JSON.parse(localStorage.getItem(PKEY))||[]).filter(p=>p&&p.n&&norm(p.c)); }catch(e){ USER=[]; }
 const presetCfg=p=>defaults(Object.assign({name:p.n},p.set),p.raw);
+const FILE_PRESETS=(window.EXTRA_PRESETS||[]).map(p=>({n:p.n,c:norm(p.c)})).filter(p=>p.n&&p.c);
 if(!C) C=presetCfg(BUILTIN.find(p=>p.n==='Дума-2021'));
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(C)); }catch(e){} }
 // Показывать ли места от округов кольцами: настройка вида, хранится в браузере
@@ -178,11 +179,11 @@ function coalitionExists(st,rules,excluded){
   return found;
 }
 function coalitionMode(st){
-  const ranked=st.map((v,i)=>({v,i})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
   for(let s=0;s<C.scenarios.length;s++){ const scenario=C.scenarios[s];
     for(const condition of scenario.when){ if(!condition.length) continue;
-      const cutoff=ranked[Math.min(condition.length-1,ranked.length-1)];
-      if(!cutoff||!condition.every(f=>st[f]>0&&st[f]>=cutoff.v)) continue;
+      if(!condition.every(f=>st[f]>0)) continue;
+      const total=sum(condition.map(f=>st[f]));
+      if(st.some((v,f)=>!condition.includes(f)&&v>=total)) continue;
       if(!coalitionExists(st,C,condition)) return {rules:Object.assign({},C,{no:scenario.no}),scenario:s};
     }
   }
@@ -262,8 +263,8 @@ function scenarioEditor(i){
   const s=C.scenarios[i], path='scenarios.'+i;
   return '<div class="rows">'+
     '<div class="f-f" style="grid-template-columns:1fr 30px">'+inp(path+'.n',s.n,'aria-label="Название сценария" maxlength="60"')+'<button type="button" class="x" data-act="delScenario" data-i="'+i+'" aria-label="Удалить сценарий">×</button></div>'+
-    '<p class="hint">Сценарий сработает, если партии из одного условия лидируют и по стандартным запретам нельзя собрать большинство без них. Условия соединяются через «или». После срабатывания показываются все коалиции по новым настройкам; партии из условия не обязаны в них входить. Запреты для этого сценария задаются в карточках партий.</p>'+
-    '<span class="lbl">Условия срабатывания</span>'+s.when.map((condition,j)=>'<div class="coed"><div class="go"><b>Условие '+(j+1)+'</b><button type="button" class="x" data-act="delWhen" data-i="'+i+'" data-j="'+j+'" aria-label="Удалить условие">×</button></div><div class="chips">'+C.fams.map((F,f)=>'<button type="button" class="chip" data-act="conditionM" data-i="'+i+'" data-j="'+j+'" data-f="'+f+'" aria-pressed="'+condition.includes(f)+'">'+esc(F.n)+'</button>').join('')+'</div><small class="hint">Выбранные партии должны входить в число лидирующих.</small></div>').join('')+
+    '<p class="hint">Сценарий сработает, если партии из одного условия в сумме опережают каждую другую партию, и по стандартным запретам нельзя собрать большинство без них. Условия соединяются через «или». После срабатывания показываются все коалиции по новым настройкам; партии из условия не обязаны в них входить. Запреты для этого сценария задаются в карточках партий.</p>'+
+    '<span class="lbl">Условия срабатывания</span>'+s.when.map((condition,j)=>'<div class="coed"><div class="go"><b>Условие '+(j+1)+'</b><button type="button" class="x" data-act="delWhen" data-i="'+i+'" data-j="'+j+'" aria-label="Удалить условие">×</button></div><div class="chips">'+C.fams.map((F,f)=>'<button type="button" class="chip" data-act="conditionM" data-i="'+i+'" data-j="'+j+'" data-f="'+f+'" aria-pressed="'+condition.includes(f)+'">'+esc(F.n)+'</button>').join('')+'</div><small class="hint">Общее число мест выбранных партий должно быть больше числа мест каждой другой партии.</small></div>').join('')+
     '<button type="button" class="add" data-act="addWhen" data-i="'+i+'">+ Добавить условие «или»</button></div>';
 }
 function viewBuild(){
@@ -273,7 +274,8 @@ function viewBuild(){
   '<section class="step box"><header><h2>Пресеты</h2><p class="hint">Готовые наборы и ваши сохранённые тесты. Сохранённые пресеты хранятся в этом браузере.</p></header>'+
     '<span class="lbl" style="margin:0">Выборы в Государственную думу</span><div class="presets">'+BUILTIN.map((p,i)=>p.set.year&&!p.h?'<button type="button" class="preset" data-act="pre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>'+esc(p.d)+'</span></button>':'').join('')+'</div>'+
     '<span class="lbl" style="margin:0">Стандартный тест и мои пресеты</span><div class="presets">'+BUILTIN.map((p,i)=>p.set.year||p.h?'':'<button type="button" class="preset" data-act="pre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>'+esc(p.d)+'</span></button>').join('')+
-      USER.map((p,i)=>'<div class="pwrap"><button type="button" class="preset" data-act="upre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>Мой пресет · '+mest(p.c.seats)+' · '+p.c.fams.length+' '+plural(p.c.fams.length,'партия','партии','партий')+'</span></button><button type="button" class="x" data-act="delPre" data-i="'+i+'" aria-label="Удалить пресет">×</button></div>').join('')+'</div>'+
+        '</div>'+(FILE_PRESETS.length?'<span class="lbl" style="margin:12px 0 0">Пресеты из папки presets/</span><div class="presets">'+FILE_PRESETS.map((p,i)=>'<button type="button" class="preset" data-act="filePre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>Файл JSON · '+mest(p.c.seats)+' · '+p.c.fams.length+' '+plural(p.c.fams.length,'партия','партии','партий')+'</span></button>').join('')+'</div>':'')+
+      '<div class="presets">'+USER.map((p,i)=>'<div class="pwrap"><button type="button" class="preset" data-act="upre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>Мой пресет · '+mest(p.c.seats)+' · '+p.c.fams.length+' '+plural(p.c.fams.length,'партия','партии','партий')+'</span></button><button type="button" class="x" data-act="delPre" data-i="'+i+'" aria-label="Удалить пресет">×</button></div>').join('')+'</div>'+
     '<div class="psave"><input class="in" id="pname" value="'+esc(C.name)+'" maxlength="60" aria-label="Название пресета" placeholder="Название пресета"><button type="button" class="chip" data-act="savePre">Сохранить текущий тест как пресет</button>'+(PREV?'<button type="button" class="link" data-act="undo">Вернуть тест, который был до загрузки</button>':'')+'<span class="hint" id="pmsg">'+esc(PMSG)+'</span></div></section>'+
   '<p class="hint sec-hint">Ниже — настройки выбранного теста. Разделы свёрнуты: откройте тот, который хотите изменить.</p>'+
   '<details class="step box sec" data-o="s1"'+(OPEN.s1?' open':'')+'><summary><span class="num">1</span><h2>Парламент</h2><span class="sec-t"><span class="t-open">Открыть</span><span class="t-close">Свернуть</span></span></summary><div class="sec-b"><div class="parl">'+
@@ -478,6 +480,7 @@ function onAct(e){
     save(); rerender();
   }
   else if(a==='pre'){ const p=BUILTIN[i]; loadCfg(presetCfg(p),'Загружен пресет «'+p.n+'».'); }
+  else if(a==='filePre'){ const p=FILE_PRESETS[i], c=p&&norm(JSON.parse(JSON.stringify(p.c))); if(!c){ PMSG='Не удалось загрузить JSON-пресет «'+(p?p.n:'')+'»: неверный формат.'; rerender(); return; } c.name=p.n; loadCfg(c,'Загружен JSON-пресет «'+p.n+'».'); }
   else if(a==='upre'){ const p=USER[i]; loadCfg(norm(JSON.parse(JSON.stringify(p.c))),'Загружен пресет «'+p.n+'».'); C.name=p.n; save(); }
   else if(a==='delPre'){ if(b.dataset.arm){ USER.splice(i,1); saveUser(); PMSG='Пресет удалён.'; rerender(); } else { b.dataset.arm=1; b.textContent='✓'; b.title='Нажмите ещё раз, чтобы удалить'; $('#pmsg').textContent='Нажмите ещё раз, чтобы удалить пресет.'; } }
   else if(a==='savePre'){ const n=$('#pname').value.trim(); if(!n){ $('#pmsg').textContent='Введите название пресета.'; return; }
@@ -808,9 +811,9 @@ function viewCabinet(m){
   const auto=draft(m,st), asg=Object.assign({},auto.asg), amin=staff(auto.asg,auto.ord), min=Object.assign({},amin), tot=sum(m.map(f=>st[f])), n=PORT.length;
   const anyP=m.some(f=>C.fams[f].ppl.length);
   window.scrollTo(0,0);
-  app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px">'+(cn?'<span class="pill">'+esc(cn)+'</span>':'')+'<span class="pill">'+(tot>=M?'Правительство большинства':'Правительство меньшинства')+'</span><span class="pill">'+tot+' из '+C.seats+' мест</span></div>'+
+  app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px"><span class="pill">'+(tot>=M?'Правительство большинства':'Правительство меньшинства')+'</span><span class="pill">'+tot+' из '+C.seats+' мест</span></div>'+
     '<h2 tabindex="-1" style="outline:none">Правительство</h2><p class="lead" style="margin:0;max-width:70ch">'+(m.length>1?'Коалиция: ':'Однопартийный кабинет: ')+m.map(f=>'<b>'+esc(C.fams[f].n)+'</b>').join(', ')+'. Портфели розданы по очереди: чем больше у партии мест, тем раньше и чаще она выбирает, и берёт министерство, которое ближе её чертам. '+(anyP?'Министров партии выдвигают из своих персонажей. ':'У этих партий пока нет персонажей: добавьте их в настройках теста, в карточках партий. ')+'Портфель можно передать другой партии, а министра заменить.</p></div>'+
-    '<div class="box main"><div class="hemi" id="ch"></div><div class="leg" id="cleg"></div></div>'+
+    '<div class="box main">'+(cn?'<h3 class="coalition-title">'+esc(cn)+'</h3>':'')+'<div class="hemi" id="ch"></div><div class="leg" id="cleg"></div></div>'+
     '<div class="box"><h3>Кабинет министров</h3><p class="hint">Номер слева показывает, каким по счёту портфель был выбран.</p><div id="crows"></div></div>'+
     '<div class="acts"><button type="button" class="cta" id="cback">← К результатам</button><button type="button" class="cta ghost" id="creset">Раздать заново по правилу</button></div>'+
     '<details class="det box"><summary>Как раздаются портфели</summary><p><b>Очередь.</b> Метод д’Ондта: число мест партии делится на число уже взятых ею портфелей плюс один, и выбирает партия с наибольшим частным. Так доля портфелей получается близкой к доле мест в коалиции.</p>'+

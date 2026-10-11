@@ -55,6 +55,7 @@ let C=null, USER=[];
 try{ C=norm(JSON.parse(localStorage.getItem(KEY))); }catch(e){}
 try{ USER=(JSON.parse(localStorage.getItem(PKEY))||[]).filter(p=>p&&p.n&&norm(p.c)); }catch(e){ USER=[]; }
 const presetCfg=p=>defaults(Object.assign({name:p.n},p.set),p.raw);
+const FILE_PRESETS=(window.EXTRA_PRESETS||[]).map(p=>({n:p.n,c:norm(p.c)})).filter(p=>p.n&&p.c);
 if(!C) C=presetCfg(BUILTIN.find(p=>p.n==='Duma-2021'));
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(C)); }catch(e){} }
 // Показывать ли места от округов кольцами: настройка вида, хранится в браузере
@@ -178,11 +179,11 @@ function coalitionExists(st,rules,excluded){
   return found;
 }
 function coalitionMode(st){
-  const ranked=st.map((v,i)=>({v,i})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
   for(let s=0;s<C.scenarios.length;s++){ const scenario=C.scenarios[s];
     for(const condition of scenario.when){ if(!condition.length) continue;
-      const cutoff=ranked[Math.min(condition.length-1,ranked.length-1)];
-      if(!cutoff||!condition.every(f=>st[f]>0&&st[f]>=cutoff.v)) continue;
+      if(!condition.every(f=>st[f]>0)) continue;
+      const total=sum(condition.map(f=>st[f]));
+      if(st.some((v,f)=>!condition.includes(f)&&v>=total)) continue;
       if(!coalitionExists(st,C,condition)) return {rules:Object.assign({},C,{no:scenario.no}),scenario:s};
     }
   }
@@ -262,8 +263,8 @@ function scenarioEditor(i){
   const s=C.scenarios[i], path='scenarios.'+i;
   return '<div class="rows">'+
     '<div class="f-f" style="grid-template-columns:1fr 30px">'+inp(path+'.n',s.n,'aria-label="Scenario name" maxlength="60"')+'<button type="button" class="x" data-act="delScenario" data-i="'+i+'" aria-label="Delete scenario">×</button></div>'+
-    '<p class="hint">A scenario applies when the parties in one condition lead and a majority cannot be formed without them under the standard vetoes. Conditions are joined by “or”. Once it applies, all coalitions are shown using the new settings; parties in the condition do not have to be part of them. Set this scenario’s vetoes in the party cards.</p>'+
-    '<span class="lbl">Trigger conditions</span>'+s.when.map((condition,j)=>'<div class="coed"><div class="go"><b>Condition '+(j+1)+'</b><button type="button" class="x" data-act="delWhen" data-i="'+i+'" data-j="'+j+'" aria-label="Delete condition">×</button></div><div class="chips">'+C.fams.map((F,f)=>'<button type="button" class="chip" data-act="conditionM" data-i="'+i+'" data-j="'+j+'" data-f="'+f+'" aria-pressed="'+condition.includes(f)+'">'+esc(F.n)+'</button>').join('')+'</div><small class="hint">Selected parties must be among the leaders.</small></div>').join('')+
+    '<p class="hint">A scenario applies when the parties in one condition have more seats together than every other party, and a majority cannot be formed without them under the standard vetoes. Conditions are joined by “or”. Once it applies, all coalitions are shown using the new settings; parties in the condition do not have to be part of them. Set this scenario’s vetoes in the party cards.</p>'+
+    '<span class="lbl">Trigger conditions</span>'+s.when.map((condition,j)=>'<div class="coed"><div class="go"><b>Condition '+(j+1)+'</b><button type="button" class="x" data-act="delWhen" data-i="'+i+'" data-j="'+j+'" aria-label="Delete condition">×</button></div><div class="chips">'+C.fams.map((F,f)=>'<button type="button" class="chip" data-act="conditionM" data-i="'+i+'" data-j="'+j+'" data-f="'+f+'" aria-pressed="'+condition.includes(f)+'">'+esc(F.n)+'</button>').join('')+'</div><small class="hint">The selected parties must have more seats together than each other party.</small></div>').join('')+
     '<button type="button" class="add" data-act="addWhen" data-i="'+i+'">+ Add an “or” condition</button></div>';
 }
 function viewBuild(){
@@ -273,7 +274,8 @@ function viewBuild(){
   '<section class="step box"><header><h2>Presets</h2><p class="hint">Ready-made sets and your saved tests. Saved presets are stored in this browser.</p></header>'+
     '<span class="lbl" style="margin:0">State Duma elections</span><div class="presets">'+BUILTIN.map((p,i)=>p.set.year&&!p.h?'<button type="button" class="preset" data-act="pre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>'+esc(p.d)+'</span></button>':'').join('')+'</div>'+
     '<span class="lbl" style="margin:0">Standard test and my presets</span><div class="presets">'+BUILTIN.map((p,i)=>p.set.year||p.h?'':'<button type="button" class="preset" data-act="pre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>'+esc(p.d)+'</span></button>').join('')+
-      USER.map((p,i)=>'<div class="pwrap"><button type="button" class="preset" data-act="upre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>My preset · '+mest(p.c.seats)+' · '+p.c.fams.length+' '+plural(p.c.fams.length,'party','parties','parties')+'</span></button><button type="button" class="x" data-act="delPre" data-i="'+i+'" aria-label="Delete preset">×</button></div>').join('')+'</div>'+
+        '</div>'+(FILE_PRESETS.length?'<span class="lbl" style="margin:12px 0 0">Presets from the presets/ folder</span><div class="presets">'+FILE_PRESETS.map((p,i)=>'<button type="button" class="preset" data-act="filePre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>JSON file · '+mest(p.c.seats)+' · '+p.c.fams.length+' '+plural(p.c.fams.length,'party','parties','parties')+'</span></button>').join('')+'</div>':'')+
+      '<div class="presets">'+USER.map((p,i)=>'<div class="pwrap"><button type="button" class="preset" data-act="upre" data-i="'+i+'" aria-pressed="'+(C.name===p.n)+'"><b>'+esc(p.n)+'</b><span>My preset · '+mest(p.c.seats)+' · '+p.c.fams.length+' '+plural(p.c.fams.length,'party','parties','parties')+'</span></button><button type="button" class="x" data-act="delPre" data-i="'+i+'" aria-label="Delete preset">×</button></div>').join('')+'</div>'+
     '<div class="psave"><input class="in" id="pname" value="'+esc(C.name)+'" maxlength="60" aria-label="Preset name" placeholder="Preset name"><button type="button" class="chip" data-act="savePre">Save the current test as a preset</button>'+(PREV?'<button type="button" class="link" data-act="undo">Restore the test that was open before loading</button>':'')+'<span class="hint" id="pmsg">'+esc(PMSG)+'</span></div></section>'+
   '<p class="hint sec-hint">Below are the settings of the selected test. The sections are collapsed: open the one you want to change.</p>'+
   '<details class="step box sec" data-o="s1"'+(OPEN.s1?' open':'')+'><summary><span class="num">1</span><h2>Parliament</h2><span class="sec-t"><span class="t-open">Open</span><span class="t-close">Collapse</span></span></summary><div class="sec-b"><div class="parl">'+
@@ -478,6 +480,7 @@ function onAct(e){
     save(); rerender();
   }
   else if(a==='pre'){ const p=BUILTIN[i]; loadCfg(presetCfg(p),'Preset loaded: “'+p.n+'”.'); }
+  else if(a==='filePre'){ const p=FILE_PRESETS[i], c=p&&norm(JSON.parse(JSON.stringify(p.c))); if(!c){ PMSG='Could not load JSON preset “'+(p?p.n:'')+'”: invalid format.'; rerender(); return; } c.name=p.n; loadCfg(c,'Loaded JSON preset “'+p.n+'”.'); }
   else if(a==='upre'){ const p=USER[i]; loadCfg(norm(JSON.parse(JSON.stringify(p.c))),'Preset loaded: “'+p.n+'”.'); C.name=p.n; save(); }
   else if(a==='delPre'){ if(b.dataset.arm){ USER.splice(i,1); saveUser(); PMSG='Preset deleted.'; rerender(); } else { b.dataset.arm=1; b.textContent='✓'; b.title='Click again to delete'; $('#pmsg').textContent='Click again to delete the preset.'; } }
   else if(a==='savePre'){ const n=$('#pname').value.trim(); if(!n){ $('#pmsg').textContent='Enter a preset name.'; return; }
@@ -808,9 +811,9 @@ function viewCabinet(m){
   const auto=draft(m,st), asg=Object.assign({},auto.asg), amin=staff(auto.asg,auto.ord), min=Object.assign({},amin), tot=sum(m.map(f=>st[f])), n=PORT.length;
   const anyP=m.some(f=>C.fams[f].ppl.length);
   window.scrollTo(0,0);
-  app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px">'+(cn?'<span class="pill">'+esc(cn)+'</span>':'')+'<span class="pill">'+(tot>=M?'Majority government':'Minority government')+'</span><span class="pill">'+tot+' of '+C.seats+' seats</span></div>'+
+  app.innerHTML='<section class="res stack"><div><div class="chips" style="margin-bottom:10px"><span class="pill">'+(tot>=M?'Majority government':'Minority government')+'</span><span class="pill">'+tot+' of '+C.seats+' seats</span></div>'+
     '<h2 tabindex="-1" style="outline:none">Government</h2><p class="lead" style="margin:0;max-width:70ch">'+(m.length>1?'Coalition: ':'Single-party cabinet: ')+m.map(f=>'<b>'+esc(C.fams[f].n)+'</b>').join(', ')+'. Portfolios are handed out in turns: the more seats a party has, the earlier and more often it picks, and it takes the ministry closest to its traits. '+(anyP?'Parties nominate ministers from their own characters. ':'These parties have no characters yet: add them in the test settings, in the party cards. ')+'A portfolio can be passed to another party and a minister can be replaced.</p></div>'+
-    '<div class="box main"><div class="hemi" id="ch"></div><div class="leg" id="cleg"></div></div>'+
+    '<div class="box main">'+(cn?'<h3 class="coalition-title">'+esc(cn)+'</h3>':'')+'<div class="hemi" id="ch"></div><div class="leg" id="cleg"></div></div>'+
     '<div class="box"><h3>Cabinet of ministers</h3><p class="hint">The number on the left shows in which turn the portfolio was picked.</p><div id="crows"></div></div>'+
     '<div class="acts"><button type="button" class="cta" id="cback">← Back to results</button><button type="button" class="cta ghost" id="creset">Hand out again by the rule</button></div>'+
     '<details class="det box"><summary>How portfolios are handed out</summary><p><b>Order of picks.</b> The D’Hondt method: a party’s seats are divided by the number of portfolios it already holds plus one, and the party with the highest quotient picks next. This keeps each party’s share of portfolios close to its share of coalition seats.</p>'+

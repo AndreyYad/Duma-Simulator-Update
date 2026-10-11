@@ -254,6 +254,7 @@ span.tchip{cursor:default}
 .desc{font-size:13px;color:var(--ink2);background:var(--sunk);border-radius:8px;padding:9px 11px;margin-top:8px;min-height:40px}
 .desc b{color:var(--ink)}
 .box h3{font-size:15px;margin-bottom:4px}
+.box h3.coalition-title{text-align:center;font-size:22px;line-height:1.2;margin:0 0 12px;font-weight:800}
 .box .hint{margin-bottom:10px}
 .coal{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
 .co{border:1px solid var(--line2);border-radius:10px;padding:9px 11px;min-width:0}
